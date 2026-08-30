@@ -6,6 +6,7 @@ import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Pressable, Text } from 'react-native';
 
 import { LockGate } from '@/components/lock-gate';
 import { Fonts } from '@/constants/theme';
@@ -42,6 +43,30 @@ export default function RootLayout() {
   );
 }
 
+function ModalCancelButton() {
+  const theme = useTheme();
+  const router = useRouter();
+  return (
+    <Pressable
+      onPress={() => router.back()}
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel="Cancel">
+      {({ pressed }) => (
+        <Text
+          style={{
+            fontFamily: Fonts.body,
+            fontSize: 17,
+            color: theme.accent,
+            opacity: pressed ? 0.6 : 1,
+          }}>
+          Cancel
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
 function AppShell() {
   const theme = useTheme();
   const scheme = useColorScheme();
@@ -68,13 +93,22 @@ function AppShell() {
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.background },
-          headerTintColor: theme.text,
-          headerTitleStyle: { fontFamily: Fonts.bodyMedium, fontSize: 17 },
+          // Back chevrons and bar buttons take the accent; titles stay ink.
+          headerTintColor: theme.accent,
+          headerTitleStyle: { fontFamily: Fonts.bodyMedium, fontSize: 17, color: theme.text },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: theme.background },
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="add" options={{ presentation: 'modal', title: 'Add' }} />
+        <Stack.Screen
+          name="add"
+          options={{
+            presentation: 'modal',
+            title: 'Add',
+            // A modal needs a visible way out; swiping down is not discoverable.
+            headerLeft: () => <ModalCancelButton />,
+          }}
+        />
         <Stack.Screen name="document/[id]" options={{ title: '' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
         <Stack.Screen name="archive" options={{ title: 'Archive' }} />

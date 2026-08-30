@@ -42,6 +42,62 @@ export function countdownParts(days: number): { value: string; unit: string } {
   return { value: String(Math.floor(days / 365)), unit: 'years' };
 }
 
+/** Terse form for the ledger: "11 days", "6 months", "9 years". */
+export function countdownShort(days: number): string {
+  if (days < 0) return `${-days}d over`;
+  if (days === 0) return 'Today';
+  if (days === 1) return '1 day';
+  if (days < 60) return `${days} days`;
+  const months = Math.round(days / 30);
+  if (months < 24) return `${months} months`;
+  return `${Math.round(days / 365)} years`;
+}
+
+/** The detail screen's headline answer to "should I worry?". */
+export function verdictPhrase(days: number): string {
+  if (days < 0) return `${-days} ${-days === 1 ? 'day' : 'days'} late.`;
+  if (days === 0) return 'Today.';
+  return `${countdownShort(days)}.`;
+}
+
+/** Spelled out up to ten — reads better set in the serif. */
+export function countWord(n: number): string {
+  const words = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+  return words[n] ?? String(n);
+}
+
+export function monthName(isoDate: string): string {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-GB', { month: 'long' });
+}
+
+/** "Saturday 30 August" — the ledger's masthead date. */
+export function mastheadDate(date = new Date()): string {
+  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+export function shortDate(isoDate: string): string {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+/** "Thursday 10 September 2026" — used in full sentences. */
+export function longDate(isoDate: string): string {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/** "11 Aug" — used for reminder dates. */
+export function dayMonth(date: Date): string {
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
 export function toISODate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');

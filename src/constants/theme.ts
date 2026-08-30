@@ -18,14 +18,19 @@ export const Colors = {
     urgentStrong: '#9E2B20',
     urgentSoft: '#87591A',
   },
+  /**
+   * Not an inversion of the light theme — a candle-lit study. The paper goes
+   * warm brown-black, hairlines turn umber, and amber urgency glows the way it
+   * cannot in daylight.
+   */
   dark: {
-    background: '#100F0E',
-    backgroundElement: '#191816',
-    backgroundSelected: '#24221E',
-    text: '#F3F1EC',
-    textSecondary: '#A19B8F',
-    textTertiary: '#6F695E',
-    border: '#2A2723',
+    background: '#15100A',
+    backgroundElement: '#1E1811',
+    backgroundSelected: '#332A1E',
+    text: '#F3EFE7',
+    textSecondary: '#A79E8F',
+    textTertiary: '#7A7264',
+    border: '#2E261C',
     accent: '#8ED6B2',
     accentContrast: '#0E241B',
     urgentStrong: '#F09A8C',

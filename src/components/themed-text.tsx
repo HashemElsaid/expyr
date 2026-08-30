@@ -13,7 +13,11 @@ export type ThemedTextProps = TextProps & {
     | 'small'
     | 'smallBold'
     | 'label'
-    | 'numeral';
+    | 'numeral'
+    | 'ledgerTitle'
+    | 'ledgerFigure'
+    | 'verdict'
+    | 'fieldValue';
   themeColor?: ThemeColor;
 };
 
@@ -32,6 +36,10 @@ const MAX_SCALE: Record<NonNullable<ThemedTextProps['type']>, number> = {
   smallBold: 1.8,
   label: 1.5,
   numeral: 1.3,
+  ledgerTitle: 1.4,
+  ledgerFigure: 1.4,
+  verdict: 1.25,
+  fieldValue: 1.6,
 };
 
 export function ThemedText({ style, type = 'body', themeColor, ...rest }: ThemedTextProps) {
@@ -93,6 +101,32 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     letterSpacing: 1.1,
     textTransform: 'uppercase',
+  },
+  /** A tracked document's name in the ledger. */
+  ledgerTitle: {
+    fontFamily: Fonts.display,
+    fontSize: 22,
+    lineHeight: 26,
+    letterSpacing: -0.3,
+  },
+  /** The time remaining, set beside the title. */
+  ledgerFigure: {
+    fontFamily: Fonts.display,
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  /** The masthead's answer to "do I need to worry?". */
+  verdict: {
+    fontFamily: Fonts.display,
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -0.4,
+  },
+  /** The value sitting on a ruled form line. */
+  fieldValue: {
+    fontFamily: Fonts.body,
+    fontSize: 17,
+    lineHeight: 24,
   },
   /** Large countdown figures. */
   numeral: {

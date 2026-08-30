@@ -4,12 +4,11 @@ import { Image, StyleSheet, View } from 'react-native';
 import { Radius } from '@/constants/theme';
 import { iconFor } from '@/data/document-icons';
 import { useTheme } from '@/hooks/use-theme';
-import { DocumentTypeId } from '@/types';
+import { Attachment, DocumentTypeId } from '@/types';
 
 type Props = {
   typeId: DocumentTypeId;
-  fileUri?: string;
-  fileType?: 'image' | 'pdf';
+  attachment?: Attachment;
   size?: number;
   tint?: string;
 };
@@ -18,20 +17,20 @@ type Props = {
  * A photo thumbnail when there is one, a PDF marker when the attachment is a
  * document, and the category icon otherwise.
  */
-export function DocIcon({ typeId, fileUri, fileType, size = 46, tint }: Props) {
+export function DocIcon({ typeId, attachment, size = 46, tint }: Props) {
   const theme = useTheme();
 
-  if (fileUri && fileType !== 'pdf') {
+  if (attachment && attachment.type !== 'pdf') {
     return (
       <Image
-        source={{ uri: fileUri }}
+        source={{ uri: attachment.uri }}
         style={[styles.image, { width: size, height: size, borderRadius: Radius.small }]}
         resizeMode="cover"
       />
     );
   }
 
-  const isPdf = fileUri && fileType === 'pdf';
+  const isPdf = attachment?.type === 'pdf';
 
   return (
     <View

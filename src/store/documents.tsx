@@ -12,10 +12,10 @@ import {
 
 import { getDocumentType } from '@/data/document-types';
 import { daysUntil } from '@/lib/dates';
-import { deleteFile, storeFile } from '@/lib/files';
+import { deleteAttachment, newAttachmentKey, storeAttachment } from '@/lib/files';
 import { cancelReminders, scheduleReminders, snoozeReminder } from '@/lib/notifications';
 import { useSettings } from '@/store/settings';
-import { DocumentDraft, TrackedDocument } from '@/types';
+import { Attachment, DocumentDraft, TrackedDocument } from '@/types';
 
 const STORAGE_KEY = 'renewly.documents.v1';
 
@@ -46,11 +46,24 @@ const DocumentsContext = createContext<DocumentsContextValue | null>(null);
  */
 function migrate(raw: unknown): TrackedDocument | null {
   if (!raw || typeof raw !== 'object') return null;
-  const doc = raw as Partial<TrackedDocument> & { imageUri?: string };
+  const doc = raw as Partial<TrackedDocument> & {
+    imageUri?: string;
+    fileUri?: string;
+    fileType?: 'image' | 'pdf';
+  };
   if (!doc.id || !doc.typeId || !doc.expiryDate) return null;
 
-  // Documents saved before PDFs were supported stored a photo in `imageUri`.
-  const fileUri = doc.fileUri ?? doc.imageUri;
+  /*
+   * Two older shapes to carry forward: `imageUri` from before PDFs, and a
+   * single `fileUri` from before multiple attachments. The files on disk keep
+   * their original names, so nothing needs moving — only describing.
+   */
+  const legacyUri = doc.fileUri ?? doc.imageUri;
+  const files: Attachment[] = doc.files?.length
+    ? doc.files
+    : legacyUri
+      ? [{ uri: legacyUri, type: doc.fileType ?? 'image', key: 'legacy' }]
+      : [];
 
   return {
     id: doc.id,
@@ -60,14 +73,34 @@ function migrate(raw: unknown): TrackedDocument | null {
     documentNumber: doc.documentNumber,
     notes: doc.notes,
     owner: doc.owner,
-    fileUri,
-    fileType: doc.fileType ?? (fileUri ? 'image' : undefined),
+    files,
     leadDays: doc.leadDays?.length ? doc.leadDays : getDocumentType(doc.typeId).defaultLeadDays,
     archivedAt: doc.archivedAt,
     history: doc.history,
     notificationIds: doc.notificationIds ?? [],
     createdAt: doc.createdAt ?? new Date().toISOString(),
   };
+}
+
+/**
+ * Copies any newly picked attachments into permanent storage and removes the
+ * files behind attachments the user dropped.
+ */
+function persistAttachments(
+  next: Attachment[],
+  previous: Attachment[],
+  documentId: string
+): Attachment[] {
+  const kept: Attachment[] = [];
+  for (const attachment of next) {
+    const stored = storeAttachment(attachment.uri, documentId, attachment.type, attachment.key);
+    if (stored) kept.push(stored);
+  }
+
+  for (const old of previous) {
+    if (!next.some((a) => a.key === old.key)) deleteAttachment(old);
+  }
+  return kept;
 }
 
 export function DocumentsProvider({ children }: { children: ReactNode }) {
@@ -106,9 +139,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       const doc: TrackedDocument = {
         ...draft,
         id,
-        fileUri: draft.fileUri
-          ? storeFile(draft.fileUri, id, draft.fileType ?? 'image')
-          : undefined,
+        files: persistAttachments(draft.files, [], id),
         notificationIds: [],
         createdAt: new Date().toISOString(),
       };
@@ -126,17 +157,10 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
 
       await cancelReminders(previous.notificationIds);
 
-      // Drop the old attachment when it has been replaced or removed.
-      if (previous.fileUri && previous.fileUri !== draft.fileUri) {
-        deleteFile(previous.fileUri);
-      }
-
       const updated: TrackedDocument = {
         ...draft,
         id,
-        fileUri: draft.fileUri
-          ? storeFile(draft.fileUri, id, draft.fileType ?? 'image')
-          : undefined,
+        files: persistAttachments(draft.files, previous.files, id),
         notificationIds: [],
         createdAt: previous.createdAt,
       };
@@ -151,7 +175,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       const target = latest.current.find((d) => d.id === id);
       if (!target) return;
       await cancelReminders(target.notificationIds);
-      deleteFile(target.fileUri);
+      target.files.forEach(deleteAttachment);
       commit(latest.current.filter((d) => d.id !== id));
     },
     [commit]
@@ -188,7 +212,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const deleteEverything = useCallback(async () => {
     for (const doc of latest.current) {
       await cancelReminders(doc.notificationIds);
-      deleteFile(doc.fileUri);
+      doc.files.forEach(deleteAttachment);
     }
     commit([]);
   }, [commit]);

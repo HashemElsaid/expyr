@@ -127,12 +127,7 @@ export default function TimelineScreen() {
                         </ThemedText>
                       </View>
 
-                      <DocIcon
-                        typeId={item.typeId}
-                        fileUri={item.fileUri}
-                        fileType={item.fileType}
-                        size={38}
-                      />
+                      <DocIcon typeId={item.typeId} attachment={item.files[0]} size={38} />
                     </View>
                   )}
                 </Pressable>

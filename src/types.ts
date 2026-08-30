@@ -36,6 +36,13 @@ export type DocumentType = {
   guide: RenewalGuide;
 };
 
+export type Attachment = {
+  uri: string;
+  type: 'image' | 'pdf';
+  /** Stable key used for the file name on disk. */
+  key: string;
+};
+
 export type TrackedDocument = {
   id: string;
   typeId: DocumentTypeId;
@@ -46,9 +53,11 @@ export type TrackedDocument = {
   notes?: string;
   /** Whose document this is — blank means the owner of the phone. */
   owner?: string;
-  /** URI of the stored photo or PDF, inside the app's private directory. */
-  fileUri?: string;
-  fileType?: 'image' | 'pdf';
+  /**
+   * Photos or PDFs kept in the app's private directory. An Emirates ID has two
+   * sides; a tenancy contract may be a PDF plus a photo of the signature page.
+   */
+  files: Attachment[];
   /** Days before expiry at which reminders fire, largest first. */
   leadDays: number[];
   /** Set once dealt with — hidden from the main list, reminders cancelled. */

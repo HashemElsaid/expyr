@@ -5,15 +5,17 @@ import { Platform } from 'react-native';
 
 import { getDocumentType } from '@/data/document-types';
 import { formatDate } from '@/lib/dates';
-import { TrackedDocument } from '@/types';
+import { Attachment, TrackedDocument } from '@/types';
 
 const BACKUP_FORMAT = 1;
 
-type BackupDocument = Omit<TrackedDocument, 'fileUri' | 'notificationIds'> & {
-  /** The attachment travels inside the file so a restore is complete. */
+type BackupDocument = Omit<TrackedDocument, 'files' | 'notificationIds'> & {
+  /** Attachments travel inside the file so a restore is complete. */
+  attachments?: { key: string; type: 'image' | 'pdf'; base64: string }[];
+  /** Written by earlier versions, when a document had a single attachment. */
   fileBase64?: string;
-  /** Written by versions before PDFs were supported. */
   imageBase64?: string;
+  fileType?: 'image' | 'pdf';
 };
 
 type BackupFile = {
@@ -51,17 +53,19 @@ export async function exportBackup(documents: TrackedDocument[]): Promise<void> 
     format: BACKUP_FORMAT,
     exportedAt: new Date().toISOString(),
     documents: documents.map((doc) => {
-      const { fileUri, notificationIds, ...rest } = doc;
-      let fileBase64: string | undefined;
-      if (fileUri) {
+      const { files, notificationIds, ...rest } = doc;
+      const attachments: BackupDocument['attachments'] = [];
+      for (const file of files) {
         try {
-          const attachment = new File(fileUri);
-          if (attachment.exists) fileBase64 = attachment.base64Sync();
+          const handle = new File(file.uri);
+          if (handle.exists) {
+            attachments.push({ key: file.key, type: file.type, base64: handle.base64Sync() });
+          }
         } catch {
           // A missing attachment should never abort the whole backup.
         }
       }
-      return { ...rest, fileBase64 };
+      return { ...rest, attachments };
     }),
   };
 
@@ -130,20 +134,31 @@ export async function importBackup(): Promise<RestoreResult | null> {
   for (const entry of parsed.documents) {
     if (!entry?.id || !entry.typeId || !entry.expiryDate) continue;
 
-    // `imageBase64` is the older field name, kept so old backups still restore.
-    const payload = entry.fileBase64 ?? entry.imageBase64;
-    const fileType = entry.fileType ?? (payload ? 'image' : undefined);
+    /*
+     * Backups written before multiple attachments carried a single blob under
+     * `fileBase64` (or `imageBase64` before that). Normalise both into a list.
+     */
+    const legacyPayload = entry.fileBase64 ?? entry.imageBase64;
+    const incoming =
+      entry.attachments?.length
+        ? entry.attachments
+        : legacyPayload
+          ? [{ key: 'legacy', type: entry.fileType ?? ('image' as const), base64: legacyPayload }]
+          : [];
 
-    let fileUri: string | undefined;
-    if (payload) {
+    const files: Attachment[] = [];
+    for (const item of incoming) {
       try {
-        const target = new File(imagesDir, `${entry.id}.${fileType === 'pdf' ? 'pdf' : 'jpg'}`);
+        const target = new File(
+          imagesDir,
+          `${entry.id}-${item.key}.${item.type === 'pdf' ? 'pdf' : 'jpg'}`
+        );
         if (target.exists) target.delete();
         target.create();
-        target.write(payload, { encoding: 'base64' });
-        fileUri = target.uri;
+        target.write(item.base64, { encoding: 'base64' });
+        files.push({ uri: target.uri, type: item.type, key: item.key });
       } catch {
-        // Restore the entry even if its attachment cannot be written.
+        // Restore the entry even if one attachment cannot be written.
       }
     }
 
@@ -155,8 +170,7 @@ export async function importBackup(): Promise<RestoreResult | null> {
       documentNumber: entry.documentNumber,
       notes: entry.notes,
       owner: entry.owner,
-      fileUri,
-      fileType,
+      files,
       archivedAt: entry.archivedAt,
       history: entry.history,
       leadDays: entry.leadDays?.length

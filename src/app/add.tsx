@@ -24,10 +24,11 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { countWord, dayMonth, longDate, shortDate, toISODate } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
-import { attachFile, pickDocument, pickImage, scanFile, type PickedFile, type ScanResult } from '@/lib/scan';
+import { newAttachmentKey } from '@/lib/files';
+import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, useSettings } from '@/store/settings';
-import { DocumentType, DocumentTypeId, TrackedDocument } from '@/types';
+import { Attachment, DocumentType, DocumentTypeId, TrackedDocument } from '@/types';
 
 type Step = 'choose' | 'type' | 'form';
 
@@ -57,8 +58,7 @@ export default function AddDocumentScreen() {
   const [namingOwner, setNamingOwner] = useState(false);
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [showNotes, setShowNotes] = useState(Boolean(editing?.notes));
-  const [fileUri, setFileUri] = useState<string | undefined>(editing?.fileUri);
-  const [fileType, setFileType] = useState<'image' | 'pdf' | undefined>(editing?.fileType);
+  const [files, setFiles] = useState<Attachment[]>(editing?.files ?? []);
   const [leadDays, setLeadDays] = useState<number[]>(editing?.leadDays ?? []);
   const [busy, setBusy] = useState<'scanning' | 'attaching' | null>(null);
   const [scanNote, setScanNote] = useState<string | null>(null);
@@ -85,8 +85,7 @@ export default function AddDocumentScreen() {
     setOwner(editing.owner ?? '');
     setNotes(editing.notes ?? '');
     setShowNotes(Boolean(editing.notes));
-    setFileUri(editing.fileUri);
-    setFileType(editing.fileType);
+    setFiles(editing.files);
     setLeadDays(editing.leadDays);
     setStep('form');
   }, [editing, params.renew]);
@@ -121,8 +120,7 @@ export default function AddDocumentScreen() {
     }
     setDocumentNumber(scannedType.numberField ? result.documentNumber : '');
     setLeadDays(scannedType.defaultLeadDays);
-    setFileUri(scannedUri);
-    setFileType(scannedKind);
+    setFiles([{ uri: scannedUri, type: scannedKind, key: newAttachmentKey() }]);
     setScanNote(
       result.confidence === 'high' ? result.note : `${result.note} Check the date before saving.`
     );
@@ -155,8 +153,11 @@ export default function AddDocumentScreen() {
       const picked = source === 'files' ? await pickDocument() : await pickImage(source);
       if (!picked) return;
       setBusy('attaching');
-      setFileUri(await attachFile(picked));
-      setFileType(picked.type);
+      const uri = await attachFile(picked);
+      setFiles((current) => [
+        ...current,
+        { uri, type: picked.type, key: newAttachmentKey() },
+      ]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That file could not be added.');
     } finally {
@@ -231,8 +232,7 @@ export default function AddDocumentScreen() {
       documentNumber: documentNumber.trim() || undefined,
       notes: notes.trim() || undefined,
       owner: owner.trim() || undefined,
-      fileUri,
-      fileType,
+      files,
       leadDays,
     };
     if (editing) {
@@ -477,47 +477,78 @@ export default function AddDocumentScreen() {
           </Field>
         )}
 
-        <View style={styles.fileRow}>
-          {fileUri ? (
-            <>
-              {fileType === 'pdf' ? (
-                <View style={[styles.thumb, { borderColor: theme.border }]}>
-                  <MaterialCommunityIcons name="file-pdf-box" size={20} color={theme.textSecondary} />
+        <Field
+          label={
+            files.length > 1
+              ? `Attachments · ${files.length}`
+              : type!.id === 'emirates-id' || type!.id === 'driving-license'
+                ? 'Attachments · both sides if you like'
+                : 'Attachment'
+          }>
+          <View style={styles.thumbRow}>
+            {files.map((file) => (
+              <Pressable
+                key={file.key}
+                accessibilityRole="button"
+                accessibilityLabel="Remove this attachment"
+                onLongPress={() => setFiles((c) => c.filter((f) => f.key !== file.key))}>
+                <View>
+                  {file.type === 'pdf' ? (
+                    <View style={[styles.thumb, { borderColor: theme.border }]}>
+                      <MaterialCommunityIcons
+                        name="file-pdf-box"
+                        size={20}
+                        color={theme.textSecondary}
+                      />
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri: file.uri }}
+                      style={[styles.thumb, { borderColor: theme.border }]}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <Pressable
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove"
+                    onPress={() => setFiles((c) => c.filter((f) => f.key !== file.key))}
+                    style={[styles.removeBadge, { backgroundColor: theme.background }]}>
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={18}
+                      color={theme.textTertiary}
+                    />
+                  </Pressable>
                 </View>
-              ) : (
-                <Image
-                  source={{ uri: fileUri }}
-                  style={[styles.thumb, { borderColor: theme.border }]}
-                  resizeMode="cover"
+              </Pressable>
+            ))}
+
+            <Pressable
+              onPress={() => addAttachment('camera')}
+              accessibilityRole="button"
+              accessibilityLabel="Take a photo">
+              <View style={[styles.addThumb, { borderColor: theme.border }]}>
+                <MaterialCommunityIcons name="camera-outline" size={18} color={theme.textSecondary} />
+              </View>
+            </Pressable>
+            <Pressable
+              onPress={() => addAttachment('files')}
+              accessibilityRole="button"
+              accessibilityLabel="Choose a file">
+              <View style={[styles.addThumb, { borderColor: theme.border }]}>
+                <MaterialCommunityIcons
+                  name="folder-open-outline"
+                  size={18}
+                  color={theme.textSecondary}
                 />
-              )}
-              <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
-                {fileType === 'pdf' ? 'PDF' : 'Photo'} attached — stays on this phone
-              </ThemedText>
-              <Pressable onPress={() => addAttachment('files')}>
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                  Replace
-                </ThemedText>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <ThemedText type="small" themeColor="textTertiary" style={styles.flex}>
-                No photo or PDF attached
-              </ThemedText>
-              <Pressable onPress={() => addAttachment('camera')}>
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                  Camera
-                </ThemedText>
-              </Pressable>
-              <Pressable onPress={() => addAttachment('files')}>
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                  Files
-                </ThemedText>
-              </Pressable>
-            </>
-          )}
-        </View>
+              </View>
+            </Pressable>
+          </View>
+          <ThemedText type="small" themeColor="textTertiary">
+            {files.length === 0 ? 'Nothing attached yet.' : 'Kept on this phone only.'}
+          </ThemedText>
+        </Field>
 
         <Field label="Remind me before">
           <View style={styles.chipRow}>
@@ -754,7 +785,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: 9,
   },
-  fileRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  thumbRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, alignItems: 'center' },
   thumb: {
     width: 56,
     height: 40,
@@ -763,6 +794,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  addThumb: {
+    width: 56,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeBadge: { position: 'absolute', top: -7, right: -7, borderRadius: 9 },
   primary: { borderRadius: Radius.pill, paddingVertical: Spacing.three, alignItems: 'center' },
   secondary: {
     flexDirection: 'row',

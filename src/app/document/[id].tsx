@@ -77,12 +77,10 @@ export default function DocumentDetailScreen() {
     tapFeedback();
     const archiveLabel = doc.archivedAt ? 'Move back to my items' : 'Archive';
     // Sending a copy of a passport or licence is a routine errand here.
-    const canShare = Boolean(doc.fileUri);
+    const first = doc.files[0];
 
     const actions: { label: string; run: () => void; destructive?: boolean }[] = [
-      ...(canShare
-        ? [{ label: 'Share a copy', run: () => openAttachment(doc.fileUri!, doc.fileType) }]
-        : []),
+      ...(first ? [{ label: 'Share a copy', run: () => openAttachment(first.uri, first.type) }] : []),
       { label: 'Edit details', run: () => router.push(`/add?id=${doc.id}`) },
       { label: archiveLabel, run: toggleArchive },
       { label: 'Delete permanently', run: confirmDelete, destructive: true },
@@ -199,35 +197,38 @@ export default function DocumentDetailScreen() {
           </ThemedText>
         </View>
 
-        {doc.fileUri && (
-          <Pressable onPress={() => openAttachment(doc.fileUri!, doc.fileType)}>
-            {({ pressed }) => (
-              <View
-                style={[styles.fileRow, { borderBottomColor: theme.border }, pressed && styles.dim]}>
-                {doc.fileType === 'pdf' ? (
-                  <View style={[styles.thumb, { borderColor: theme.border }]}>
-                    <MaterialCommunityIcons
-                      name="file-pdf-box"
-                      size={20}
-                      color={theme.textSecondary}
+        {doc.files.length > 0 && (
+          <View style={[styles.fileRow, { borderBottomColor: theme.border }]}>
+            {doc.files.map((file) => (
+              <Pressable
+                key={file.key}
+                accessibilityRole="button"
+                accessibilityLabel={file.type === 'pdf' ? 'Open the PDF' : 'Open the photo'}
+                onPress={() => openAttachment(file.uri, file.type)}>
+                {({ pressed }) =>
+                  file.type === 'pdf' ? (
+                    <View
+                      style={[styles.thumb, { borderColor: theme.border }, pressed && styles.dim]}>
+                      <MaterialCommunityIcons
+                        name="file-pdf-box"
+                        size={20}
+                        color={theme.textSecondary}
+                      />
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri: file.uri }}
+                      style={[styles.thumb, { borderColor: theme.border }, pressed && styles.dim]}
+                      resizeMode="cover"
                     />
-                  </View>
-                ) : (
-                  <Image
-                    source={{ uri: doc.fileUri }}
-                    style={[styles.thumb, { borderColor: theme.border }]}
-                    resizeMode="cover"
-                  />
-                )}
-                <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
-                  {doc.fileType === 'pdf' ? 'PDF' : 'Photo'} kept on this phone
-                </ThemedText>
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                  View
-                </ThemedText>
-              </View>
-            )}
-          </Pressable>
+                  )
+                }
+              </Pressable>
+            ))}
+            <ThemedText type="small" themeColor="textTertiary" style={styles.flex}>
+              Kept on this phone · tap to open
+            </ThemedText>
+          </View>
         )}
 
         {(doc.documentNumber || doc.notes) && (
@@ -403,7 +404,8 @@ const styles = StyleSheet.create({
   fileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    flexWrap: 'wrap',
+    gap: Spacing.two,
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },

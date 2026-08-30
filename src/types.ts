@@ -53,6 +53,8 @@ export type TrackedDocument = {
   leadDays: number[];
   /** Set once dealt with — hidden from the main list, reminders cancelled. */
   archivedAt?: string;
+  /** Expiry dates this item has had before, oldest first. */
+  history?: string[];
   /** Ids of scheduled local notifications, so they can be cancelled. */
   notificationIds: string[];
   createdAt: string;

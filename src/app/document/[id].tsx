@@ -20,7 +20,7 @@ import { getDocumentType } from '@/data/document-types';
 import { RENEWAL_PERIOD_DAYS, RENEWAL_PORTALS } from '@/data/renewal-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { useUrgency } from '@/hooks/use-urgency';
-import { dayMonth, daysUntil, longDate, verdictPhrase } from '@/lib/dates';
+import { dayMonth, daysUntil, longDate, shortDate, verdictPhrase } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
 import { TrackedDocument } from '@/types';
@@ -245,6 +245,14 @@ export default function DocumentDetailScreen() {
             </View>
           ))}
         </View>
+
+        {doc.history && doc.history.length > 0 && (
+          <DataRow
+            label="Renewed"
+            value={`${doc.history.length} time${doc.history.length === 1 ? '' : 's'} · last expired ${shortDate(doc.history[doc.history.length - 1])}`}
+            bordered
+          />
+        )}
 
         <DataRow label="Where" value={type.guide.where} bordered />
         <DataRow label="Cost" value={type.guide.typicalCost} bordered />

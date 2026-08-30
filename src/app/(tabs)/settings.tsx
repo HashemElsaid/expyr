@@ -286,9 +286,14 @@ export default function SettingsScreen() {
 
           <Section title="Your data">
             <Row
+              icon="cellphone-check"
+              title="Saved on this iPhone"
+              subtitle="Your items and photos live in Renewly's private storage, and they travel with your iPhone backup — restore a new phone from iCloud and they come back. Nothing is stored on a server."
+            />
+            <Row
               icon="tray-arrow-up"
-              title="Back up everything"
-              subtitle="Saves your items and their photos to a single file you can keep somewhere safe."
+              title="Keep your own copy"
+              subtitle="A single file with everything, to store wherever you like."
               action={{
                 label: busy === 'backup' ? 'Working…' : 'Back up',
                 onPress: () => run('backup', () => exportBackup(documents)),

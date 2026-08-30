@@ -205,16 +205,28 @@ export default function HomeScreen() {
             ) : null
           }
           ListFooterComponent={
-            archived.length > 0 ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push('/archive')}
-                style={styles.archiveLink}>
-                <ThemedText type="small" themeColor="textTertiary">
-                  {archived.length} archived
+            documents.length > 0 ? (
+              <View>
+                {archived.length > 0 && (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => router.push('/archive')}
+                    style={styles.archiveLink}>
+                    <ThemedText type="small" themeColor="textTertiary">
+                      {archived.length} archived
+                    </ThemedText>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={18}
+                      color={theme.textTertiary}
+                    />
+                  </Pressable>
+                )}
+                {/* Answers the question a sign-in screen usually answers. */}
+                <ThemedText type="small" themeColor="textTertiary" style={styles.assurance}>
+                  Saved on this iPhone · included in your backup
                 </ThemedText>
-                <MaterialCommunityIcons name="chevron-right" size={18} color={theme.textTertiary} />
-              </Pressable>
+              </View>
             ) : null
           }
         />
@@ -338,6 +350,7 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     paddingVertical: Spacing.four,
   },
+  assurance: { textAlign: 'center', paddingTop: Spacing.four, paddingBottom: Spacing.two },
   empty: { paddingTop: 56, gap: Spacing.three, alignItems: 'flex-start' },
   ctaButton: {
     borderRadius: Radius.pill,

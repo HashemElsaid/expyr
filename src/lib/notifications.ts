@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { getDocumentType } from '@/data/document-types';
-import { countdownLabel, daysUntil } from '@/lib/dates';
+import { countdownLabel, daysUntil, formatDate } from '@/lib/dates';
 import { TrackedDocument } from '@/types';
 
 Notifications.setNotificationHandler({
@@ -13,6 +13,44 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+/** Actions offered on the reminder itself, so a nudge can be dealt with in place. */
+export const REMINDER_CATEGORY = 'renewly.reminder';
+export const ACTION_SNOOZE = 'renewly.snooze';
+export const ACTION_RENEWED = 'renewly.renewed';
+
+/**
+ * Registered once at startup. Two actions is the practical maximum before a
+ * notification stops being a quick decision and becomes a menu.
+ */
+export async function registerNotificationActions() {
+  if (Platform.OS === 'web') return;
+  await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY, [
+    { identifier: ACTION_SNOOZE, buttonTitle: 'Remind me in a week' },
+    { identifier: ACTION_RENEWED, buttonTitle: 'Already done' },
+  ]).catch(() => {});
+}
+
+/** A one-off nudge a week from now, used when someone snoozes a reminder. */
+export async function snoozeReminder(doc: TrackedDocument, days = 7): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+  const fireDate = new Date();
+  fireDate.setDate(fireDate.getDate() + days);
+
+  try {
+    return await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `${doc.title}`,
+        body: `Still expiring ${formatDate(doc.expiryDate)}.`,
+        data: { documentId: doc.id },
+        categoryIdentifier: REMINDER_CATEGORY,
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
+    });
+  } catch {
+    return null;
+  }
+}
 
 export async function getNotificationPermission(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
@@ -56,6 +94,7 @@ export async function scheduleReminders(
         title: `${type.emoji} ${doc.title}: ${countdownLabel(lead)}`,
         body: `${type.label} · open Renewly for what to do and what it costs.`,
         data: { documentId: doc.id },
+        categoryIdentifier: REMINDER_CATEGORY,
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
     });

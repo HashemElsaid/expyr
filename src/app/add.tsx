@@ -197,8 +197,17 @@ export default function AddDocumentScreen() {
       fileType,
       leadDays,
     };
-    if (editing) await updateDocument(editing.id, { ...draft, archivedAt: editing.archivedAt });
-    else await addDocument(draft);
+    if (editing) {
+      // Renewing keeps the date it used to carry, so the item shows its past.
+      const movedOn = renewing && draft.expiryDate !== editing.expiryDate;
+      await updateDocument(editing.id, {
+        ...draft,
+        archivedAt: editing.archivedAt,
+        history: movedOn ? [...(editing.history ?? []), editing.expiryDate] : editing.history,
+      });
+    } else {
+      await addDocument(draft);
+    }
     successFeedback();
     router.back();
   }

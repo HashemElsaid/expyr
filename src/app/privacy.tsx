@@ -27,6 +27,10 @@ const SECTIONS: { title: string; body: string }[] = [
     body: 'Reminders are scheduled locally by iOS. They are not push notifications sent from a server, so no one needs to know your dates in order for them to arrive.',
   },
   {
+    title: 'If you lose your phone',
+    body: "Renewly's data sits in the app's own storage, which iOS includes in your iPhone backup. Set up a new phone from that backup and everything returns — items, dates and photos. You can also export a backup file yourself at any time, which is the belt-and-braces option if you would rather hold a copy you control.",
+  },
+  {
     title: 'Backups you create',
     body: 'A backup file contains your items and their photos. Once you save or send it, that file is yours to look after — treat it like the documents themselves and keep it somewhere private.',
   },

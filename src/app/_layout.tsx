@@ -12,7 +12,12 @@ import { LockGate } from '@/components/lock-gate';
 import { Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
-import { DocumentsProvider } from '@/store/documents';
+import {
+  ACTION_RENEWED,
+  ACTION_SNOOZE,
+  registerNotificationActions,
+} from '@/lib/notifications';
+import { DocumentsProvider, useDocuments } from '@/store/documents';
 import { SettingsProvider, useSettings } from '@/store/settings';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -72,20 +77,35 @@ function AppShell() {
   const scheme = useColorScheme();
   const router = useRouter();
   const { settings, loaded } = useSettings();
+  const { snoozeDocument } = useDocuments();
 
   // Send first-time users through onboarding before they see an empty list.
   useEffect(() => {
     if (loaded && !settings.onboarded) router.replace('/onboarding');
   }, [loaded, settings.onboarded, router]);
 
-  // Tapping a reminder should land on the thing that is expiring.
+  useEffect(() => {
+    registerNotificationActions();
+  }, []);
+
+  // A reminder can be dealt with from the notification itself, or opened.
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const documentId = response.notification.request.content.data?.documentId;
-      if (typeof documentId === 'string') router.push(`/document/${documentId}`);
+      if (typeof documentId !== 'string') return;
+
+      if (response.actionIdentifier === ACTION_SNOOZE) {
+        snoozeDocument(documentId);
+        return;
+      }
+      if (response.actionIdentifier === ACTION_RENEWED) {
+        router.push(`/add?id=${documentId}&renew=1`);
+        return;
+      }
+      router.push(`/document/${documentId}`);
     });
     return () => sub.remove();
-  }, [router]);
+  }, [router, snoozeDocument]);
 
   return (
     <>

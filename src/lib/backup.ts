@@ -158,6 +158,7 @@ export async function importBackup(): Promise<RestoreResult | null> {
       fileUri,
       fileType,
       archivedAt: entry.archivedAt,
+      history: entry.history,
       leadDays: entry.leadDays?.length
         ? entry.leadDays
         : getDocumentType(entry.typeId).defaultLeadDays,

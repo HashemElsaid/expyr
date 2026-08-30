@@ -13,7 +13,7 @@ import {
 import { getDocumentType } from '@/data/document-types';
 import { daysUntil } from '@/lib/dates';
 import { deleteFile, storeFile } from '@/lib/files';
-import { cancelReminders, scheduleReminders } from '@/lib/notifications';
+import { cancelReminders, scheduleReminders, snoozeReminder } from '@/lib/notifications';
 import { useSettings } from '@/store/settings';
 import { DocumentDraft, TrackedDocument } from '@/types';
 
@@ -34,6 +34,8 @@ type DocumentsContextValue = {
   replaceAll: (documents: TrackedDocument[]) => Promise<void>;
   /** Wipes every document, photo and reminder. */
   deleteEverything: () => Promise<void>;
+  /** Books one extra nudge, used by the Snooze action on a reminder. */
+  snoozeDocument: (id: string, days?: number) => Promise<void>;
 };
 
 const DocumentsContext = createContext<DocumentsContextValue | null>(null);
@@ -62,6 +64,7 @@ function migrate(raw: unknown): TrackedDocument | null {
     fileType: doc.fileType ?? (fileUri ? 'image' : undefined),
     leadDays: doc.leadDays?.length ? doc.leadDays : getDocumentType(doc.typeId).defaultLeadDays,
     archivedAt: doc.archivedAt,
+    history: doc.history,
     notificationIds: doc.notificationIds ?? [],
     createdAt: doc.createdAt ?? new Date().toISOString(),
   };
@@ -209,6 +212,21 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     [commit]
   );
 
+  const snoozeDocument = useCallback(
+    async (id: string, days = 7) => {
+      const target = latest.current.find((d) => d.id === id);
+      if (!target) return;
+      const notificationId = await snoozeReminder(target, days);
+      if (!notificationId) return;
+      commit(
+        latest.current.map((d) =>
+          d.id === id ? { ...d, notificationIds: [...d.notificationIds, notificationId] } : d
+        )
+      );
+    },
+    [commit]
+  );
+
   const value = useMemo(
     () => ({
       documents: documents
@@ -225,6 +243,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       rescheduleAll,
       replaceAll,
       deleteEverything,
+      snoozeDocument,
     }),
     [
       documents,
@@ -236,6 +255,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       rescheduleAll,
       replaceAll,
       deleteEverything,
+      snoozeDocument,
     ]
   );
 

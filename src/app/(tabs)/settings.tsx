@@ -128,6 +128,7 @@ export default function SettingsScreen() {
   }
 
   const scheduledCount = documents.reduce((sum, d) => sum + d.notificationIds.length, 0);
+  const peopleCount = new Set(documents.map((d) => d.owner ?? '')).size || 1;
 
   return (
     <ThemedView style={styles.container}>
@@ -152,6 +153,33 @@ export default function SettingsScreen() {
                   : { label: 'Unlock', onPress: () => router.push('/paywall') }
               }
             />
+          </Section>
+
+          <Section title="Household">
+            <Pressable onPress={() => router.push('/household')} accessibilityRole="button">
+              {({ pressed }) => (
+                <View style={[styles.row, pressed && styles.pressed]}>
+                  <MaterialCommunityIcons
+                    name="account-multiple-outline"
+                    size={20}
+                    color={theme.textSecondary}
+                  />
+                  <View style={styles.rowBody}>
+                    <ThemedText type="bodyMedium">Who you track for</ThemedText>
+                    <ThemedText type="small" themeColor="textTertiary">
+                      {peopleCount === 1
+                        ? 'Just you, for now'
+                        : `${peopleCount} people in this household`}
+                    </ThemedText>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={theme.textTertiary}
+                  />
+                </View>
+              )}
+            </Pressable>
           </Section>
 
           <Section title="What you track">

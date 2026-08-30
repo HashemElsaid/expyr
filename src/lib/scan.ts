@@ -1,15 +1,26 @@
 import Constants from 'expo-constants';
+import * as DocumentPicker from 'expo-document-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
 import { DOCUMENT_TYPES } from '@/data/document-types';
+import { fileTypeFor, type FileType } from '@/lib/files';
 import { DocumentTypeId } from '@/types';
 
 /** Claude downsamples anything larger, so sending more pixels just costs money. */
 const MAX_EDGE = 1568;
-const TIMEOUT_MS = 60_000;
+const TIMEOUT_MS = 90_000;
+/** Comfortably under the 32 MB request ceiling once base64 inflates it. */
+const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
-export type PickedImage = { uri: string; width: number; height: number };
+export type PickedFile = {
+  uri: string;
+  type: FileType;
+  /** Only present for images; used to decide whether to downscale. */
+  width?: number;
+  height?: number;
+  name?: string;
+};
 
 export type ScanResult = {
   found: boolean;
@@ -32,7 +43,7 @@ function extractionEndpoint(): string {
   return `http://${host ?? 'localhost'}:8787/extract`;
 }
 
-export async function pickImage(source: 'camera' | 'library'): Promise<PickedImage | null> {
+export async function pickImage(source: 'camera' | 'library'): Promise<PickedFile | null> {
   const permission =
     source === 'camera'
       ? await ImagePicker.requestCameraPermissionsAsync()
@@ -53,40 +64,72 @@ export async function pickImage(source: 'camera' | 'library'): Promise<PickedIma
 
   if (result.canceled || result.assets.length === 0) return null;
   const asset = result.assets[0];
-  return { uri: asset.uri, width: asset.width, height: asset.height };
+  return { uri: asset.uri, type: 'image', width: asset.width, height: asset.height };
+}
+
+/** Picks a PDF or image from Files, iCloud Drive, or anywhere else on the phone. */
+export async function pickDocument(): Promise<PickedFile | null> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: ['application/pdf', 'image/*'],
+    copyToCacheDirectory: true,
+    base64: false,
+  });
+  if (result.canceled || result.assets.length === 0) return null;
+
+  const asset = result.assets[0];
+  const type = fileTypeFor(asset.name ?? asset.uri, asset.mimeType ?? undefined);
+
+  if (type === 'pdf' && (asset.size ?? 0) > MAX_PDF_BYTES) {
+    throw new Error('That PDF is too large. Try one under 15 MB, or photograph the relevant page.');
+  }
+
+  return { uri: asset.uri, type, name: asset.name ?? undefined };
 }
 
 /** Downscales and compresses so both the upload and the stored copy stay small. */
-async function processImage(image: PickedImage, includeBase64: boolean) {
-  const longestEdge = Math.max(image.width, image.height);
+async function processImage(file: PickedFile, includeBase64: boolean) {
+  const longestEdge = Math.max(file.width ?? 0, file.height ?? 0);
   const actions: ImageManipulator.Action[] =
     longestEdge > MAX_EDGE
       ? [
-          image.width >= image.height
+          (file.width ?? 0) >= (file.height ?? 0)
             ? { resize: { width: MAX_EDGE } }
             : { resize: { height: MAX_EDGE } },
         ]
       : [];
 
-  return ImageManipulator.manipulateAsync(image.uri, actions, {
+  return ImageManipulator.manipulateAsync(file.uri, actions, {
     compress: 0.8,
     format: ImageManipulator.SaveFormat.JPEG,
     base64: includeBase64,
   });
 }
 
-/** Prepares a photo for storage without spending an API call on it. */
-export async function attachImage(image: PickedImage): Promise<string> {
-  const processed = await processImage(image, false);
+/** Prepares a file for storage without spending an API call on it. */
+export async function attachFile(file: PickedFile): Promise<string> {
+  if (file.type === 'pdf') return file.uri;
+  const processed = await processImage(file, false);
   return processed.uri;
 }
 
-export async function scanImage(
-  image: PickedImage
-): Promise<{ result: ScanResult; imageUri: string }> {
-  const processed = await processImage(image, true);
+async function readBase64(file: PickedFile): Promise<{ data: string; mediaType: string; uri: string }> {
+  if (file.type === 'pdf') {
+    // Imported lazily so the web bundle does not pull in native file APIs.
+    const { File } = await import('expo-file-system');
+    return {
+      data: await new File(file.uri).base64(),
+      mediaType: 'application/pdf',
+      uri: file.uri,
+    };
+  }
 
+  const processed = await processImage(file, true);
   if (!processed.base64) throw new Error('That image could not be read. Try another photo.');
+  return { data: processed.base64, mediaType: 'image/jpeg', uri: processed.uri };
+}
+
+export async function scanFile(file: PickedFile): Promise<{ result: ScanResult; fileUri: string }> {
+  const { data, mediaType, uri } = await readBase64(file);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -101,8 +144,8 @@ export async function scanImage(
       },
       signal: controller.signal,
       body: JSON.stringify({
-        imageBase64: processed.base64,
-        mediaType: 'image/jpeg',
+        imageBase64: data,
+        mediaType,
         categories: DOCUMENT_TYPES.map((t) => ({ id: t.id, label: t.label })),
       }),
     });
@@ -113,6 +156,9 @@ export async function scanImage(
     if (response.status === 401) {
       throw new Error('This copy of Renewly is not authorised to scan.');
     }
+    if (response.status === 413) {
+      throw new Error('That file is too large to read. Try a smaller one.');
+    }
     if (!response.ok) {
       throw new Error(`The scanning service returned an error (${response.status}).`);
     }
@@ -121,16 +167,14 @@ export async function scanImage(
     const known = DOCUMENT_TYPES.some((t) => t.id === result.typeId);
     return {
       result: known ? result : { ...result, typeId: 'other' },
-      imageUri: processed.uri,
+      fileUri: uri,
     };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Scanning took too long. Check your connection and try again.');
     }
     if (error instanceof TypeError) {
-      throw new Error(
-        'Could not reach the scanning service. Make sure it is running on your computer.'
-      );
+      throw new Error('Could not reach the scanning service. Check your connection.');
     }
     throw error;
   } finally {

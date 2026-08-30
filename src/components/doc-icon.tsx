@@ -8,24 +8,30 @@ import { DocumentTypeId } from '@/types';
 
 type Props = {
   typeId: DocumentTypeId;
-  imageUri?: string;
+  fileUri?: string;
+  fileType?: 'image' | 'pdf';
   size?: number;
   tint?: string;
 };
 
-/** The document's photo when there is one, otherwise its category icon. */
-export function DocIcon({ typeId, imageUri, size = 46, tint }: Props) {
+/**
+ * A photo thumbnail when there is one, a PDF marker when the attachment is a
+ * document, and the category icon otherwise.
+ */
+export function DocIcon({ typeId, fileUri, fileType, size = 46, tint }: Props) {
   const theme = useTheme();
 
-  if (imageUri) {
+  if (fileUri && fileType !== 'pdf') {
     return (
       <Image
-        source={{ uri: imageUri }}
+        source={{ uri: fileUri }}
         style={[styles.image, { width: size, height: size, borderRadius: Radius.small }]}
         resizeMode="cover"
       />
     );
   }
+
+  const isPdf = fileUri && fileType === 'pdf';
 
   return (
     <View
@@ -40,7 +46,7 @@ export function DocIcon({ typeId, imageUri, size = 46, tint }: Props) {
       ]}>
       <MaterialCommunityIcons
         // The glyph names are validated against the shipped glyphmap.
-        name={iconFor(typeId) as never}
+        name={(isPdf ? 'file-pdf-box' : iconFor(typeId)) as never}
         size={Math.round(size * 0.5)}
         color={tint ?? theme.textSecondary}
       />

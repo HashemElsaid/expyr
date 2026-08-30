@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage } from 'node:http';
 
-import { extractFromImage, type Category } from './extract.ts';
+import { extractFromImage, type Category, type SupportedMediaType } from './extract.ts';
 import { checkRateLimit } from './rate-limit.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -9,8 +9,11 @@ const PORT = Number(process.env.PORT ?? 8787);
  * person can extract it — it raises the bar, and the rate limiter does the rest.
  */
 const APP_TOKEN = process.env.RENEWLY_APP_TOKEN;
-/** Images arrive base64-encoded, so allow generous headroom over the ~1.5 MB we expect. */
-const MAX_BODY_BYTES = 12 * 1024 * 1024;
+/**
+ * Base64 inflates by about a third, and PDFs are far larger than photos.
+ * Claude accepts a 32 MB request, so this leaves room while staying below it.
+ */
+const MAX_BODY_BYTES = 24 * 1024 * 1024;
 
 type ExtractRequest = {
   imageBase64?: unknown;
@@ -36,9 +39,15 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
+const SUPPORTED_MEDIA_TYPES: SupportedMediaType[] = [
+  'image/jpeg',
+  'image/png',
+  'application/pdf',
+];
+
 function parseRequest(raw: string): {
   imageBase64: string;
-  mediaType: 'image/jpeg' | 'image/png';
+  mediaType: SupportedMediaType;
   categories: Category[];
 } {
   const body = JSON.parse(raw) as ExtractRequest;
@@ -46,7 +55,8 @@ function parseRequest(raw: string): {
   if (typeof body.imageBase64 !== 'string' || body.imageBase64.length === 0) {
     throw new Error('imageBase64 is required');
   }
-  const mediaType = body.mediaType === 'image/png' ? 'image/png' : 'image/jpeg';
+  const requested = body.mediaType as SupportedMediaType;
+  const mediaType = SUPPORTED_MEDIA_TYPES.includes(requested) ? requested : 'image/jpeg';
 
   if (!Array.isArray(body.categories) || body.categories.length === 0) {
     throw new Error('categories is required');

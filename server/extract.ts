@@ -65,10 +65,11 @@ function buildSystemPrompt(today: string, categories: Category[]): string {
 
 Today's date is ${today}.
 
-The user has photographed one item. It is usually one of:
+The user has photographed or uploaded one item. It is usually one of:
 - an official document (Emirates ID, residence visa, passport, car registration/Mulkiya, insurance policy, tenancy contract, driving licence, trade licence)
 - a product with a printed date (food packaging, supplements, medicine)
 - a screenshot of an email or course portal announcing an assignment, quiz, or exam
+- a PDF such as a tenancy contract, insurance policy or licence certificate
 
 Return exactly one item: the single most important date on it.
 
@@ -77,6 +78,7 @@ Rules:
 - Dates in the Gulf are usually written day-first. Read 03/09/2027 as 3 September 2027, not 9 March.
 - On food and supplements use "Best before", "Use by", "EXP" or "Expiry". If both a best-before and a use-by date appear, use the use-by date.
 - On assignment or exam screenshots use the due or submission date. Ignore any time of day and keep only the date.
+- In multi-page contracts and policies, the date that matters is when cover or tenancy ENDS, not when it started and not when the document was signed. A tenancy contract running "01/09/2026 to 31/08/2027" expires on 31 August 2027.
 - typeId must be one of the ids listed below. Use "other" only when nothing else fits.
 - title is a short human name the user will recognise in a list, such as "Emirates ID", "Toyota Corolla registration", "Al Ain full cream milk", or "CS101 midterm". Include a distinguishing detail when the photo shows one. Never put the date in the title.
 - documentNumber only when an official number is clearly legible AND the category is one that actually carries a number. Otherwise return an empty string. Never guess digits that are blurred or cropped.
@@ -91,12 +93,34 @@ Categories:
 ${list}`;
 }
 
+export type SupportedMediaType = 'image/jpeg' | 'image/png' | 'application/pdf';
+
 export async function extractFromImage(opts: {
   imageBase64: string;
-  mediaType: 'image/jpeg' | 'image/png';
+  mediaType: SupportedMediaType;
   categories: Category[];
 }): Promise<Extraction> {
   const today = new Date().toISOString().slice(0, 10);
+
+  // PDFs go in as a document block; photos as an image block.
+  const attachment =
+    opts.mediaType === 'application/pdf'
+      ? ({
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: opts.imageBase64,
+          },
+        } as const)
+      : ({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: opts.mediaType,
+            data: opts.imageBase64,
+          },
+        } as const);
 
   const response = await getClient().messages.parse({
     model: MODEL,
@@ -111,17 +135,13 @@ export async function extractFromImage(opts: {
       {
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: opts.mediaType,
-              data: opts.imageBase64,
-            },
-          },
+          attachment,
           {
             type: 'text',
-            text: 'Extract the expiry date or deadline from this image.',
+            text:
+              opts.mediaType === 'application/pdf'
+                ? 'Extract the expiry date or deadline from this document. Contracts often state a start and an end date — return the end date.'
+                : 'Extract the expiry date or deadline from this image.',
           },
         ],
       },

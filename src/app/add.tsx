@@ -22,7 +22,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { toISODate } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
-import { attachImage, pickImage, scanImage, type ScanResult } from '@/lib/scan';
+import { attachFile, pickDocument, pickImage, scanFile, type PickedFile, type ScanResult } from '@/lib/scan';
 import { orderForPersona } from '@/data/personas';
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useDocuments } from '@/store/documents';
@@ -66,7 +66,8 @@ export default function AddDocumentScreen() {
   const [owner, setOwner] = useState(editing?.owner ?? '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [showNotes, setShowNotes] = useState(Boolean(editing?.notes));
-  const [imageUri, setImageUri] = useState<string | undefined>(editing?.imageUri);
+  const [fileUri, setFileUri] = useState<string | undefined>(editing?.fileUri);
+  const [fileType, setFileType] = useState<'image' | 'pdf' | undefined>(editing?.fileType);
   const [leadDays, setLeadDays] = useState<number[]>(editing?.leadDays ?? []);
   const [busy, setBusy] = useState<'scanning' | 'attaching' | null>(null);
   const [scanNote, setScanNote] = useState<string | null>(null);
@@ -85,7 +86,7 @@ export default function AddDocumentScreen() {
     [documents]
   );
 
-  function applyScan(result: ScanResult, scannedImage: string) {
+  function applyScan(result: ScanResult, scannedUri: string, scannedType_: 'image' | 'pdf') {
     const scannedType = getDocumentType(result.typeId);
     setTypeId(result.typeId);
     setTitle(result.title || scannedType.label);
@@ -95,7 +96,8 @@ export default function AddDocumentScreen() {
     }
     setDocumentNumber(scannedType.numberField ? result.documentNumber : '');
     setLeadDays(scannedType.defaultLeadDays);
-    setImageUri(scannedImage);
+    setFileUri(scannedUri);
+    setFileType(scannedType_);
     setScanNote(
       result.confidence === 'high'
         ? result.note
@@ -104,19 +106,20 @@ export default function AddDocumentScreen() {
     setStep('form');
   }
 
-  async function runScan(source: 'camera' | 'library') {
+  async function runScan(source: 'camera' | 'library' | 'files') {
     setError(null);
     try {
-      const image = await pickImage(source);
-      if (!image) return;
+      const picked: PickedFile | null =
+        source === 'files' ? await pickDocument() : await pickImage(source);
+      if (!picked) return;
       setBusy('scanning');
-      const { result, imageUri: scannedImage } = await scanImage(image);
+      const { result, fileUri: scannedUri } = await scanFile(picked);
       if (!result.found) {
-        setError(result.note || 'No expiry date was found in that image.');
+        setError(result.note || 'No expiry date was found in that file.');
         setStep('type');
         return;
       }
-      applyScan(result, scannedImage);
+      applyScan(result, scannedUri, picked.type);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong while scanning.');
     } finally {
@@ -124,15 +127,17 @@ export default function AddDocumentScreen() {
     }
   }
 
-  async function addPhoto(source: 'camera' | 'library') {
+  async function addAttachment(source: 'camera' | 'library' | 'files') {
     setError(null);
     try {
-      const image = await pickImage(source);
-      if (!image) return;
+      const picked: PickedFile | null =
+        source === 'files' ? await pickDocument() : await pickImage(source);
+      if (!picked) return;
       setBusy('attaching');
-      setImageUri(await attachImage(image));
+      setFileUri(await attachFile(picked));
+      setFileType(picked.type);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That photo could not be added.');
+      setError(e instanceof Error ? e.message : 'That file could not be added.');
     } finally {
       setBusy(null);
     }
@@ -168,7 +173,8 @@ export default function AddDocumentScreen() {
       documentNumber: documentNumber.trim() || undefined,
       notes: notes.trim() || undefined,
       owner: owner.trim() || undefined,
-      imageUri,
+      fileUri,
+      fileType,
       leadDays,
     };
     if (editing) {
@@ -228,8 +234,8 @@ export default function AddDocumentScreen() {
             Just show it to Renewly
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-            Photograph a document, a food label, or a screenshot of an email. Renewly reads the date
-            and fills everything in.
+            Photograph a document, a food label, or a screenshot — or upload a PDF like a tenancy
+            contract. Renewly reads the date and fills everything in.
           </ThemedText>
 
           {error && <ErrorNote message={error} />}
@@ -239,6 +245,11 @@ export default function AddDocumentScreen() {
             label="Choose a photo or screenshot"
             icon="image-outline"
             onPress={() => runScan('library')}
+          />
+          <SecondaryButton
+            label="Upload a PDF from Files"
+            icon="folder-open-outline"
+            onPress={() => runScan('files')}
           />
 
           <Pressable onPress={() => setStep('type')} style={styles.manualLink}>
@@ -303,7 +314,7 @@ export default function AddDocumentScreen() {
           <ThemedView
             type="backgroundElement"
             style={[styles.typeSummary, { borderColor: theme.border }]}>
-            <DocIcon typeId={type!.id} size={40} />
+            <DocIcon typeId={type!.id} size={40} fileType={fileType} />
             <View style={{ flex: 1 }}>
               <ThemedText type="bodyMedium">{type!.label}</ThemedText>
               <ThemedText type="small" themeColor="textTertiary">
@@ -391,20 +402,34 @@ export default function AddDocumentScreen() {
           </Field>
         )}
 
-        <Field label="Photo">
-          {imageUri ? (
+        <Field label="Attachment">
+          {fileUri ? (
             <View style={styles.photoRow}>
-              <Image source={{ uri: imageUri }} style={styles.photoPreview} resizeMode="cover" />
+              {fileType === 'pdf' ? (
+                <View style={[styles.pdfPreview, { borderColor: theme.border }]}>
+                  <MaterialCommunityIcons
+                    name="file-pdf-box"
+                    size={34}
+                    color={theme.textSecondary}
+                  />
+                </View>
+              ) : (
+                <Image source={{ uri: fileUri }} style={styles.photoPreview} resizeMode="cover" />
+              )}
               <View style={styles.photoActions}>
                 <ThemedText type="small" themeColor="textSecondary">
-                  Kept privately on this device.
+                  {fileType === 'pdf' ? 'PDF kept' : 'Photo kept'} privately on this device.
                 </ThemedText>
-                <Pressable onPress={() => addPhoto('library')}>
+                <Pressable onPress={() => addAttachment('files')}>
                   <ThemedText type="smallBold" style={{ color: theme.accent }}>
                     Replace
                   </ThemedText>
                 </Pressable>
-                <Pressable onPress={() => setImageUri(undefined)}>
+                <Pressable
+                  onPress={() => {
+                    setFileUri(undefined);
+                    setFileType(undefined);
+                  }}>
                   <ThemedText type="smallBold" style={{ color: theme.urgentStrong }}>
                     Remove
                   </ThemedText>
@@ -416,13 +441,13 @@ export default function AddDocumentScreen() {
               <SecondaryButton
                 label="Camera"
                 icon="camera-outline"
-                onPress={() => addPhoto('camera')}
+                onPress={() => addAttachment('camera')}
                 compact
               />
               <SecondaryButton
-                label="Library"
-                icon="image-outline"
-                onPress={() => addPhoto('library')}
+                label="Files"
+                icon="folder-open-outline"
+                onPress={() => addAttachment('files')}
                 compact
               />
             </View>
@@ -665,6 +690,14 @@ const styles = StyleSheet.create({
   iosDateRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   photoRow: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
   photoPreview: { width: 88, height: 88, borderRadius: Radius.small },
+  pdfPreview: {
+    width: 88,
+    height: 88,
+    borderRadius: Radius.small,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   photoActions: { flex: 1, gap: Spacing.two },
   photoButtons: { flexDirection: 'row', gap: Spacing.two },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },

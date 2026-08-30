@@ -77,12 +77,42 @@ export default function DocumentDetailScreen() {
           </ThemedText>
         </View>
 
-        {doc.imageUri && (
+        {doc.fileUri && doc.fileType !== 'pdf' && (
           <Image
-            source={{ uri: doc.imageUri }}
+            source={{ uri: doc.fileUri }}
             style={[styles.photo, { borderColor: theme.border }]}
             resizeMode="cover"
           />
+        )}
+
+        {doc.fileUri && doc.fileType === 'pdf' && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open the attached PDF"
+            onPress={() => openAttachment(doc.fileUri!)}>
+            {({ pressed }) => (
+              <ThemedView
+                type="backgroundElement"
+                style={[styles.pdfRow, { borderColor: theme.border }, pressed && styles.pressed]}>
+                <MaterialCommunityIcons
+                  name="file-pdf-box"
+                  size={26}
+                  color={theme.textSecondary}
+                />
+                <View style={styles.flex}>
+                  <ThemedText type="bodyMedium">PDF attached</ThemedText>
+                  <ThemedText type="small" themeColor="textTertiary">
+                    Tap to open it
+                  </ThemedText>
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color={theme.textTertiary}
+                />
+              </ThemedView>
+            )}
+          </Pressable>
         )}
 
         {(doc.documentNumber || doc.notes || doc.owner) && (
@@ -119,7 +149,7 @@ export default function DocumentDetailScreen() {
 
         <Section title="Reminders">
           <View style={styles.reminderRow}>
-            <DocIcon typeId={doc.typeId} size={38} />
+            <DocIcon typeId={doc.typeId} size={38} fileType={doc.fileType} />
             <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
               {doc.leadDays.length === 0
                 ? 'No reminders set for this item.'
@@ -197,6 +227,20 @@ export default function DocumentDetailScreen() {
   );
 }
 
+/** iOS Quick Look via the share sheet — no PDF viewer dependency needed. */
+async function openAttachment(uri: string) {
+  try {
+    const Sharing = await import('expo-sharing');
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
+      return;
+    }
+  } catch {
+    // Fall through to the alert below.
+  }
+  Alert.alert('Cannot open', 'This PDF could not be opened on this device.');
+}
+
 function SecondaryAction({
   icon,
   label,
@@ -268,6 +312,14 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: Radius.medium,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  pdfRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    borderRadius: Radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.three,
   },
   section: { gap: Spacing.three },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },

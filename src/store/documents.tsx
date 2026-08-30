@@ -12,7 +12,7 @@ import {
 
 import { getDocumentType } from '@/data/document-types';
 import { daysUntil } from '@/lib/dates';
-import { deleteImage, storeImage } from '@/lib/images';
+import { deleteFile, storeFile } from '@/lib/files';
 import { cancelReminders, scheduleReminders } from '@/lib/notifications';
 import { useSettings } from '@/store/settings';
 import { DocumentDraft, TrackedDocument } from '@/types';
@@ -44,8 +44,11 @@ const DocumentsContext = createContext<DocumentsContextValue | null>(null);
  */
 function migrate(raw: unknown): TrackedDocument | null {
   if (!raw || typeof raw !== 'object') return null;
-  const doc = raw as Partial<TrackedDocument>;
+  const doc = raw as Partial<TrackedDocument> & { imageUri?: string };
   if (!doc.id || !doc.typeId || !doc.expiryDate) return null;
+
+  // Documents saved before PDFs were supported stored a photo in `imageUri`.
+  const fileUri = doc.fileUri ?? doc.imageUri;
 
   return {
     id: doc.id,
@@ -55,7 +58,8 @@ function migrate(raw: unknown): TrackedDocument | null {
     documentNumber: doc.documentNumber,
     notes: doc.notes,
     owner: doc.owner,
-    imageUri: doc.imageUri,
+    fileUri,
+    fileType: doc.fileType ?? (fileUri ? 'image' : undefined),
     leadDays: doc.leadDays?.length ? doc.leadDays : getDocumentType(doc.typeId).defaultLeadDays,
     archivedAt: doc.archivedAt,
     notificationIds: doc.notificationIds ?? [],
@@ -99,7 +103,9 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       const doc: TrackedDocument = {
         ...draft,
         id,
-        imageUri: draft.imageUri ? storeImage(draft.imageUri, id) : undefined,
+        fileUri: draft.fileUri
+          ? storeFile(draft.fileUri, id, draft.fileType ?? 'image')
+          : undefined,
         notificationIds: [],
         createdAt: new Date().toISOString(),
       };
@@ -117,15 +123,17 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
 
       await cancelReminders(previous.notificationIds);
 
-      // Drop the old photo when it has been replaced or removed.
-      if (previous.imageUri && previous.imageUri !== draft.imageUri) {
-        deleteImage(previous.imageUri);
+      // Drop the old attachment when it has been replaced or removed.
+      if (previous.fileUri && previous.fileUri !== draft.fileUri) {
+        deleteFile(previous.fileUri);
       }
 
       const updated: TrackedDocument = {
         ...draft,
         id,
-        imageUri: draft.imageUri ? storeImage(draft.imageUri, id) : undefined,
+        fileUri: draft.fileUri
+          ? storeFile(draft.fileUri, id, draft.fileType ?? 'image')
+          : undefined,
         notificationIds: [],
         createdAt: previous.createdAt,
       };
@@ -140,7 +148,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       const target = latest.current.find((d) => d.id === id);
       if (!target) return;
       await cancelReminders(target.notificationIds);
-      deleteImage(target.imageUri);
+      deleteFile(target.fileUri);
       commit(latest.current.filter((d) => d.id !== id));
     },
     [commit]
@@ -177,7 +185,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const deleteEverything = useCallback(async () => {
     for (const doc of latest.current) {
       await cancelReminders(doc.notificationIds);
-      deleteImage(doc.imageUri);
+      deleteFile(doc.fileUri);
     }
     commit([]);
   }, [commit]);

@@ -46,8 +46,9 @@ export type TrackedDocument = {
   notes?: string;
   /** Whose document this is — blank means the owner of the phone. */
   owner?: string;
-  /** File URI of the stored photo, inside the app's private directory. */
-  imageUri?: string;
+  /** URI of the stored photo or PDF, inside the app's private directory. */
+  fileUri?: string;
+  fileType?: 'image' | 'pdf';
   /** Days before expiry at which reminders fire, largest first. */
   leadDays: number[];
   /** Set once dealt with — hidden from the main list, reminders cancelled. */

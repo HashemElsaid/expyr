@@ -9,8 +9,10 @@ import { TrackedDocument } from '@/types';
 
 const BACKUP_FORMAT = 1;
 
-type BackupDocument = Omit<TrackedDocument, 'imageUri' | 'notificationIds'> & {
-  /** The photo travels inside the file so a restore is complete. */
+type BackupDocument = Omit<TrackedDocument, 'fileUri' | 'notificationIds'> & {
+  /** The attachment travels inside the file so a restore is complete. */
+  fileBase64?: string;
+  /** Written by versions before PDFs were supported. */
   imageBase64?: string;
 };
 
@@ -49,17 +51,17 @@ export async function exportBackup(documents: TrackedDocument[]): Promise<void> 
     format: BACKUP_FORMAT,
     exportedAt: new Date().toISOString(),
     documents: documents.map((doc) => {
-      const { imageUri, notificationIds, ...rest } = doc;
-      let imageBase64: string | undefined;
-      if (imageUri) {
+      const { fileUri, notificationIds, ...rest } = doc;
+      let fileBase64: string | undefined;
+      if (fileUri) {
         try {
-          const image = new File(imageUri);
-          if (image.exists) imageBase64 = image.base64Sync();
+          const attachment = new File(fileUri);
+          if (attachment.exists) fileBase64 = attachment.base64Sync();
         } catch {
-          // A missing photo should never abort the whole backup.
+          // A missing attachment should never abort the whole backup.
         }
       }
-      return { ...rest, imageBase64 };
+      return { ...rest, fileBase64 };
     }),
   };
 
@@ -128,16 +130,20 @@ export async function importBackup(): Promise<RestoreResult | null> {
   for (const entry of parsed.documents) {
     if (!entry?.id || !entry.typeId || !entry.expiryDate) continue;
 
-    let imageUri: string | undefined;
-    if (entry.imageBase64) {
+    // `imageBase64` is the older field name, kept so old backups still restore.
+    const payload = entry.fileBase64 ?? entry.imageBase64;
+    const fileType = entry.fileType ?? (payload ? 'image' : undefined);
+
+    let fileUri: string | undefined;
+    if (payload) {
       try {
-        const target = new File(imagesDir, `${entry.id}.jpg`);
+        const target = new File(imagesDir, `${entry.id}.${fileType === 'pdf' ? 'pdf' : 'jpg'}`);
         if (target.exists) target.delete();
         target.create();
-        target.write(entry.imageBase64, { encoding: 'base64' });
-        imageUri = target.uri;
+        target.write(payload, { encoding: 'base64' });
+        fileUri = target.uri;
       } catch {
-        // Restore the entry even if its photo cannot be written.
+        // Restore the entry even if its attachment cannot be written.
       }
     }
 
@@ -149,7 +155,9 @@ export async function importBackup(): Promise<RestoreResult | null> {
       documentNumber: entry.documentNumber,
       notes: entry.notes,
       owner: entry.owner,
-      imageUri,
+      fileUri,
+      fileType,
+      archivedAt: entry.archivedAt,
       leadDays: entry.leadDays?.length
         ? entry.leadDays
         : getDocumentType(entry.typeId).defaultLeadDays,

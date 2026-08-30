@@ -129,6 +129,7 @@ export default function SettingsScreen() {
 
   const scheduledCount = documents.reduce((sum, d) => sum + d.notificationIds.length, 0);
   const peopleCount = new Set(documents.map((d) => d.owner ?? '')).size || 1;
+  const renewalsRecorded = documents.reduce((sum, d) => sum + (d.history?.length ?? 0), 0);
 
   return (
     <ThemedView style={styles.container}>
@@ -382,6 +383,13 @@ export default function SettingsScreen() {
               title="Renewly"
               subtitle={`Version ${Constants.expoConfig?.version ?? '1.0.0'}`}
             />
+            {renewalsRecorded > 0 && (
+              <Row
+                icon="history"
+                title={`${renewalsRecorded} renewal${renewalsRecorded === 1 ? '' : 's'} behind you`}
+                subtitle="Renewly remembers each time you have renewed something."
+              />
+            )}
           </Section>
         </ScrollView>
       </SafeAreaView>

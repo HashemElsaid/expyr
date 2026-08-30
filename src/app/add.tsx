@@ -4,6 +4,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Platform,
   Pressable,
@@ -21,7 +22,7 @@ import { orderForPersona } from '@/data/personas';
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
-import { countWord, dayMonth, longDate, toISODate } from '@/lib/dates';
+import { countWord, dayMonth, longDate, shortDate, toISODate } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { attachFile, pickDocument, pickImage, scanFile, type PickedFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
@@ -183,8 +184,45 @@ export default function AddDocumentScreen() {
     );
   }
 
+  /** Same category, same person, within a few days — almost certainly the same thing. */
+  function findDuplicate(): TrackedDocument | undefined {
+    if (editing) return undefined;
+    const target = toISODate(expiry);
+    const number = documentNumber.trim().toLowerCase();
+    return documents.find((d) => {
+      if (number && d.documentNumber?.trim().toLowerCase() === number) return true;
+      if (d.typeId !== typeId) return false;
+      if ((d.owner ?? '') !== owner.trim()) return false;
+      const gap = Math.abs(
+        (new Date(`${d.expiryDate}T00:00:00`).getTime() -
+          new Date(`${target}T00:00:00`).getTime()) /
+          86_400_000
+      );
+      return gap <= 3;
+    });
+  }
+
   async function save() {
     if (!typeId || !title.trim() || saving) return;
+
+    const duplicate = findDuplicate();
+    if (duplicate) {
+      Alert.alert(
+        'You already track this',
+        `“${duplicate.title}” expires ${shortDate(duplicate.expiryDate)}. Add another anyway?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open the existing one', onPress: () => router.replace(`/document/${duplicate.id}`) },
+          { text: 'Add anyway', onPress: () => persist() },
+        ]
+      );
+      return;
+    }
+    persist();
+  }
+
+  async function persist() {
+    if (!typeId || saving) return;
     setSaving(true);
     const draft = {
       typeId,

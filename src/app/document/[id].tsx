@@ -76,23 +76,36 @@ export default function DocumentDetailScreen() {
     if (!doc) return;
     tapFeedback();
     const archiveLabel = doc.archivedAt ? 'Move back to my items' : 'Archive';
-    const options = ['Edit details', archiveLabel, 'Delete permanently', 'Cancel'];
+    // Sending a copy of a passport or licence is a routine errand here.
+    const canShare = Boolean(doc.fileUri);
+
+    const actions: { label: string; run: () => void; destructive?: boolean }[] = [
+      ...(canShare
+        ? [{ label: 'Share a copy', run: () => openAttachment(doc.fileUri!, doc.fileType) }]
+        : []),
+      { label: 'Edit details', run: () => router.push(`/add?id=${doc.id}`) },
+      { label: archiveLabel, run: toggleArchive },
+      { label: 'Delete permanently', run: confirmDelete, destructive: true },
+    ];
+
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options, destructiveButtonIndex: 2, cancelButtonIndex: 3 },
-        (index) => {
-          if (index === 0) router.push(`/add?id=${doc.id}`);
-          if (index === 1) toggleArchive();
-          if (index === 2) confirmDelete();
-        }
+        {
+          options: [...actions.map((a) => a.label), 'Cancel'],
+          destructiveButtonIndex: actions.findIndex((a) => a.destructive),
+          cancelButtonIndex: actions.length,
+        },
+        (index) => actions[index]?.run()
       );
       return;
     }
     Alert.alert(doc.title, undefined, [
-      { text: 'Edit details', onPress: () => router.push(`/add?id=${doc.id}`) },
-      { text: archiveLabel, onPress: toggleArchive },
-      { text: 'Delete permanently', style: 'destructive', onPress: confirmDelete },
-      { text: 'Cancel', style: 'cancel' },
+      ...actions.map((a) => ({
+        text: a.label,
+        style: a.destructive ? ('destructive' as const) : undefined,
+        onPress: a.run,
+      })),
+      { text: 'Cancel', style: 'cancel' as const },
     ]);
   }
 

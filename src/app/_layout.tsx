@@ -2,11 +2,11 @@ import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from '@expo-googl
 import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Pressable, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { LockGate } from '@/components/lock-gate';
 import { Fonts } from '@/constants/theme';
@@ -21,6 +21,49 @@ import { DocumentsProvider, useDocuments } from '@/store/documents';
 import { SettingsProvider, useSettings } from '@/store/settings';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/**
+ * Expo Router renders this instead of a blank screen if something throws.
+ * Deliberately reassuring: the user's documents are on disk and untouched by
+ * whatever just failed.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <SettingsProvider>
+      <ErrorScreen error={error} retry={retry} />
+    </SettingsProvider>
+  );
+}
+
+function ErrorScreen({ error, retry }: ErrorBoundaryProps) {
+  const theme = useTheme();
+  return (
+    <View style={[errorStyles.container, { backgroundColor: theme.background }]}>
+      <Text style={[errorStyles.title, { color: theme.text }]}>Something went wrong.</Text>
+      <Text style={[errorStyles.body, { color: theme.textSecondary }]}>
+        Your documents are safe on this phone — nothing was lost. Try again, and if it keeps
+        happening, restarting Renewly usually clears it.
+      </Text>
+      <Text style={[errorStyles.detail, { color: theme.textTertiary }]} numberOfLines={3}>
+        {error.message}
+      </Text>
+      <Pressable onPress={retry} accessibilityRole="button">
+        <View style={[errorStyles.button, { backgroundColor: theme.accent }]}>
+          <Text style={[errorStyles.buttonLabel, { color: theme.accentContrast }]}>Try again</Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+const errorStyles = StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 },
+  title: { fontFamily: Fonts.display, fontSize: 34, lineHeight: 38, textAlign: 'center' },
+  body: { fontFamily: Fonts.body, fontSize: 15, lineHeight: 22, textAlign: 'center', maxWidth: 320 },
+  detail: { fontFamily: Fonts.body, fontSize: 12, textAlign: 'center', maxWidth: 320 },
+  button: { borderRadius: 999, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
+  buttonLabel: { fontFamily: Fonts.bodyMedium, fontSize: 13 },
+});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

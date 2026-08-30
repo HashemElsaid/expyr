@@ -31,7 +31,9 @@ function buildSections(docs: TrackedDocument[], allClear: boolean): Section[] {
 
   if (allClear) {
     // With nothing pressing, one calm list reads better than three headings.
-    return [{ title: 'The year ahead', data: [...documents, ...everyday] }];
+    const rest = [...documents, ...everyday];
+    // An empty section would still draw its heading and hide the empty state.
+    return rest.length > 0 ? [{ title: 'The year ahead', data: rest }] : [];
   }
 
   return [
@@ -351,7 +353,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.four,
   },
   assurance: { textAlign: 'center', paddingTop: Spacing.four, paddingBottom: Spacing.two },
-  empty: { paddingTop: 56, gap: Spacing.three, alignItems: 'flex-start' },
+  empty: { paddingTop: 48, gap: Spacing.three, alignItems: 'flex-start', maxWidth: 340 },
   ctaButton: {
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.four,

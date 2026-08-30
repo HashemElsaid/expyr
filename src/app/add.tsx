@@ -235,6 +235,8 @@ export default function AddDocumentScreen() {
       files,
       leadDays,
     };
+    const isFirstItem = documents.length === 0;
+
     if (editing) {
       // Renewing keeps the date it used to carry, so the item shows its past.
       const movedOn = renewing && draft.expiryDate !== editing.expiryDate;
@@ -243,11 +245,18 @@ export default function AddDocumentScreen() {
         archivedAt: editing.archivedAt,
         history: movedOn ? [...(editing.history ?? []), editing.expiryDate] : editing.history,
       });
-    } else {
-      await addDocument(draft);
+      successFeedback();
+      router.back();
+      return;
     }
+
+    const created = await addDocument(draft);
     successFeedback();
-    router.back();
+
+    // The first item is the moment to show the promise being kept: the
+    // countdown, the reminder dates and what renewing actually involves.
+    if (isFirstItem) router.replace(`/document/${created.id}`);
+    else router.back();
   }
 
   if (overFreeLimit) {

@@ -50,9 +50,8 @@ export default function OnboardingScreen() {
                 Nothing expires unnoticed.
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                Visas, licences, insurance, tenancy contracts, coursework deadlines — even the milk
-                in your fridge. Photograph it once and Renewly remembers the date, warns you in
-                time, and tells you exactly how to renew it.
+                A visa, a licence, a tenancy contract — or the milk in your fridge. Photograph it
+                once and Renewly does the remembering.
               </ThemedText>
 
               <View style={styles.points}>
@@ -121,8 +120,7 @@ export default function OnboardingScreen() {
                 One last thing
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                Renewly is only useful if it can reach you. Reminders are scheduled on this phone —
-                no server ever sees your dates — and you choose how far ahead they arrive.
+                Reminders are scheduled on this phone. No server ever sees your dates.
               </ThemedText>
               <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
                 Your iPhone will ask you to confirm on the next screen.

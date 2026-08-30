@@ -1,16 +1,18 @@
 {
   "expo": {
-    "name": "application",
-    "slug": "application",
+    "name": "Renewly",
+    "slug": "renewly",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "application",
+    "scheme": "renewly",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "supportsTablet": true,
+      "bundleIdentifier": "com.renewly.app"
     },
     "android": {
+      "package": "com.renewly.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -32,11 +34,19 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Renewly uses the camera to read expiry dates from your documents.",
+          "photosPermission": "Renewly reads photos and screenshots you choose so it can fill in dates for you."
+        }
+      ],
+      "expo-font"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     }
   }
 }

@@ -1,0 +1,23 @@
+{
+  "name": "renewly-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Extraction service for Renewly — keeps the Anthropic API key off the phone.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env index.ts",
+    "start": "node index.ts",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "typescript": "^7.0.2"
+  }
+}

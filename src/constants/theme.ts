@@ -1,55 +1,48 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Renewly's visual language: warm paper rather than clinical white, ink rather
+ * than pure black, and colour reserved for genuine urgency. Everything that is
+ * fine is deliberately quiet.
  */
-
-import '@/global.css';
-
-import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    background: '#F7F4EF',
+    backgroundElement: '#FFFDFA',
+    backgroundSelected: '#EDE8DF',
+    text: '#191713',
+    textSecondary: '#5B564C',
+    textTertiary: '#918B7E',
+    border: '#E2DCD0',
+    accent: '#1D4B39',
+    accentContrast: '#FFFDFA',
+    urgentStrong: '#9E2B20',
+    urgentSoft: '#87591A',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    background: '#100F0E',
+    backgroundElement: '#191816',
+    backgroundSelected: '#24221E',
+    text: '#F3F1EC',
+    textSecondary: '#A19B8F',
+    textTertiary: '#6F695E',
+    border: '#2A2723',
+    accent: '#8ED6B2',
+    accentContrast: '#0E241B',
+    urgentStrong: '#F09A8C',
+    urgentSoft: '#DFAF66',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+/** Font families, keyed to the files loaded in the root layout. */
+export const Fonts = {
+  /** Editorial serif — headlines and big numbers only. */
+  display: 'InstrumentSerif',
+  body: 'DMSans',
+  bodyMedium: 'DMSansMedium',
+  bodyBold: 'DMSansBold',
+} as const;
 
 export const Spacing = {
   half: 2,
@@ -61,5 +54,11 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+export const Radius = {
+  small: 10,
+  medium: 16,
+  large: 22,
+  pill: 999,
+} as const;
+
 export const MaxContentWidth = 800;

@@ -30,7 +30,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files — never commit the Anthropic API key
+.env
 .env*.local
 
 # typescript

@@ -1,56 +1,81 @@
-# Welcome to your Expo app 👋
+# Renewly
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Nothing expires unnoticed.
 
-## Get started
+Renewly tracks anything with a deadline — residence visas, Emirates ID, car
+registration, insurance, tenancy contracts, coursework deadlines, even the milk
+in the fridge. You photograph the thing; Claude reads the date; Renewly reminds
+you in time and tells you how to renew it.
 
-1. Install dependencies
+Built for the UAE first: every category carries the real renewal steps, typical
+cost, and the penalty for being late.
 
-   ```bash
-   npm install
-   ```
+## Running it
 
-2. Start the app
+Two processes, in two terminals.
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+**1. The scanning service** — holds the Anthropic API key, which must never ship
+inside the app.
 
 ```bash
-npm run reset-project
+cd server
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+```bash
+npm run dev
+```
 
-### Other setup steps
+Copy `server/.env.example` to `server/.env` first and paste a **workspace-scoped**
+key from the [Claude Console](https://platform.claude.com/settings/keys). A user
+key will be rejected unless you also set `ANTHROPIC_WORKSPACE_ID`.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+**2. The app.**
 
-## Learn more
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Scan the QR code with an iPhone running Expo Go. The app finds the scanning
+service automatically at Metro's host, so nothing needs configuring on the same
+Wi-Fi.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+> Pinned to **Expo SDK 54** on purpose: Expo Go on the App Store is frozen at 54,
+> and SDK 55+ needs a paid Apple Developer account to run on a physical phone.
 
-## Join the community
+## How it is put together
 
-Join our community of developers creating universal apps.
+```
+src/
+  app/              screens (expo-router)
+    (tabs)/         Items, Timeline, Settings
+    add.tsx         scan-first capture and edit
+    document/[id]   detail, renewal guide, reminders
+    onboarding.tsx  first run
+    paywall.tsx     subscription
+    privacy.tsx     what happens to your data
+  components/       shared UI
+  data/             document categories, renewal guides, icons, personas
+  hooks/            theme and urgency
+  lib/              dates, images, scanning, notifications, backup, biometrics
+  store/            documents and settings (AsyncStorage)
+server/             the scanning service — see server/README.md
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Everything a user creates lives on their phone. There is no account system and
+no server database; the service exists only to keep the API key off the device.
+
+## Costs
+
+Scanning runs on `claude-haiku-4-5` at roughly **0.4 fils per scan**. Switch to
+`claude-opus-5` in `server/.env` for more accuracy at about six times the cost.
+
+## What is not done yet
+
+- Real in-app purchases — `src/lib/purchases.ts` is a stub until there is an
+  Apple Developer account and a RevenueCat project
+- Home screen widgets — these need a native widget extension and a development
+  build, so they cannot run in Expo Go
+- The app icon
+- The scanning service is not deployed, so scanning only works on your own Wi-Fi
+
+`STORE.md` holds the App Store listing draft and the pre-submission checklist.

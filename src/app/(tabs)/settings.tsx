@@ -1,0 +1,457 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { exportBackup, exportCsv, importBackup } from '@/lib/backup';
+import { authenticate, checkBiometricSupport } from '@/lib/biometrics';
+import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
+import { PERSONA_OPTIONS } from '@/data/personas';
+import { useDocuments } from '@/store/documents';
+import { FREE_ITEM_LIMIT, useSettings, type ThemePreference } from '@/store/settings';
+
+const REMINDER_HOURS = [7, 8, 9, 12, 18, 20];
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
+export default function SettingsScreen() {
+  const theme = useTheme();
+  const router = useRouter();
+  const { settings, update } = useSettings();
+  const { documents, rescheduleAll, replaceAll, deleteEverything } = useDocuments();
+  const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkBiometricSupport().then(setBiometrics).catch(() => {});
+  }, []);
+
+  async function toggleLock(next: boolean) {
+    if (!next) {
+      // Prove it is really you before removing the lock.
+      if (await authenticate('Turn off the app lock')) update({ lockEnabled: false });
+      return;
+    }
+    if (!biometrics.available) {
+      Alert.alert(
+        'No lock available',
+        'Set up Face ID, Touch ID or a passcode on your iPhone first, then come back.'
+      );
+      return;
+    }
+    if (await authenticate('Turn on the app lock')) update({ lockEnabled: true });
+  }
+
+  async function run(label: string, action: () => Promise<void>) {
+    setBusy(label);
+    try {
+      await action();
+    } catch (error) {
+      Alert.alert('Something went wrong', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function restore() {
+    run('restore', async () => {
+      const result = await importBackup();
+      if (!result) return;
+      Alert.alert(
+        'Replace everything?',
+        `This backup holds ${result.count} item${result.count === 1 ? '' : 's'}. Restoring replaces what is currently in Renewly.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Restore',
+            style: 'destructive',
+            onPress: () => replaceAll(result.documents),
+          },
+        ]
+      );
+    });
+  }
+
+  function wipe() {
+    Alert.alert(
+      'Delete everything?',
+      'Every item, photo and reminder will be removed from this phone. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete all', style: 'destructive', onPress: () => deleteEverything() },
+      ]
+    );
+  }
+
+  const refreshPermission = useCallback(() => {
+    getNotificationPermission().then(setNotificationsOn).catch(() => setNotificationsOn(false));
+  }, []);
+
+  useEffect(refreshPermission, [refreshPermission]);
+
+  async function enableNotifications() {
+    const granted = await ensureNotificationPermission();
+    setNotificationsOn(granted);
+    if (granted) {
+      await rescheduleAll();
+    } else if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Reminders are off',
+        'Renewly can only warn you before something expires if notifications are allowed. You can turn them on in iOS Settings.',
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+    }
+  }
+
+  async function changeHour(hour: number) {
+    update({ reminderHour: hour });
+    setRescheduling(true);
+    // The stored hour is read through a ref, so this picks up the new value.
+    setTimeout(async () => {
+      await rescheduleAll();
+      setRescheduling(false);
+    }, 0);
+  }
+
+  const scheduledCount = documents.reduce((sum, d) => sum + d.notificationIds.length, 0);
+
+  return (
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <ThemedText type="display">Settings</ThemedText>
+          </View>
+
+          <Section title="Plan">
+            <Row
+              icon={settings.premium ? 'star-circle-outline' : 'archive-outline'}
+              title={settings.premium ? 'Renewly unlocked' : 'Free plan'}
+              subtitle={
+                settings.premium
+                  ? 'Unlimited items, for everyone in the family.'
+                  : `${documents.length} of ${FREE_ITEM_LIMIT} items used.`
+              }
+              action={
+                settings.premium
+                  ? undefined
+                  : { label: 'Unlock', onPress: () => router.push('/paywall') }
+              }
+            />
+          </Section>
+
+          <Section title="What you track">
+            <View style={styles.chipRow}>
+              {PERSONA_OPTIONS.map((option) => {
+                const on = settings.persona === option.value;
+                return (
+                  <Pressable key={option.value} onPress={() => update({ persona: option.value })}>
+                    <View
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: on ? theme.accent : 'transparent',
+                          borderColor: on ? theme.accent : theme.border,
+                        },
+                      ]}>
+                      <ThemedText
+                        type="smallBold"
+                        style={on ? { color: theme.accentContrast } : undefined}>
+                        {option.title}
+                      </ThemedText>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <ThemedText type="small" themeColor="textTertiary">
+              Decides which categories Renewly offers you first.
+            </ThemedText>
+          </Section>
+
+          <Section title="Reminders">
+            <Row
+              icon={notificationsOn ? 'bell-outline' : 'bell-off-outline'}
+              title={notificationsOn ? 'Notifications allowed' : 'Notifications are off'}
+              subtitle={
+                notificationsOn === null
+                  ? 'Checking…'
+                  : notificationsOn
+                    ? `${scheduledCount} reminder${scheduledCount === 1 ? '' : 's'} booked across ${documents.length} item${documents.length === 1 ? '' : 's'}.`
+                    : 'Renewly cannot warn you about anything until these are allowed.'
+              }
+              action={
+                notificationsOn
+                  ? undefined
+                  : { label: 'Turn on', onPress: enableNotifications }
+              }
+            />
+
+            <View style={styles.field}>
+              <ThemedText type="small" themeColor="textTertiary">
+                What time of day
+              </ThemedText>
+              <View style={styles.chipRow}>
+                {REMINDER_HOURS.map((hour) => {
+                  const on = settings.reminderHour === hour;
+                  return (
+                    <Pressable key={hour} onPress={() => changeHour(hour)} disabled={rescheduling}>
+                      <View
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: on ? theme.accent : 'transparent',
+                            borderColor: on ? theme.accent : theme.border,
+                          },
+                        ]}>
+                        <ThemedText
+                          type="smallBold"
+                          style={on ? { color: theme.accentContrast } : undefined}>
+                          {formatHour(hour)}
+                        </ThemedText>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <ThemedText type="small" themeColor="textTertiary">
+                {rescheduling
+                  ? 'Rebooking your reminders…'
+                  : `Every reminder arrives at ${formatHour(settings.reminderHour)}.`}
+              </ThemedText>
+            </View>
+          </Section>
+
+          <Section title="Appearance">
+            <View style={styles.chipRow}>
+              {THEME_OPTIONS.map((option) => {
+                const on = settings.themePreference === option.value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => update({ themePreference: option.value })}>
+                    <View
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: on ? theme.accent : 'transparent',
+                          borderColor: on ? theme.accent : theme.border,
+                        },
+                      ]}>
+                      <ThemedText
+                        type="smallBold"
+                        style={on ? { color: theme.accentContrast } : undefined}>
+                        {option.label}
+                      </ThemedText>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Section>
+
+          <Section title="Security">
+            <View style={styles.row}>
+              <MaterialCommunityIcons name="lock-outline" size={20} color={theme.textSecondary} />
+              <View style={styles.rowBody}>
+                <ThemedText type="bodyMedium">Require {biometrics.label}</ThemedText>
+                <ThemedText type="small" themeColor="textTertiary">
+                  {biometrics.available
+                    ? 'Renewly asks for it whenever you open the app after being away.'
+                    : 'Set up Face ID, Touch ID or a passcode on this phone to use this.'}
+                </ThemedText>
+              </View>
+              <Switch
+                value={settings.lockEnabled}
+                onValueChange={toggleLock}
+                disabled={!biometrics.available && !settings.lockEnabled}
+                trackColor={{ true: theme.accent, false: theme.backgroundSelected }}
+              />
+            </View>
+          </Section>
+
+          <Section title="Your data">
+            <Row
+              icon="tray-arrow-up"
+              title="Back up everything"
+              subtitle="Saves your items and their photos to a single file you can keep somewhere safe."
+              action={{
+                label: busy === 'backup' ? 'Working…' : 'Back up',
+                onPress: () => run('backup', () => exportBackup(documents)),
+              }}
+            />
+            <Row
+              icon="tray-arrow-down"
+              title="Restore from a backup"
+              subtitle="Replaces what is in Renewly with the contents of a backup file."
+              action={{ label: busy === 'restore' ? 'Working…' : 'Restore', onPress: restore }}
+            />
+            <Row
+              icon="file-delimited-outline"
+              title="Export as a spreadsheet"
+              subtitle="A plain CSV of what you track, without photos."
+              action={{
+                label: busy === 'csv' ? 'Working…' : 'Export',
+                onPress: () => run('csv', () => exportCsv(documents)),
+              }}
+            />
+            <Row
+              icon="delete-outline"
+              title="Delete everything"
+              subtitle="Removes every item, photo and reminder from this phone."
+              destructive
+              action={{ label: 'Delete', onPress: wipe }}
+            />
+          </Section>
+
+          <Section title="Privacy">
+            <Pressable onPress={() => router.push('/privacy')}>
+              {({ pressed }) => (
+                <View style={[styles.row, pressed && styles.pressed]}>
+                  <MaterialCommunityIcons
+                    name="cellphone-lock"
+                    size={20}
+                    color={theme.textSecondary}
+                  />
+                  <View style={styles.rowBody}>
+                    <ThemedText type="bodyMedium">Your documents stay on this phone</ThemedText>
+                    <ThemedText type="small" themeColor="textTertiary">
+                      Read exactly what is stored, and what happens when you scan.
+                    </ThemedText>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={theme.textTertiary}
+                  />
+                </View>
+              )}
+            </Pressable>
+          </Section>
+
+          <Section title="About">
+            <Row
+              icon="information-outline"
+              title="Renewly"
+              subtitle={`Version ${Constants.expoConfig?.version ?? '1.0.0'}`}
+            />
+          </Section>
+        </ScrollView>
+      </SafeAreaView>
+    </ThemedView>
+  );
+}
+
+function formatHour(hour: number): string {
+  if (hour === 0) return 'midnight';
+  if (hour === 12) return 'noon';
+  return hour < 12 ? `${hour}am` : `${hour - 12}pm`;
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <ThemedText type="label" themeColor="textTertiary">
+          {title}
+        </ThemedText>
+        <View style={[styles.rule, { backgroundColor: theme.border }]} />
+      </View>
+      <View style={styles.sectionBody}>{children}</View>
+    </View>
+  );
+}
+
+function Row({
+  icon,
+  title,
+  subtitle,
+  action,
+  destructive,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  action?: { label: string; onPress: () => void };
+  destructive?: boolean;
+}) {
+  const theme = useTheme();
+  const actionColor = destructive ? theme.urgentStrong : theme.accent;
+  return (
+    <View style={styles.row}>
+      <MaterialCommunityIcons
+        name={icon as never}
+        size={20}
+        color={destructive ? theme.urgentStrong : theme.textSecondary}
+      />
+      <View style={styles.rowBody}>
+        <ThemedText type="bodyMedium">{title}</ThemedText>
+        <ThemedText type="small" themeColor="textTertiary">
+          {subtitle}
+        </ThemedText>
+      </View>
+      {action && (
+        <Pressable onPress={action.onPress}>
+          {({ pressed }) => (
+            <View
+              style={[
+                styles.rowAction,
+                destructive
+                  ? { borderWidth: StyleSheet.hairlineWidth, borderColor: actionColor }
+                  : { backgroundColor: actionColor },
+                pressed && styles.pressed,
+              ]}>
+              <ThemedText
+                type="smallBold"
+                style={{ color: destructive ? actionColor : theme.accentContrast }}>
+                {action.label}
+              </ThemedText>
+            </View>
+          )}
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, flexDirection: 'row', justifyContent: 'center' },
+  safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%' },
+  content: { paddingHorizontal: Spacing.four, paddingBottom: Spacing.six },
+  header: { paddingTop: Spacing.four, paddingBottom: Spacing.two },
+  section: { gap: Spacing.three, paddingTop: Spacing.four },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  rule: { flex: 1, height: StyleSheet.hairlineWidth },
+  sectionBody: { gap: Spacing.four },
+  row: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
+  rowBody: { flex: 1, gap: 3 },
+  rowAction: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  field: { gap: Spacing.two },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  chip: {
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  pressed: { opacity: 0.7 },
+});

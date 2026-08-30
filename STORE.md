@@ -1,0 +1,119 @@
+# App Store listing
+
+Draft copy for App Store Connect. Everything here is editable — treat it as a
+starting point, not a finished submission.
+
+---
+
+## Name (30 characters max)
+
+```
+Renewly: Expiry Reminders
+```
+
+## Subtitle (30 characters max)
+
+```
+Visa, licence & renewal alerts
+```
+
+## Promotional text (170 characters, changeable without review)
+
+```
+Photograph your Emirates ID, visa, Mulkiya or tenancy contract. Renewly reads the date, reminds you in time, and tells you exactly how to renew it.
+```
+
+## Description
+
+```
+Renewly makes sure nothing in your life expires without warning.
+
+Photograph a document and Renewly reads the expiry date for you. No typing, no
+forms. It works on residence visas, Emirates ID, passports, car registration,
+insurance policies, tenancy contracts, driving licences — and on things that
+are not documents at all, like the use-by date on food or a coursework deadline
+in an email screenshot.
+
+WHAT IT DOES
+
+• Reads the date from a photo, a scan, or a screenshot
+• Reminds you weeks or months ahead, not the day before
+• Tells you how to renew: where to go, what it costs, and the fine for being late
+• Keeps documents for your whole family in one place
+• Shows your year as a timeline, so you can see what is coming
+
+BUILT FOR LIFE IN THE UAE
+
+Renewly knows what a Mulkiya is. It knows an Emirates ID renewal costs around
+AED 100 per year of validity, that late renewal is fined daily, that Ejari
+matters for your DEWA account, and that your landlord must give you 90 days'
+notice before raising the rent. Every category carries the steps, the typical
+cost, and the penalty for leaving it late.
+
+PRIVATE BY DESIGN
+
+Your documents stay on your phone. Photos are kept in Renewly's own storage —
+never your camera roll, never iCloud Photo Library. There is no account and no
+server database. Reminders are scheduled by iOS itself, so nobody else needs to
+know your dates. You can lock the app behind Face ID, and back everything up to
+a file only you hold.
+
+FREE AND UNLIMITED
+
+Track five items free, for as long as you like. Unlock Renewly to track
+everything you own and everyone in your household.
+```
+
+## Keywords (100 characters, comma separated, no spaces)
+
+```
+visa,emirates id,expiry,renewal,reminder,mulkiya,ejari,passport,document,deadline,insurance,licence
+```
+
+## Categories
+
+- Primary: **Productivity**
+- Secondary: **Utilities**
+
+## Age rating
+
+4+ — no objectionable content.
+
+---
+
+## Screenshots to capture (6.7" and 6.5" required)
+
+1. **Home screen** with five or six realistic items, one overdue and one due soon
+2. **The scan moment** — camera pointed at a document
+3. **The filled form** right after a scan, showing the "✨" note
+4. **A detail screen** showing the renewal steps and costs
+5. **Timeline** with several months populated
+6. **Settings** showing Face ID and the privacy line
+
+Caption each screenshot with a short benefit line rather than a feature name —
+"Photograph it once" beats "Camera scanning".
+
+---
+
+## Review notes for Apple
+
+```
+Renewly reads expiry dates from photos the user chooses. Images are sent once to
+our own service, which forwards them to the Anthropic Claude API for text
+extraction, and are not stored. No account is required. All user data is kept
+locally on the device.
+
+To test scanning, photograph any document or product label containing a date —
+for example a passport, a driving licence, or a food package with a best-before
+date.
+```
+
+## Required before submission
+
+- [ ] Apple Developer Program membership (USD 99/year)
+- [ ] App icon (1024×1024, no transparency, no rounded corners)
+- [ ] Privacy policy hosted at a public URL — the text is in `src/app/privacy.tsx`
+- [ ] Subscription products created in App Store Connect, matching `src/lib/purchases.ts`
+- [ ] RevenueCat project connected, replacing the stubs in `src/lib/purchases.ts`
+- [ ] Scanning service deployed and `EXPO_PUBLIC_EXTRACT_URL` pointed at it
+- [ ] App Privacy questionnaire completed (data is not collected or linked to the user)

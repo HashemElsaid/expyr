@@ -50,16 +50,26 @@ src/
     (tabs)/         Items, Timeline, Settings
     add.tsx         scan-first capture and edit
     document/[id]   detail, renewal guide, reminders
+    household.tsx   everyone you track for, grouped by person
+    archive.tsx     items you are finished with
     onboarding.tsx  first run
     paywall.tsx     subscription
     privacy.tsx     what happens to your data
-  components/       shared UI
-  data/             document categories, renewal guides, icons, personas
+  components/       shared UI, including the ledger row and its runway
+  data/             categories, renewal guides, portals, icons, personas
   hooks/            theme and urgency
-  lib/              dates, images, scanning, notifications, backup, biometrics
+  lib/              dates, files, scanning, notifications, backup, biometrics
   store/            documents and settings (AsyncStorage)
 server/             the scanning service — see server/README.md
 ```
+
+## The design
+
+The interface is "the Ledger": no cards, hierarchy carried by type size, and a
+runway hairline showing how far through its life each document is. Colour means
+urgency and nothing else — anything comfortably in the future stays in quiet
+ink. Instrument Serif for headlines and figures, DM Sans for everything else.
+Dark mode is a warm, candle-lit brown-black rather than an inversion.
 
 Everything a user creates lives on their phone. There is no account system and
 no server database; the service exists only to keep the API key off the device.
@@ -73,9 +83,13 @@ Scanning runs on `claude-haiku-4-5` at roughly **0.4 fils per scan**. Switch to
 
 - Real in-app purchases — `src/lib/purchases.ts` is a stub until there is an
   Apple Developer account and a RevenueCat project
+- The app icon, and a final decision on the name
 - Home screen widgets — these need a native widget extension and a development
   build, so they cannot run in Expo Go
-- The app icon
-- The scanning service is not deployed, so scanning only works on your own Wi-Fi
+- Arabic and right-to-left layout, which matters for this market and is a
+  project of its own rather than a bolt-on
+- Sync across devices — deliberately absent. Everything is on-device, and the
+  iPhone backup covers device loss. Real sync would mean a server holding
+  people's ID photos, which should only be built with end-to-end encryption
 
 `STORE.md` holds the App Store listing draft and the pre-submission checklist.

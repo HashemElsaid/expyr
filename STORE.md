@@ -36,11 +36,15 @@ in an email screenshot.
 
 WHAT IT DOES
 
-• Reads the date from a photo, a scan, or a screenshot
+• Reads the date from a photo, a PDF, or a screenshot
 • Reminds you weeks or months ahead, not the day before
+• Lets you snooze or mark something done from the reminder itself
 • Tells you how to renew: where to go, what it costs, and the fine for being late
-• Keeps documents for your whole family in one place
+• Opens the right government portal for you
+• Keeps the whole family in one place, so you can see what everyone needs
+• Holds both sides of an ID, and shares a copy when someone asks for one
 • Shows your year as a timeline, so you can see what is coming
+• Rolls the date forward when you renew, and remembers that you did
 
 BUILT FOR LIFE IN THE UAE
 
@@ -53,10 +57,11 @@ cost, and the penalty for leaving it late.
 PRIVATE BY DESIGN
 
 Your documents stay on your phone. Photos are kept in Renewly's own storage —
-never your camera roll, never iCloud Photo Library. There is no account and no
-server database. Reminders are scheduled by iOS itself, so nobody else needs to
-know your dates. You can lock the app behind Face ID, and back everything up to
-a file only you hold.
+never your camera roll, never iCloud Photo Library. There is no account, no
+sign-up and no server database. Reminders are scheduled by iOS itself, so nobody
+else needs to know your dates. Everything travels with your iPhone backup, so a
+new phone brings it all back. You can lock Renewly behind Face ID, and export a
+copy only you hold.
 
 FREE AND UNLIMITED
 

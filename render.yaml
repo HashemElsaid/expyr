@@ -1,0 +1,22 @@
+# Render Blueprint for the Renewly scanning service.
+# Point Render at this repository and it configures the service from this file.
+# The two secrets are marked `sync: false`, so Render prompts for them rather
+# than reading them from the repo.
+services:
+  - type: web
+    name: renewly-scanner
+    runtime: node
+    rootDir: server
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      # Node 24 runs the TypeScript sources directly, with no build step.
+      - key: NODE_VERSION
+        value: 24.13.0
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: RENEWLY_APP_TOKEN
+        sync: false

@@ -31,6 +31,12 @@ export type Settings = {
    * customer info once real purchases are wired up.
    */
   premium: boolean;
+  /**
+   * Lifetime count of successful scans. Reading a date costs us a model call
+   * every time, so the free tier buys a fixed number rather than an unlimited
+   * supply — see FREE_SCAN_LIMIT.
+   */
+  scansUsed: number;
 };
 
 const DEFAULTS: Settings = {
@@ -41,6 +47,7 @@ const DEFAULTS: Settings = {
   country: null,
   emirate: null,
   premium: false,
+  scansUsed: 0,
 };
 
 /**
@@ -49,6 +56,14 @@ const DEFAULTS: Settings = {
  * a typical UAE resident has eight or so documents before anything unusual.
  */
 export const FREE_ITEM_LIMIT = 10;
+
+/**
+ * Free scans, for the lifetime of the install. Set to comfortably cover
+ * photographing everything you already own — the moment the app earns its
+ * place — without leaving an unmetered model bill open forever. Running out
+ * never breaks the app: typing a date in by hand stays free and unlimited.
+ */
+export const FREE_SCAN_LIMIT = 15;
 
 type SettingsContextValue = {
   settings: Settings;
@@ -82,6 +97,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           country: parsed.country ?? (parsed.emirate ? 'ae' : DEFAULTS.country),
           emirate: parsed.emirate ?? DEFAULTS.emirate,
           premium: parsed.premium ?? DEFAULTS.premium,
+          scansUsed: parsed.scansUsed ?? DEFAULTS.scansUsed,
         });
       })
       .catch(() => {})

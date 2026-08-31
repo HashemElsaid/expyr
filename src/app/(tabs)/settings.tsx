@@ -20,7 +20,12 @@ import {
 import { COUNTRIES, usesEmirates } from '@/data/countries';
 import { EMIRATES } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
-import { FREE_ITEM_LIMIT, useSettings, type ThemePreference } from '@/store/settings';
+import {
+  FREE_ITEM_LIMIT,
+  FREE_SCAN_LIMIT,
+  useSettings,
+  type ThemePreference,
+} from '@/store/settings';
 
 const REMINDER_HOURS = [7, 8, 9, 12, 18, 20];
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -158,8 +163,11 @@ export default function SettingsScreen() {
               title={settings.premium ? 'Renewly unlocked' : 'Free plan'}
               subtitle={
                 settings.premium
-                  ? 'Unlimited items, for everyone in the family.'
-                  : `${documents.length} of ${FREE_ITEM_LIMIT} items used.`
+                  ? 'Unlimited items and scans, for everyone in the family.'
+                  : `${documents.length} of ${FREE_ITEM_LIMIT} items · ${Math.max(
+                      0,
+                      FREE_SCAN_LIMIT - settings.scansUsed
+                    )} of ${FREE_SCAN_LIMIT} scans left.`
               }
               action={
                 settings.premium

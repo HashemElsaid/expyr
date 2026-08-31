@@ -44,8 +44,8 @@ export const PLANS: Plan[] = [
  */
 export const PREMIUM_FEATURES = [
   'Track as many items as you like',
+  'Scan without counting — no 15-scan ceiling',
   'Everyone in the house, not just you',
-  'Scan documents without limit',
   'Back up and restore your whole archive',
 ];
 

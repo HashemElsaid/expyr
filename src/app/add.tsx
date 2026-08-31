@@ -26,10 +26,10 @@ import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { newAttachmentKey } from '@/lib/files';
 import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
-import { FREE_ITEM_LIMIT, useSettings } from '@/store/settings';
+import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 import { Attachment, DocumentType, DocumentTypeId, TrackedDocument } from '@/types';
 
-type Step = 'choose' | 'type' | 'form';
+type Step = 'choose' | 'type' | 'form' | 'scansSpent';
 
 const LEAD_DAY_OPTIONS = [1, 3, 7, 14, 30, 60, 90, 180];
 
@@ -39,12 +39,14 @@ export default function AddDocumentScreen() {
   const theme = useTheme();
   const scheme = useColorScheme();
   const { documents, addDocument, updateDocument } = useDocuments();
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const params = useLocalSearchParams<{ id?: string; renew?: string }>();
 
   const editing = params.id ? documents.find((d) => d.id === params.id) : undefined;
   const renewing = params.renew === '1' && !!editing;
   const overFreeLimit = !editing && !settings.premium && documents.length >= FREE_ITEM_LIMIT;
+  const outOfScans = !settings.premium && settings.scansUsed >= FREE_SCAN_LIMIT;
+  const scansLeft = Math.max(0, FREE_SCAN_LIMIT - settings.scansUsed);
 
   const [step, setStep] = useState<Step>(editing ? 'form' : 'choose');
   const [typeId, setTypeId] = useState<DocumentTypeId | null>(editing?.typeId ?? null);
@@ -129,16 +131,22 @@ export default function AddDocumentScreen() {
 
   async function runScan(source: 'camera' | 'library' | 'files') {
     setError(null);
+    if (outOfScans) {
+      setStep('scansSpent');
+      return;
+    }
     try {
       const picked = source === 'files' ? await pickDocument() : await pickImage(source);
       if (!picked) return;
       setBusy('scanning');
       const { result, fileUri: scannedUri } = await scanFile(picked, settings.country);
+      // Only a scan that actually read something counts against the allowance.
       if (!result.found) {
         setError(result.note || 'No date found in that file.');
         setStep('type');
         return;
       }
+      if (!settings.premium) update({ scansUsed: settings.scansUsed + 1 });
       applyScan(result, scannedUri, picked.type);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong while scanning.');
@@ -271,10 +279,39 @@ export default function AddDocumentScreen() {
           The free plan holds {FREE_ITEM_LIMIT} items. Unlock Renewly to track everything you own,
           and everyone in the house.
         </ThemedText>
-        <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />
+        <View style={styles.wallAction}>
+          <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />
+        </View>
         <Pressable onPress={() => router.back()} style={styles.link}>
           <ThemedText type="small" themeColor="textTertiary">
             Not now
+          </ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
+
+  /*
+   * Running out of scans must never look like a broken app. The way in is still
+   * open — it just costs you typing the date instead of photographing it.
+   */
+  if (step === 'scansSpent') {
+    return (
+      <ThemedView style={[styles.container, styles.centered]}>
+        <ThemedText type="verdict">That is {FREE_SCAN_LIMIT} scans.</ThemedText>
+        <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
+          Reading a date off a photo costs us something every time, so the free plan includes{' '}
+          {FREE_SCAN_LIMIT} of them. Unlock Renewly to scan without counting.
+        </ThemedText>
+        <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
+          You can still add anything you like by typing the date — that stays free.
+        </ThemedText>
+        <View style={styles.wallAction}>
+          <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />
+        </View>
+        <Pressable onPress={() => setStep('type')} style={styles.link}>
+          <ThemedText type="small" themeColor="textTertiary">
+            Enter it myself
           </ThemedText>
         </Pressable>
       </ThemedView>
@@ -325,6 +362,15 @@ export default function AddDocumentScreen() {
               Enter it myself
             </ThemedText>
           </Pressable>
+
+          {/* Only worth mentioning once the end is actually in sight. */}
+          {!settings.premium && scansLeft <= 5 && (
+            <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
+              {scansLeft === 0
+                ? 'No free scans left — typing a date in is still free.'
+                : `${scansLeft} free ${scansLeft === 1 ? 'scan' : 'scans'} left.`}
+            </ThemedText>
+          )}
         </ScrollView>
       </ThemedView>
     );
@@ -747,6 +793,9 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.6 },
   centered: { alignItems: 'center', justifyContent: 'center', gap: Spacing.three, padding: Spacing.five },
   centeredText: { textAlign: 'center' },
+  // An explicit width, so the button fills the column instead of shrinking to
+  // its label. Not alignSelf: 'stretch' — that would override the centring.
+  wallAction: { width: '100%', maxWidth: MaxContentWidth },
   link: { alignItems: 'center', paddingVertical: Spacing.three },
   chooseContent: { padding: 28, gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center' },
   chooseIcon: { alignItems: 'center', marginTop: Spacing.five, marginBottom: Spacing.two },

@@ -13,6 +13,7 @@ import {
 import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
 import { daysUntil } from '@/lib/dates';
 import { deleteAttachment, newAttachmentKey, storeAttachment } from '@/lib/files';
+import { newDocumentId } from '@/lib/ids';
 import { cancelReminders, scheduleReminders, snoozeReminder } from '@/lib/notifications';
 import { useSettings } from '@/store/settings';
 import { Attachment, DocumentDraft, TrackedDocument } from '@/types';
@@ -69,6 +70,8 @@ function migrate(raw: unknown): TrackedDocument | null {
       : [];
 
   return {
+    // Existing ids are left exactly as they are — scheduled notifications and
+    // attachment filenames on disk are named after them.
     id: doc.id,
     typeId,
     title: doc.title ?? getDocumentType(typeId).label,
@@ -80,8 +83,11 @@ function migrate(raw: unknown): TrackedDocument | null {
     leadDays: doc.leadDays?.length ? doc.leadDays : getDocumentType(typeId).defaultLeadDays,
     archivedAt: doc.archivedAt,
     history: doc.history,
+    visibility: doc.visibility ?? 'private',
     notificationIds: doc.notificationIds ?? [],
     createdAt: doc.createdAt ?? new Date().toISOString(),
+    // Anything saved before this field existed has not changed since it was made.
+    updatedAt: doc.updatedAt ?? doc.createdAt ?? new Date().toISOString(),
   };
 }
 
@@ -141,13 +147,16 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
 
   const addDocument = useCallback(
     async (draft: DocumentDraft) => {
-      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const id = newDocumentId();
+      const now = new Date().toISOString();
       const doc: TrackedDocument = {
         ...draft,
         id,
         files: persistAttachments(draft.files, [], id),
+        visibility: draft.visibility ?? 'private',
         notificationIds: [],
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
       };
       doc.notificationIds = await scheduleReminders(doc, reminderHour.current, country.current);
       commit([...latest.current, doc]);
@@ -167,8 +176,11 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         ...draft,
         id,
         files: persistAttachments(draft.files, previous.files, id),
+        // No screen sets this yet, so an edit must not quietly reset it.
+        visibility: draft.visibility ?? previous.visibility,
         notificationIds: [],
         createdAt: previous.createdAt,
+        updatedAt: new Date().toISOString(),
       };
       updated.notificationIds = await scheduleReminders(
         updated,
@@ -239,6 +251,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       const updated: TrackedDocument = {
         ...target,
         archivedAt: archived ? new Date().toISOString() : undefined,
+        updatedAt: new Date().toISOString(),
         // Archived items keep no reminders; restoring one re-books them.
         notificationIds: archived
           ? []

@@ -48,6 +48,15 @@ export type Attachment = {
   key: string;
 };
 
+/**
+ * Who can see a document once family sharing exists. Private is the default and
+ * stays the default: a document nobody chose to share must never appear on a
+ * relative's phone, and an item hidden from a family list should not announce
+ * that it is being hidden. Sharing is something you do, not something you
+ * undo.
+ */
+export type Visibility = 'private' | 'family';
+
 export type TrackedDocument = {
   id: string;
   typeId: DocumentTypeId;
@@ -69,10 +78,23 @@ export type TrackedDocument = {
   archivedAt?: string;
   /** Expiry dates this item has had before, oldest first. */
   history?: string[];
+  visibility: Visibility;
   /** Ids of scheduled local notifications, so they can be cancelled. */
   notificationIds: string[];
   createdAt: string;
+  /**
+   * Last change made on this device. Nothing reads it yet; it is what decides
+   * the winner when two phones edit the same document and one has to give way.
+   */
+  updatedAt: string;
 };
 
-/** Everything a screen needs to create or update a document. */
-export type DocumentDraft = Omit<TrackedDocument, 'id' | 'notificationIds' | 'createdAt'>;
+/**
+ * Everything a screen needs to create or update a document. Visibility is
+ * optional because no screen offers it yet — the store keeps whatever the
+ * document already had, and new ones start private.
+ */
+export type DocumentDraft = Omit<
+  TrackedDocument,
+  'id' | 'notificationIds' | 'createdAt' | 'updatedAt' | 'visibility'
+> & { visibility?: Visibility };

@@ -180,8 +180,10 @@ export async function importBackup(): Promise<RestoreResult | null> {
       leadDays: entry.leadDays?.length
         ? entry.leadDays
         : getDocumentType(entry.typeId).defaultLeadDays,
+      visibility: entry.visibility ?? 'private',
       notificationIds: [],
       createdAt: entry.createdAt ?? new Date().toISOString(),
+      updatedAt: entry.updatedAt ?? entry.createdAt ?? new Date().toISOString(),
     });
   }
 

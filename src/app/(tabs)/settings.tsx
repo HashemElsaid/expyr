@@ -156,32 +156,35 @@ export default function SettingsScreen() {
             />
           </Section>
 
-          <Section title="Household">
-            <Pressable onPress={() => router.push('/household')} accessibilityRole="button">
-              {({ pressed }) => (
-                <View style={[styles.row, pressed && styles.pressed]}>
-                  <MaterialCommunityIcons
-                    name="account-multiple-outline"
-                    size={20}
-                    color={theme.textSecondary}
-                  />
-                  <View style={styles.rowBody}>
-                    <ThemedText type="bodyMedium">Who you track for</ThemedText>
-                    <ThemedText type="small" themeColor="textTertiary">
-                      {peopleCount === 1
-                        ? 'Just you, for now'
-                        : `${peopleCount} people in this household`}
-                    </ThemedText>
+          {/* Only worth showing once there is actually more than one person. */}
+          {peopleCount > 1 && (
+            <Section title="Household">
+              <Pressable onPress={() => router.push('/household')} accessibilityRole="button">
+                {({ pressed }) => (
+                  <View style={[styles.row, pressed && styles.pressed]}>
+                    <MaterialCommunityIcons
+                      name="account-multiple-outline"
+                      size={20}
+                      color={theme.textSecondary}
+                    />
+                    <View style={styles.rowBody}>
+                      <ThemedText type="bodyMedium">
+                        {peopleCount} people in this household
+                      </ThemedText>
+                      <ThemedText type="small" themeColor="textTertiary">
+                        See what everyone needs, and rename anyone.
+                      </ThemedText>
+                    </View>
+                    <MaterialCommunityIcons
+                      name="chevron-right"
+                      size={20}
+                      color={theme.textTertiary}
+                    />
                   </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={theme.textTertiary}
-                  />
-                </View>
-              )}
-            </Pressable>
-          </Section>
+                )}
+              </Pressable>
+            </Section>
+          )}
 
           <Section title="What you track">
             <View style={styles.chipRow}>

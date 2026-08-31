@@ -14,7 +14,7 @@
     "android": {
       "package": "com.expyr.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1D4B39",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,9 +30,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#F7F4EF",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 128,
+          "dark": {
+            "backgroundColor": "#15100A",
+            "image": "./assets/images/splash-icon-dark.png"
+          }
         }
       ],
       "@react-native-community/datetimepicker",

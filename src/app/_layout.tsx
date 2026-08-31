@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
 import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
 import { useFonts } from 'expo-font';
@@ -5,7 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { Stack, useRouter, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { LockGate } from '@/components/lock-gate';
@@ -21,6 +22,9 @@ import { DocumentsProvider, useDocuments } from '@/store/documents';
 import { SettingsProvider, useSettings } from '@/store/settings';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/** Identifier of the last reminder a cold start already acted on. */
+const LAST_OPENED_KEY = 'expyr.lastOpenedNotification';
 
 /**
  * Expo Router renders this instead of a blank screen if something throws.
@@ -132,8 +136,8 @@ function AppShell() {
   }, []);
 
   // A reminder can be dealt with from the notification itself, or opened.
-  useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+  const handleResponse = useCallback(
+    (response: Notifications.NotificationResponse) => {
       const documentId = response.notification.request.content.data?.documentId;
       if (typeof documentId !== 'string') return;
 
@@ -146,9 +150,43 @@ function AppShell() {
         return;
       }
       router.push(`/document/${documentId}`);
-    });
+    },
+    [router, snoozeDocument]
+  );
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(handleResponse);
     return () => sub.remove();
-  }, [router, snoozeDocument]);
+  }, [handleResponse]);
+
+  /*
+   * The listener above only hears taps while the app is already running. A
+   * reminder fires weeks later, when the app is closed — tapping it launches
+   * the app too late for the listener to exist, and the tap is lost. iOS keeps
+   * the last response, so a cold start has to collect it here.
+   *
+   * That response persists across launches, so the identifier of the one we
+   * acted on is remembered. Without it, every ordinary launch after a tapped
+   * reminder would jump the user back into the same document.
+   */
+  const coldStartChecked = useRef(false);
+  useEffect(() => {
+    if (!loaded || coldStartChecked.current) return;
+    coldStartChecked.current = true;
+
+    (async () => {
+      try {
+        const response = await Notifications.getLastNotificationResponseAsync();
+        if (!response) return;
+        const id = response.notification.request.identifier;
+        if ((await AsyncStorage.getItem(LAST_OPENED_KEY)) === id) return;
+        await AsyncStorage.setItem(LAST_OPENED_KEY, id);
+        handleResponse(response);
+      } catch {
+        // A missed cold start is not worth blocking the app over.
+      }
+    })();
+  }, [loaded, handleResponse]);
 
   return (
     <>

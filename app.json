@@ -8,7 +8,7 @@
     "scheme": "expyr",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.expyr.app"
     },
     "android": {

@@ -19,7 +19,7 @@ export const DOCUMENT_TYPES: DocumentType[] = [
         'Confirm who renews it — employer, sponsor, or you (Golden Visa / freelance)',
         'Complete the medical fitness test at an approved centre',
         'Renew or verify your health insurance (required for the visa)',
-        'Apply via the ICP or GDRFA app, or through an Amer/Tasheel centre',
+        'Apply through your residency authority’s app, or an accredited service centre',
         'Emirates ID renewal is bundled into the same application',
       ],
       typicalCost: 'AED 300–1,200 in government fees (varies by visa type; medical + insurance extra)',
@@ -35,7 +35,7 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     defaultLeadDays: [30, 14, 7],
     typicalValidity: 'Matches your residence visa duration',
     guide: {
-      where: 'ICP app, ICP website, or an Amer/Tasheel typing centre',
+      where: 'ICP app or website, or an accredited typing centre',
       steps: [
         'Usually renewed together with your residence visa — check if yours is bundled',
         'Apply within 30 days of expiry to avoid fines',
@@ -75,12 +75,12 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     defaultLeadDays: [30, 14, 7],
     typicalValidity: '1 year (+30 day grace period)',
     guide: {
-      where: 'RTA app/website (Dubai), emirate traffic department, or testing centres like Tasjeel/Shamil',
+      where: 'Your emirate’s transport authority, or an approved testing centre',
       steps: [
         'Renew or confirm car insurance first — it must cover the new registration year',
         'Pay any outstanding traffic fines (renewal is blocked until cleared)',
         'Vehicles older than 3 years need a technical inspection (passing test)',
-        'Renew online via the RTA app or in person at a testing centre',
+        'Renew online through your emirate’s portal, or in person at a testing centre',
       ],
       typicalCost: 'AED 350–500 + inspection ~AED 120–170 if required',
       lateFee: 'Fines apply after the 30-day grace period; driving unregistered risks ~AED 500 fine and vehicle impound',
@@ -115,11 +115,11 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     defaultLeadDays: [30, 14, 7],
     typicalValidity: '5 years (expats) / 10 years (citizens & GCC)',
     guide: {
-      where: 'RTA app/website (Dubai) or your emirate’s traffic department',
+      where: 'Your emirate’s transport authority or traffic department',
       steps: [
         'Take an eye test at an approved optician (they upload results directly)',
         'Clear any outstanding traffic fines',
-        'Renew online via the RTA app or at a customer happiness centre',
+        'Renew online through your emirate’s portal, or at a service centre',
         'Choose card delivery or collection',
       ],
       typicalCost: 'AED 300 renewal + ~AED 50 eye test + ~AED 20 delivery',
@@ -135,15 +135,15 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     defaultLeadDays: [45, 14, 7],
     typicalValidity: '1 year',
     guide: {
-      where: 'Through your employer, or directly with an insurer (mandatory in Dubai & Abu Dhabi)',
+      where: 'Through your employer, or directly with an insurer — mandatory across all seven emirates',
       steps: [
         'If employer-provided, confirm they’ve renewed it — lapses still fine the sponsor/you',
-        'For self-sponsored: compare plans that meet the minimum (e.g., EBP in Dubai)',
+        'For self-sponsored: compare plans that meet your emirate’s minimum cover',
         'Ensure continuous coverage — a lapse can trigger fines and blocks visa renewal',
         'Save the new insurance card/policy to your phone wallet',
       ],
       typicalCost: 'AED 700–10,000+ depending on plan and age',
-      lateFee: 'Dubai: fines around AED 500/month for uninsured periods',
+      lateFee: 'Fines apply for uninsured periods, and a lapse can block visa renewal',
       processingTime: 'Instant to 3 days',
     },
   },
@@ -160,7 +160,7 @@ export const DOCUMENT_TYPES: DocumentType[] = [
         'Landlords must give 90 days notice for rent increases — 90 days out, check the RERA rent calculator',
         'Decide renew vs. move well before the notice deadline in your contract',
         'Negotiate using the RERA index if the increase exceeds the legal cap',
-        'After renewing, re-register Ejari (needed for DEWA, visas, school registration)',
+        'Re-register the contract afterwards — utilities, visas and school registration depend on it',
       ],
       typicalCost: 'Ejari registration ~AED 120–220 + rent per your contract',
       lateFee: 'No fine, but missing notice deadlines locks you into the landlord’s terms',
@@ -175,11 +175,11 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     defaultLeadDays: [60, 30, 7],
     typicalValidity: '1 year',
     guide: {
-      where: 'Your free zone portal, or DED (mainland)',
+      where: 'Your free zone portal, or your emirate’s department of economic development',
       steps: [
         'Check if your office/flexi-desk contract must be renewed first (often a prerequisite)',
         'Clear any pending fines or filings tied to the license',
-        'Pay renewal via the free zone / DED portal',
+        'Pay the renewal through the portal that issued the licence',
         'Update any linked visas and bank records with the renewed license',
       ],
       typicalCost: 'AED 5,000–25,000 depending on free zone and activity',

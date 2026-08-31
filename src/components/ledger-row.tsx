@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { getDocumentType } from '@/data/document-types';
+import { findBlockers } from '@/data/prerequisites';
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { useUrgency } from '@/hooks/use-urgency';
@@ -43,12 +44,22 @@ function Runway({ doc, color }: { doc: TrackedDocument; color: string }) {
   );
 }
 
-export function LedgerRow({ doc, onPress }: { doc: TrackedDocument; onPress: () => void }) {
+export function LedgerRow({
+  doc,
+  all,
+  onPress,
+}: {
+  doc: TrackedDocument;
+  all: TrackedDocument[];
+  onPress: () => void;
+}) {
   const theme = useTheme();
   const type = getDocumentType(doc.typeId);
   const days = daysUntil(doc.expiryDate);
   const { color } = useUrgency(days);
   const isDocument = isDocumentClass(doc);
+  // Something else has to be renewed before this one can be.
+  const blocked = findBlockers(doc, all).length > 0;
 
   // Skip the category when the user never renamed it — no point saying it twice.
   const meta = [
@@ -96,6 +107,11 @@ export function LedgerRow({ doc, onPress }: { doc: TrackedDocument; onPress: () 
           <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
             {meta}
           </ThemedText>
+          {blocked && (
+            <ThemedText type="small" style={{ color: theme.urgentSoft }} numberOfLines={1}>
+              Something else must be renewed first
+            </ThemedText>
+          )}
           <Runway doc={doc} color={color} />
         </View>
       )}

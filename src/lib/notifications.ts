@@ -103,6 +103,36 @@ export async function scheduleReminders(
   return ids;
 }
 
+/**
+ * Fires a real reminder a few seconds from now. Waiting weeks to discover that
+ * notifications never worked is the worst way to find out.
+ */
+export async function sendTestReminder(): Promise<'sent' | 'denied' | 'unsupported'> {
+  if (Platform.OS === 'web') return 'unsupported';
+  if (!(await ensureNotificationPermission())) return 'denied';
+
+  const fireDate = new Date(Date.now() + 5000);
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '🪪 This is what a reminder looks like',
+      body: 'Renewly will nudge you like this before anything expires.',
+      categoryIdentifier: REMINDER_CATEGORY,
+    },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
+  });
+  return 'sent';
+}
+
+/** Everything Renewly currently has booked with iOS. */
+export async function countScheduled(): Promise<number> {
+  if (Platform.OS === 'web') return 0;
+  try {
+    return (await Notifications.getAllScheduledNotificationsAsync()).length;
+  } catch {
+    return 0;
+  }
+}
+
 export async function cancelReminders(notificationIds: string[]) {
   if (Platform.OS === 'web') return;
   await Promise.all(

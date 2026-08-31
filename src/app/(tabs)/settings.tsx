@@ -11,8 +11,14 @@ import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { exportBackup, exportCsv, importBackup } from '@/lib/backup';
 import { authenticate, checkBiometricSupport } from '@/lib/biometrics';
-import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
+import {
+  countScheduled,
+  ensureNotificationPermission,
+  getNotificationPermission,
+  sendTestReminder,
+} from '@/lib/notifications';
 import { PERSONA_OPTIONS } from '@/data/personas';
+import { EMIRATES } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, useSettings, type ThemePreference } from '@/store/settings';
 
@@ -32,6 +38,13 @@ export default function SettingsScreen() {
   const [rescheduling, setRescheduling] = useState(false);
   const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
   const [busy, setBusy] = useState<string | null>(null);
+  const [testState, setTestState] = useState<'idle' | 'sent'>('idle');
+  /** What iOS actually holds, rather than what we think we booked. */
+  const [bookedWithIOS, setBookedWithIOS] = useState(0);
+
+  useEffect(() => {
+    countScheduled().then(setBookedWithIOS).catch(() => {});
+  }, [notificationsOn, settings.reminderHour, documents.length]);
 
   useEffect(() => {
     checkBiometricSupport().then(setBiometrics).catch(() => {});
@@ -186,6 +199,37 @@ export default function SettingsScreen() {
             </Section>
           )}
 
+          <Section title="Where you live">
+            <View style={styles.chipRow}>
+              {EMIRATES.map((option) => {
+                const on = settings.emirate === option.value;
+                return (
+                  <Pressable key={option.value} onPress={() => update({ emirate: option.value })}>
+                    <View
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: on ? theme.accent : 'transparent',
+                          borderColor: on ? theme.accent : theme.border,
+                        },
+                      ]}>
+                      <ThemedText
+                        type="smallBold"
+                        style={on ? { color: theme.accentContrast } : undefined}>
+                        {option.label}
+                      </ThemedText>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <ThemedText type="small" themeColor="textTertiary">
+              {settings.emirate
+                ? 'Renewal steps and portals follow your emirate — vehicles and licences are run locally, not federally.'
+                : 'Set this and Renewly will point you at the right authority. Vehicle and licence rules differ by emirate.'}
+            </ThemedText>
+          </Section>
+
           <Section title="What you track">
             <View style={styles.chipRow}>
               {PERSONA_OPTIONS.map((option) => {
@@ -232,6 +276,28 @@ export default function SettingsScreen() {
                   : { label: 'Turn on', onPress: enableNotifications }
               }
             />
+
+            {notificationsOn && (
+              <Row
+                icon="bell-ring-outline"
+                title="Check they arrive"
+                subtitle={
+                  testState === 'sent'
+                    ? 'Sent — it should appear in a few seconds. Lock your phone to see it properly.'
+                    : `${bookedWithIOS} booked with iOS right now. Send one to yourself to be sure.`
+                }
+                action={{
+                  label: testState === 'sent' ? 'Sent' : 'Send one',
+                  onPress: async () => {
+                    const result = await sendTestReminder();
+                    setTestState(result === 'sent' ? 'sent' : 'idle');
+                    if (result === 'denied') {
+                      Alert.alert('Reminders are off', 'Allow notifications first.');
+                    }
+                  },
+                }}
+              />
+            )}
 
             <View style={styles.field}>
               <ThemedText type="small" themeColor="textTertiary">

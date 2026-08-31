@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { PERSONA_OPTIONS } from '@/data/personas';
+import { EMIRATES, type Emirate } from '@/data/regions';
 import { useTheme } from '@/hooks/use-theme';
 import { ensureNotificationPermission } from '@/lib/notifications';
 import { useSettings, type Persona } from '@/store/settings';
@@ -20,10 +21,11 @@ export default function OnboardingScreen() {
   const { settings, update } = useSettings();
   const [step, setStep] = useState<Step>('welcome');
   const [persona, setPersona] = useState<Persona>(settings.persona);
+  const [emirate, setEmirate] = useState<Emirate | null>(settings.emirate);
   const [asking, setAsking] = useState(false);
 
   function finish() {
-    update({ onboarded: true, persona });
+    update({ onboarded: true, persona, emirate });
     router.replace('/');
   }
 
@@ -70,6 +72,38 @@ export default function OnboardingScreen() {
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
                 This only decides what Renewly offers you first. You can track anything either way.
               </ThemedText>
+
+              <View style={styles.emirateBlock}>
+                <ThemedText type="label" themeColor="textTertiary">
+                  Which emirate
+                </ThemedText>
+                <View style={styles.chipRow}>
+                  {EMIRATES.map((option) => {
+                    const on = emirate === option.value;
+                    return (
+                      <Pressable key={option.value} onPress={() => setEmirate(option.value)}>
+                        <View
+                          style={[
+                            styles.chip,
+                            {
+                              backgroundColor: on ? theme.accent : 'transparent',
+                              borderColor: on ? theme.accent : theme.border,
+                            },
+                          ]}>
+                          <ThemedText
+                            type="smallBold"
+                            style={on ? { color: theme.accentContrast } : undefined}>
+                            {option.label}
+                          </ThemedText>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <ThemedText type="small" themeColor="textTertiary">
+                  Vehicle and licence rules are set by each emirate, not federally.
+                </ThemedText>
+              </View>
 
               <View style={styles.options}>
                 {PERSONA_OPTIONS.map((option) => {
@@ -197,6 +231,14 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   points: { gap: Spacing.three, paddingTop: Spacing.four },
   point: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  emirateBlock: { gap: Spacing.two, paddingTop: Spacing.three },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  chip: {
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
   options: { gap: Spacing.two, paddingTop: Spacing.three },
   option: {
     flexDirection: 'row',

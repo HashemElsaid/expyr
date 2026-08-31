@@ -17,12 +17,15 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { getDocumentType } from '@/data/document-types';
-import { RENEWAL_PERIOD_DAYS, RENEWAL_PORTALS } from '@/data/renewal-actions';
+import { findBlockers, notesFor } from '@/data/prerequisites';
+import { portalFor, whereFor } from '@/data/regions';
+import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { useUrgency } from '@/hooks/use-urgency';
 import { dayMonth, daysUntil, longDate, shortDate, verdictPhrase } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
+import { useSettings } from '@/store/settings';
 import { TrackedDocument } from '@/types';
 
 /** Reminder dates derived from the schedule — no extra state to keep in sync. */
@@ -43,6 +46,7 @@ export default function DocumentDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { documents, archived, removeDocument, setArchived } = useDocuments();
+  const { settings } = useSettings();
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
   const days = doc ? daysUntil(doc.expiryDate) : 0;
@@ -126,10 +130,14 @@ export default function DocumentDetailScreen() {
   if (!doc) return <ThemedView style={styles.container} />;
 
   const type = getDocumentType(doc.typeId);
-  const portal = RENEWAL_PORTALS[doc.typeId];
+  // The right authority depends on which emirate the user actually lives in.
+  const portal = portalFor(doc.typeId, settings.emirate);
+  const where = whereFor(doc.typeId, settings.emirate) ?? type.guide.where;
   const canRoll = RENEWAL_PERIOD_DAYS[doc.typeId] !== undefined;
   const period = RENEWAL_PERIOD_DAYS[doc.typeId];
   const reminders = reminderDates(doc);
+  const blockers = findBlockers(doc, documents);
+  const notes = notesFor(doc.typeId);
   const fired = reminders.filter((r) => r.past);
   const next = reminders.find((r) => !r.past);
 
@@ -240,12 +248,38 @@ export default function DocumentDetailScreen() {
           </View>
         )}
 
+        {blockers.length > 0 && (
+          <View style={[styles.blocker, { borderColor: theme.urgentSoft }]}>
+            <MaterialCommunityIcons name="alert-outline" size={18} color={theme.urgentSoft} />
+            <View style={styles.flex}>
+              <ThemedText type="bodyMedium" style={{ color: theme.urgentSoft }}>
+                Do this first
+              </ThemedText>
+              {blockers.map(({ rule, blocking }) => (
+                <ThemedText key={rule.requires} type="small" themeColor="textSecondary">
+                  {rule.warning} Yours expires {shortDate(blocking.expiryDate)}.
+                </ThemedText>
+              ))}
+            </View>
+          </View>
+        )}
+
         <View style={styles.sectionHeader}>
           <ThemedText type="label" themeColor="textTertiary">
             Do these, in order
           </ThemedText>
           <View style={[styles.rule, { backgroundColor: theme.border }]} />
         </View>
+
+        {notes.length > 0 && (
+          <View style={styles.notes}>
+            {notes.map((note) => (
+              <ThemedText key={note} type="small" themeColor="textTertiary">
+                {note}
+              </ThemedText>
+            ))}
+          </View>
+        )}
 
         <View style={styles.steps}>
           {type.guide.steps.map((step, i) => (
@@ -268,7 +302,7 @@ export default function DocumentDetailScreen() {
           />
         )}
 
-        <DataRow label="Where" value={type.guide.where} bordered />
+        <DataRow label="Where" value={where} bordered />
         <DataRow label="Cost" value={type.guide.typicalCost} bordered />
         <DataRow label="If late" value={type.guide.lateFee} bordered />
         <DataRow label="Takes" value={type.guide.processingTime} bordered />
@@ -426,6 +460,16 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.two,
   },
   rule: { flex: 1, height: StyleSheet.hairlineWidth },
+  blocker: {
+    flexDirection: 'row',
+    gap: Spacing.three,
+    alignItems: 'flex-start',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.medium,
+    padding: Spacing.three,
+    marginTop: Spacing.four,
+  },
+  notes: { gap: 4, paddingBottom: Spacing.three },
   steps: { gap: 14, paddingBottom: Spacing.three },
   stepRow: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
   stepNumber: { width: 22, fontSize: 24, lineHeight: 26 },

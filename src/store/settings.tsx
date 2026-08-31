@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import type { Emirate } from '@/data/regions';
+
 const STORAGE_KEY = 'renewly.settings.v1';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
@@ -17,6 +19,11 @@ export type Settings = {
   /** Decides which categories are offered first. */
   persona: Persona;
   /**
+   * Vehicle and licence services are run by the emirate, so guidance is wrong
+   * without this. Null means we have not asked yet and stay generic.
+   */
+  emirate: Emirate | null;
+  /**
    * Local entitlement flag. Replace the read of this with RevenueCat's
    * customer info once real purchases are wired up.
    */
@@ -29,6 +36,7 @@ const DEFAULTS: Settings = {
   lockEnabled: false,
   onboarded: false,
   persona: 'resident',
+  emirate: null,
   premium: false,
 };
 
@@ -67,6 +75,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           lockEnabled: parsed.lockEnabled ?? DEFAULTS.lockEnabled,
           onboarded: parsed.onboarded ?? DEFAULTS.onboarded,
           persona: parsed.persona ?? DEFAULTS.persona,
+          emirate: parsed.emirate ?? DEFAULTS.emirate,
           premium: parsed.premium ?? DEFAULTS.premium,
         });
       })

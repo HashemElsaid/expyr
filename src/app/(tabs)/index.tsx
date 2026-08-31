@@ -195,7 +195,11 @@ export default function HomeScreen() {
             </View>
           )}
           renderItem={({ item }) => (
-            <LedgerRow doc={item} onPress={() => router.push(`/document/${item.id}`)} />
+            <LedgerRow
+              doc={item}
+              all={documents}
+              onPress={() => router.push(`/document/${item.id}`)}
+            />
           )}
           ListEmptyComponent={
             loaded && documents.length === 0 ? (

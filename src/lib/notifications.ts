@@ -16,9 +16,9 @@ Notifications.setNotificationHandler({
 });
 
 /** Actions offered on the reminder itself, so a nudge can be dealt with in place. */
-export const REMINDER_CATEGORY = 'renewly.reminder';
-export const ACTION_SNOOZE = 'renewly.snooze';
-export const ACTION_RENEWED = 'renewly.renewed';
+export const REMINDER_CATEGORY = 'expyr.reminder';
+export const ACTION_SNOOZE = 'expyr.snooze';
+export const ACTION_RENEWED = 'expyr.renewed';
 
 /**
  * Registered once at startup. Two actions is the practical maximum before a
@@ -96,8 +96,8 @@ export async function scheduleReminders(
         title: `${type.emoji} ${doc.title}: ${countdownLabel(lead)}`,
         // Only promise the renewal advice where we actually have it.
         body: hasGuidance(country)
-          ? `${labelFor(type, country)} · open Renewly for what to do and what it costs.`
-          : `${labelFor(type, country)} · open Renewly to see the details.`,
+          ? `${labelFor(type, country)} · open Expyr for what to do and what it costs.`
+          : `${labelFor(type, country)} · open Expyr to see the details.`,
         data: { documentId: doc.id },
         categoryIdentifier: REMINDER_CATEGORY,
       },
@@ -120,7 +120,7 @@ export async function sendTestReminder(): Promise<'sent' | 'denied' | 'unsupport
   await Notifications.scheduleNotificationAsync({
     content: {
       title: '🪪 This is what a reminder looks like',
-      body: 'Renewly will nudge you like this before anything expires.',
+      body: 'Expyr will nudge you like this before anything expires.',
       categoryIdentifier: REMINDER_CATEGORY,
     },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
@@ -128,7 +128,7 @@ export async function sendTestReminder(): Promise<'sent' | 'denied' | 'unsupport
   return 'sent';
 }
 
-/** Everything Renewly currently has booked with iOS. */
+/** Everything Expyr currently has booked with iOS. */
 export async function countScheduled(): Promise<number> {
   if (Platform.OS === 'web') return 0;
   try {

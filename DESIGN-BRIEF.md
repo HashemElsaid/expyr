@@ -1,4 +1,4 @@
-# Design brief for Renewly
+# Design brief for Expyr
 
 Paste the block below into Claude Design. It is written to be handed over
 whole — it carries the product, the constraints, and the real content the
@@ -6,11 +6,11 @@ designer needs so nothing comes back as lorem ipsum.
 
 ---
 
-Design a complete iOS app called **Renewly**.
+Design a complete iOS app called **Expyr**.
 
 ## What it does
 
-Renewly makes sure nothing in your life expires without warning. You photograph
+Expyr makes sure nothing in your life expires without warning. You photograph
 a document — or upload a PDF — and it reads the expiry date, files it, reminds
 you weeks or months ahead, and tells you exactly how to renew it: where to go,
 what it costs, and the fine for leaving it late.
@@ -36,7 +36,7 @@ Calm, private, and quietly authoritative — the opposite of a government portal
 This app holds photographs of people's identity documents, so it must feel like
 a locked drawer, not a social feed. Nothing gamified, no confetti, no streaks.
 
-The core emotion is relief. Someone opens Renewly to find out whether they need
+The core emotion is relief. Someone opens Expyr to find out whether they need
 to worry, and most of the time the honest answer is "no, not yet". The design
 should make "nothing needs you" feel as considered as "act now".
 

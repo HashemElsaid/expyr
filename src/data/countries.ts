@@ -1,5 +1,5 @@
 /**
- * Renewly's tracker half — read a date, file it, remind you — works anywhere.
+ * Expyr's tracker half — read a date, file it, remind you — works anywhere.
  * Its guidance half does not: every renewal step, cost, fine and portal in the
  * app was verified against UAE sources, and a UAE answer given to someone in
  * Riyadh or Cairo is worse than no answer, because it is delivered with the

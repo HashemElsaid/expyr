@@ -1,10 +1,10 @@
-# Renewly
+# Expyr
 
 Nothing expires unnoticed.
 
-Renewly tracks the documents that expire on you — residence visas, Emirates ID,
+Expyr tracks the documents that expire on you — residence visas, Emirates ID,
 car registration, insurance, tenancy contracts, licences, warranties. You
-photograph the document; Claude reads the date; Renewly reminds you in time and
+photograph the document; Claude reads the date; Expyr reminds you in time and
 tells you how to renew it.
 
 Built for the UAE first: every category carries the real renewal steps, typical

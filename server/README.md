@@ -1,4 +1,4 @@
-# Renewly scanning service
+# Expyr scanning service
 
 A small HTTP service that reads expiry dates out of photos. It exists for one
 reason: the Anthropic API key must never ship inside the phone app, where anyone
@@ -16,8 +16,8 @@ could extract it and spend your credits.
 | Variable                | Required | Purpose                                                                 |
 | ----------------------- | -------- | ----------------------------------------------------------------------- |
 | `ANTHROPIC_API_KEY`     | yes      | A **workspace-scoped** key from the Claude Console.                     |
-| `RENEWLY_APP_TOKEN`     | in prod  | Shared secret the app must send as `x-renewly-token`.                   |
-| `RENEWLY_MODEL`         | no       | Defaults to `claude-haiku-4-5`. Use `claude-opus-5` for more accuracy.  |
+| `EXPYR_APP_TOKEN`     | in prod  | Shared secret the app must send as `x-expyr-token`.                   |
+| `EXPYR_MODEL`         | no       | Defaults to `claude-haiku-4-5`. Use `claude-opus-5` for more accuracy.  |
 | `ANTHROPIC_WORKSPACE_ID`| no       | Only needed for identity-linked (user) API keys.                        |
 | `PORT`                  | no       | Defaults to `8787`.                                                     |
 
@@ -41,7 +41,7 @@ containers.
 2. Create a Web Service on [Render](https://render.com), [Railway](https://railway.app)
    or [Fly.io](https://fly.io), pointing at the `server/` directory.
 3. Set the start command to `npm start`.
-4. Add `ANTHROPIC_API_KEY` and `RENEWLY_APP_TOKEN` as environment variables.
+4. Add `ANTHROPIC_API_KEY` and `EXPYR_APP_TOKEN` as environment variables.
 5. Copy the service URL and set it in the app's `.env`:
 
    ```

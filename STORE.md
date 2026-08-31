@@ -8,7 +8,7 @@ starting point, not a finished submission.
 ## Name (30 characters max)
 
 ```
-Renewly: Expiry Reminders
+Expyr: Expiry Reminders
 ```
 
 ## Subtitle (30 characters max)
@@ -28,15 +28,15 @@ is ever built.
 ## Promotional text (170 characters, changeable without review)
 
 ```
-Photograph your Emirates ID, visa, Mulkiya or tenancy contract. Renewly reads the date, reminds you in time, and tells you exactly how to renew it.
+Photograph your Emirates ID, visa, Mulkiya or tenancy contract. Expyr reads the date, reminds you in time, and tells you exactly how to renew it.
 ```
 
 ## Description
 
 ```
-Renewly makes sure nothing in your life expires without warning.
+Expyr makes sure nothing in your life expires without warning.
 
-Photograph a document and Renewly reads the expiry date for you. No typing, no
+Photograph a document and Expyr reads the expiry date for you. No typing, no
 forms. It works on residence visas, Emirates ID, passports, car registration,
 insurance policies, tenancy contracts, driving licences, trade licences and
 work permits — from a photo, a PDF, or a screenshot of an email.
@@ -55,29 +55,29 @@ WHAT IT DOES
 
 BUILT FOR LIFE IN THE UAE
 
-Renewly knows what a Mulkiya is. It knows an Emirates ID renewal costs around
+Expyr knows what a Mulkiya is. It knows an Emirates ID renewal costs around
 AED 100 per year of validity, that late renewal is fined daily, that Ejari
 matters for your DEWA account, and that your landlord must give you 90 days'
 notice before raising the rent. Every category carries the steps, the typical
 cost, and the penalty for leaving it late.
 
-Renewly tracks dates and sends reminders wherever you live. The renewal steps,
-costs and fines have been checked for the UAE only, so outside it Renewly keeps
+Expyr tracks dates and sends reminders wherever you live. The renewal steps,
+costs and fines have been checked for the UAE only, so outside it Expyr keeps
 the dates and stays quiet about the paperwork rather than guessing.
 
 PRIVATE BY DESIGN
 
-Your documents stay on your phone. Photos are kept in Renewly's own storage —
+Your documents stay on your phone. Photos are kept in Expyr's own storage —
 never your camera roll, never iCloud Photo Library. There is no account, no
 sign-up and no server database. Reminders are scheduled by iOS itself, so nobody
 else needs to know your dates. Everything travels with your iPhone backup, so a
-new phone brings it all back. You can lock Renewly behind Face ID, and export a
+new phone brings it all back. You can lock Expyr behind Face ID, and export a
 copy only you hold.
 
 FREE TO START
 
 Track ten items free, for as long as you like — enough for your visa, your
-Emirates ID, your car and your tenancy. Unlock Renewly to track everything you
+Emirates ID, your car and your tenancy. Unlock Expyr to track everything you
 own, and everyone in your household.
 ```
 
@@ -115,7 +115,7 @@ Caption each screenshot with a short benefit line rather than a feature name —
 ## Review notes for Apple
 
 ```
-Renewly reads expiry dates from photos the user chooses. Images are sent once to
+Expyr reads expiry dates from photos the user chooses. Images are sent once to
 our own service, which forwards them to the Anthropic Claude API for text
 extraction, and are not stored. No account is required. All user data is kept
 locally on the device.

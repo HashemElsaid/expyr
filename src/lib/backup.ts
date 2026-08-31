@@ -20,7 +20,7 @@ type BackupDocument = Omit<TrackedDocument, 'files' | 'notificationIds'> & {
 };
 
 type BackupFile = {
-  app: 'renewly';
+  app: 'expyr';
   format: number;
   exportedAt: string;
   documents: BackupDocument[];
@@ -50,7 +50,7 @@ export async function exportBackup(documents: TrackedDocument[]): Promise<void> 
   if (Platform.OS === 'web') throw new Error('Backups are only available on the phone app.');
 
   const payload: BackupFile = {
-    app: 'renewly',
+    app: 'expyr',
     format: BACKUP_FORMAT,
     exportedAt: new Date().toISOString(),
     documents: documents.map((doc) => {
@@ -70,10 +70,10 @@ export async function exportBackup(documents: TrackedDocument[]): Promise<void> 
     }),
   };
 
-  const file = scratchFile(`renewly-backup-${timestamp()}.json`);
+  const file = scratchFile(`expyr-backup-${timestamp()}.json`);
   file.create();
   file.write(JSON.stringify(payload));
-  await share(file, 'application/json', 'Save your Renewly backup');
+  await share(file, 'application/json', 'Save your Expyr backup');
 }
 
 /** A plain spreadsheet of what you track, for people who want it readable. */
@@ -98,10 +98,10 @@ export async function exportCsv(
     ),
   ];
 
-  const file = scratchFile(`renewly-${timestamp()}.csv`);
+  const file = scratchFile(`expyr-${timestamp()}.csv`);
   file.create();
   file.write(rows.join('\n'));
-  await share(file, 'text/csv', 'Export your Renewly items');
+  await share(file, 'text/csv', 'Export your Expyr items');
 }
 
 export type RestoreResult = { documents: TrackedDocument[]; count: number };
@@ -124,11 +124,13 @@ export async function importBackup(): Promise<RestoreResult | null> {
   const file = new File(picked.assets[0].uri);
   const parsed = JSON.parse(await file.text()) as Partial<BackupFile>;
 
-  if (parsed.app !== 'renewly' || !Array.isArray(parsed.documents)) {
-    throw new Error('That file is not a Renewly backup.');
+  // 'renewly' is what backups made before the rename say.
+  const known = parsed.app === 'expyr' || String(parsed.app) === 'renewly';
+  if (!known || !Array.isArray(parsed.documents)) {
+    throw new Error('That file is not an Expyr backup.');
   }
   if ((parsed.format ?? 0) > BACKUP_FORMAT) {
-    throw new Error('That backup was made by a newer version of Renewly.');
+    throw new Error('That backup was made by a newer version of Expyr.');
   }
 
   const imagesDir = new Directory(Paths.document, 'documents');

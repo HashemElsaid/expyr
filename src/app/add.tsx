@@ -276,7 +276,7 @@ export default function AddDocumentScreen() {
       <ThemedView style={[styles.container, styles.centered]}>
         <ThemedText type="verdict">That is {FREE_ITEM_LIMIT}.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-          The free plan holds {FREE_ITEM_LIMIT} items. Unlock Renewly to track everything you own,
+          The free plan holds {FREE_ITEM_LIMIT} items. Unlock Expyr to track everything you own,
           and everyone in the house.
         </ThemedText>
         <View style={styles.wallAction}>
@@ -301,7 +301,7 @@ export default function AddDocumentScreen() {
         <ThemedText type="verdict">That is {FREE_SCAN_LIMIT} scans.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
           Reading a date off a photo costs us something every time, so the free plan includes{' '}
-          {FREE_SCAN_LIMIT} of them. Unlock Renewly to scan without counting.
+          {FREE_SCAN_LIMIT} of them. Unlock Expyr to scan without counting.
         </ThemedText>
         <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
           You can still add anything you like by typing the date — that stays free.
@@ -337,10 +337,10 @@ export default function AddDocumentScreen() {
             <MaterialCommunityIcons name="line-scan" size={44} color={theme.textTertiary} />
           </View>
           <ThemedText type="headline" style={styles.centeredText}>
-            Show it to Renewly
+            Show it to Expyr
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-            A document, a screenshot, or a PDF. Renewly reads the date.
+            A document, a screenshot, or a PDF. Expyr reads the date.
           </ThemedText>
 
           {error && <ErrorNote message={error} />}

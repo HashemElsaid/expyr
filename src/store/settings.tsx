@@ -4,7 +4,9 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import type { Country } from '@/data/countries';
 import type { Emirate } from '@/data/regions';
 
-const STORAGE_KEY = 'renewly.settings.v1';
+const STORAGE_KEY = 'expyr.settings.v1';
+/** Where settings lived before the app was renamed. */
+const LEGACY_STORAGE_KEY = 'renewly.settings.v1';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
@@ -79,9 +81,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
+      .then(async (stored) => {
+        // Settings saved under the old app name are adopted rather than lost.
+        const raw = stored ?? (await AsyncStorage.getItem(LEGACY_STORAGE_KEY));
         if (!raw) return;
         const parsed = JSON.parse(raw) as Partial<Settings>;
+        if (!stored) AsyncStorage.setItem(STORAGE_KEY, raw).catch(() => {});
         setSettings({
           reminderHour:
             typeof parsed.reminderHour === 'number' &&

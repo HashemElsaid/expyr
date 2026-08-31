@@ -42,7 +42,7 @@ function ErrorScreen({ error, retry }: ErrorBoundaryProps) {
       <Text style={[errorStyles.title, { color: theme.text }]}>Something went wrong.</Text>
       <Text style={[errorStyles.body, { color: theme.textSecondary }]}>
         Your documents are safe on this phone — nothing was lost. Try again, and if it keeps
-        happening, restarting Renewly usually clears it.
+        happening, restarting Expyr usually clears it.
       </Text>
       <Text style={[errorStyles.detail, { color: theme.textTertiary }]} numberOfLines={3}>
         {error.message}
@@ -181,7 +181,7 @@ function AppShell() {
           name="onboarding"
           options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }}
         />
-        <Stack.Screen name="paywall" options={{ presentation: 'modal', title: 'Renewly' }} />
+        <Stack.Screen name="paywall" options={{ presentation: 'modal', title: 'Expyr' }} />
       </Stack>
     </>
   );

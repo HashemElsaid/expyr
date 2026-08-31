@@ -88,7 +88,7 @@ export default function SettingsScreen() {
       if (!result) return;
       Alert.alert(
         'Replace everything?',
-        `This backup holds ${result.count} item${result.count === 1 ? '' : 's'}. Restoring replaces what is currently in Renewly.`,
+        `This backup holds ${result.count} item${result.count === 1 ? '' : 's'}. Restoring replaces what is currently in Expyr.`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -126,7 +126,7 @@ export default function SettingsScreen() {
     } else if (Platform.OS !== 'web') {
       Alert.alert(
         'Reminders are off',
-        'Renewly can only warn you before something expires if notifications are allowed. You can turn them on in iOS Settings.',
+        'Expyr can only warn you before something expires if notifications are allowed. You can turn them on in iOS Settings.',
         [
           { text: 'Not now', style: 'cancel' },
           { text: 'Open Settings', onPress: () => Linking.openSettings() },
@@ -160,7 +160,7 @@ export default function SettingsScreen() {
           <Section title="Plan">
             <Row
               icon={settings.premium ? 'star-circle-outline' : 'archive-outline'}
-              title={settings.premium ? 'Renewly unlocked' : 'Free plan'}
+              title={settings.premium ? 'Expyr unlocked' : 'Free plan'}
               subtitle={
                 settings.premium
                   ? 'Unlimited items and scans, for everyone in the family.'
@@ -270,7 +270,7 @@ export default function SettingsScreen() {
                 <ThemedText type="small" themeColor="textTertiary">
                   {settings.emirate
                     ? 'Renewal steps and portals follow your emirate — vehicles and licences are run locally, not federally.'
-                    : 'Pick your emirate and Renewly will point you at the right authority.'}
+                    : 'Pick your emirate and Expyr will point you at the right authority.'}
                 </ThemedText>
               </>
             )}
@@ -278,8 +278,8 @@ export default function SettingsScreen() {
             {!usesEmirates(settings.country) && (
               <ThemedText type="small" themeColor="textTertiary">
                 {settings.country
-                  ? 'Renewly tracks your dates anywhere. Renewal steps, costs and fines are verified for the UAE only, so they stay hidden here rather than being guessed.'
-                  : 'Set this so Renewly knows whether it can tell you how to renew things where you are.'}
+                  ? 'Expyr tracks your dates anywhere. Renewal steps, costs and fines are verified for the UAE only, so they stay hidden here rather than being guessed.'
+                  : 'Set this so Expyr knows whether it can tell you how to renew things where you are.'}
               </ThemedText>
             )}
           </Section>
@@ -293,7 +293,7 @@ export default function SettingsScreen() {
                   ? 'Checking…'
                   : notificationsOn
                     ? `${scheduledCount} reminder${scheduledCount === 1 ? '' : 's'} booked across ${documents.length} item${documents.length === 1 ? '' : 's'}.`
-                    : 'Renewly cannot warn you about anything until these are allowed.'
+                    : 'Expyr cannot warn you about anything until these are allowed.'
               }
               action={
                 notificationsOn
@@ -394,7 +394,7 @@ export default function SettingsScreen() {
                 <ThemedText type="bodyMedium">Require {biometrics.label}</ThemedText>
                 <ThemedText type="small" themeColor="textTertiary">
                   {biometrics.available
-                    ? 'Renewly asks for it whenever you open the app after being away.'
+                    ? 'Expyr asks for it whenever you open the app after being away.'
                     : 'Set up Face ID, Touch ID or a passcode on this phone to use this.'}
                 </ThemedText>
               </View>
@@ -411,7 +411,7 @@ export default function SettingsScreen() {
             <Row
               icon="cellphone-check"
               title="Saved on this iPhone"
-              subtitle="Your items and photos live in Renewly's private storage, and they travel with your iPhone backup — restore a new phone from iCloud and they come back. Nothing is stored on a server."
+              subtitle="Your items and photos live in Expyr's private storage, and they travel with your iPhone backup — restore a new phone from iCloud and they come back. Nothing is stored on a server."
             />
             <Row
               icon="tray-arrow-up"
@@ -425,7 +425,7 @@ export default function SettingsScreen() {
             <Row
               icon="tray-arrow-down"
               title="Restore from a backup"
-              subtitle="Replaces what is in Renewly with the contents of a backup file."
+              subtitle="Replaces what is in Expyr with the contents of a backup file."
               action={{ label: busy === 'restore' ? 'Working…' : 'Restore', onPress: restore }}
             />
             <Row
@@ -458,7 +458,7 @@ export default function SettingsScreen() {
                   <View style={styles.rowBody}>
                     <ThemedText type="bodyMedium">Terms of use</ThemedText>
                     <ThemedText type="small" themeColor="textTertiary">
-                      What Renewly promises, and what it does not.
+                      What Expyr promises, and what it does not.
                     </ThemedText>
                   </View>
                   <MaterialCommunityIcons
@@ -497,14 +497,14 @@ export default function SettingsScreen() {
           <Section title="About">
             <Row
               icon="information-outline"
-              title="Renewly"
+              title="Expyr"
               subtitle={`Version ${Constants.expoConfig?.version ?? '1.0.0'}`}
             />
             {renewalsRecorded > 0 && (
               <Row
                 icon="history"
                 title={`${renewalsRecorded} renewal${renewalsRecorded === 1 ? '' : 's'} behind you`}
-                subtitle="Renewly remembers each time you have renewed something."
+                subtitle="Expyr remembers each time you have renewed something."
               />
             )}
           </Section>

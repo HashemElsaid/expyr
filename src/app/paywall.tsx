@@ -39,7 +39,7 @@ export default function PaywallScreen() {
             Keep everything covered
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-            Renewly is free for {FREE_ITEM_LIMIT} items and {FREE_SCAN_LIMIT} scans. Unlock it to
+            Expyr is free for {FREE_ITEM_LIMIT} items and {FREE_SCAN_LIMIT} scans. Unlock it to
             track everything you own, for everyone in the house.
           </ThemedText>
         </View>
@@ -131,7 +131,7 @@ export default function PaywallScreen() {
             {selectedPlan.renews
               ? 'The subscription renews automatically unless cancelled at least 24 hours before the end of the current period, and renewal is charged within 24 hours before the period ends. Manage or cancel it any time in your Apple Account settings.'
               : 'This is a one-off purchase. Nothing renews, and there is nothing to cancel.'}{' '}
-            Renewly can be shared with your Apple Family group, up to six people.
+            Expyr can be shared with your Apple Family group, up to six people.
           </ThemedText>
 
           <View style={styles.legalLinks}>

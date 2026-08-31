@@ -25,7 +25,7 @@ export async function checkBiometricSupport(): Promise<BiometricSupport> {
   return { available: hasHardware && isEnrolled, label };
 }
 
-export async function authenticate(reason = 'Unlock Renewly'): Promise<boolean> {
+export async function authenticate(reason = 'Unlock Expyr'): Promise<boolean> {
   if (Platform.OS === 'web') return true;
   const result = await LocalAuthentication.authenticateAsync({
     promptMessage: reason,

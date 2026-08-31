@@ -11,24 +11,24 @@ const APPLE_EULA = 'https://www.apple.com/legal/internet-services/itunes/dev/std
 
 const SECTIONS: { title: string; body: string }[] = [
   {
-    title: 'What Renewly is',
-    body: 'Renewly records dates you give it and reminds you before they pass. It is a personal organiser, not a legal, immigration or financial service, and it does not act on your behalf with any authority.',
+    title: 'What Expyr is',
+    body: 'Expyr records dates you give it and reminds you before they pass. It is a personal organiser, not a legal, immigration or financial service, and it does not act on your behalf with any authority.',
   },
   {
     title: 'The renewal guidance',
-    body: 'Costs, fines, processing times and steps shown in the app are indicative and were correct to the best of our knowledge when written. Government fees and procedures change. Always confirm with the official channel before acting. Renewly is not responsible for a fine, a lapsed document or a missed deadline.',
+    body: 'Costs, fines, processing times and steps shown in the app are indicative and were correct to the best of our knowledge when written. Government fees and procedures change. Always confirm with the official channel before acting. Expyr is not responsible for a fine, a lapsed document or a missed deadline.',
   },
   {
     title: 'Reminders',
-    body: 'Reminders are scheduled by your phone. If notifications are switched off, the phone is off, or iOS delays them, they may not arrive. Renewly is a helpful backup for your memory, not a guarantee.',
+    body: 'Reminders are scheduled by your phone. If notifications are switched off, the phone is off, or iOS delays them, they may not arrive. Expyr is a helpful backup for your memory, not a guarantee.',
   },
   {
     title: 'Your content',
     body: 'The documents, photos and notes you add are yours. They are stored on your device. We claim no ownership and no licence over them.',
   },
   {
-    title: 'Paying for Renewly',
-    body: 'Renewly is free to use for a limited number of items and scans. Unlocking it removes both limits, and there are two ways to pay. The yearly plan is a subscription: payment is charged to your Apple Account at confirmation, it renews automatically unless cancelled at least 24 hours before the end of the current period, renewal is charged within 24 hours before the period ends, and you can manage or cancel it in your Apple Account settings. The one-off payment is not a subscription — nothing renews and there is nothing to cancel. Either can be shared with your Apple Family group, up to six people.',
+    title: 'Paying for Expyr',
+    body: 'Expyr is free to use for a limited number of items and scans. Unlocking it removes both limits, and there are two ways to pay. The yearly plan is a subscription: payment is charged to your Apple Account at confirmation, it renews automatically unless cancelled at least 24 hours before the end of the current period, renewal is charged within 24 hours before the period ends, and you can manage or cancel it in your Apple Account settings. The one-off payment is not a subscription — nothing renews and there is nothing to cancel. Either can be shared with your Apple Family group, up to six people.',
   },
   {
     title: 'Ending your use',

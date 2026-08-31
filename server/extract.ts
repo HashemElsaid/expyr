@@ -20,8 +20,8 @@ function getClient(): Anthropic {
   return cachedClient;
 }
 
-/** Override with RENEWLY_MODEL to trade cost for accuracy (e.g. claude-opus-5). */
-const MODEL = process.env.RENEWLY_MODEL ?? 'claude-haiku-4-5';
+/** Override with EXPYR_MODEL to trade cost for accuracy (e.g. claude-opus-5). */
+const MODEL = process.env.EXPYR_MODEL ?? 'claude-haiku-4-5';
 
 /**
  * `output_config.effort` is rejected outright by the older small models, so it
@@ -61,7 +61,7 @@ function buildSystemPrompt(today: string, categories: Category[]): string {
     .map((c) => `- ${c.id}: ${c.label}${c.hint ? ` — ${c.hint}` : ''}`)
     .join('\n');
 
-  return `You read expiry dates out of photos of documents for Renewly, an app that tracks documents so they get renewed before they lapse. Most users live in the Gulf.
+  return `You read expiry dates out of photos of documents for Expyr, an app that tracks documents so they get renewed before they lapse. Most users live in the Gulf.
 
 Today's date is ${today}.
 
@@ -83,7 +83,7 @@ Rules:
 - documentNumber only when an official number is clearly legible AND the category is one that actually carries a number. Otherwise return an empty string. Never guess digits that are blurred or cropped.
 - confidence is "high" only when you read the date clearly and are certain it is the expiry or due date.
 - note is one short plain-language sentence telling the user which date you used. No jargon.
-- Always return the date even when it has already passed. Renewly deliberately tracks expired items so the user can renew or discard them, so a past date is a correct answer with found set to true. Never reject an item for being out of date.
+- Always return the date even when it has already passed. Expyr deliberately tracks expired items so the user can renew or discard them, so a past date is a correct answer with found set to true. Never reject an item for being out of date.
 - Set found to false only when no expiry or due date is legible anywhere in the image. In that case set expiryDate to an empty string and use note to say what you saw instead.
 
 Never invent information that is not visible in the image.

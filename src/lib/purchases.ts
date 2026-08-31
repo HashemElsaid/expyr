@@ -1,7 +1,7 @@
 /**
  * Purchase surface for the paywall.
  *
- * Real in-app purchases need three things Renewly does not have yet: a paid
+ * Real in-app purchases need three things Expyr does not have yet: a paid
  * Apple Developer account, products configured in App Store Connect, and a
  * RevenueCat project. Until then this module keeps the entitlement locally so
  * the whole flow can be built and tested.

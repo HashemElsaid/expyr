@@ -64,7 +64,7 @@ export function LockGate({ children }: { children: ReactNode }) {
       <View style={styles.inner}>
         <MaterialCommunityIcons name="lock-outline" size={40} color={theme.textTertiary} />
         <ThemedText type="headline" style={styles.centered}>
-          Renewly is locked
+          Expyr is locked
         </ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
           Your documents are private. Unlock with {label} to continue.

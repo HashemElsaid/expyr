@@ -53,8 +53,8 @@ export async function pickImage(source: 'camera' | 'library'): Promise<PickedFil
   if (!permission.granted) {
     throw new Error(
       source === 'camera'
-        ? 'Renewly needs camera access to scan a document.'
-        : 'Renewly needs photo access to read a screenshot.'
+        ? 'Expyr needs camera access to scan a document.'
+        : 'Expyr needs photo access to read a screenshot.'
     );
   }
 
@@ -144,7 +144,7 @@ export async function scanFile(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'x-renewly-token': token } : {}),
+        ...(token ? { 'x-expyr-token': token } : {}),
       },
       signal: controller.signal,
       body: JSON.stringify({
@@ -160,7 +160,7 @@ export async function scanFile(
       throw new Error('You have scanned a lot in a short time. Try again in a few minutes.');
     }
     if (response.status === 401) {
-      throw new Error('This copy of Renewly is not authorised to scan.');
+      throw new Error('This copy of Expyr is not authorised to scan.');
     }
     if (response.status === 413) {
       throw new Error('That file is too large to read. Try a smaller one.');

@@ -1,5 +1,5 @@
 /**
- * Renewly's visual language: warm paper rather than clinical white, ink rather
+ * Expyr's visual language: warm paper rather than clinical white, ink rather
  * than pure black, and colour reserved for genuine urgency. Everything that is
  * fine is deliberately quiet.
  */

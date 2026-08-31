@@ -7,16 +7,16 @@ import { useTheme } from '@/hooks/use-theme';
 
 const SECTIONS: { title: string; body: string }[] = [
   {
-    title: 'What Renewly stores',
-    body: 'Everything you track — names, dates, reference numbers, notes and photos — is stored on your phone only. Renewly has no account system, no server database, and no analytics that identify you. If you delete the app, that data goes with it, which is why the backup option exists.',
+    title: 'What Expyr stores',
+    body: 'Everything you track — names, dates, reference numbers, notes and photos — is stored on your phone only. Expyr has no account system, no server database, and no analytics that identify you. If you delete the app, that data goes with it, which is why the backup option exists.',
   },
   {
     title: 'Where photos live',
-    body: "Photos you scan or attach are written to Renewly's private app storage. They do not appear in your camera roll, are not added to iCloud Photo Library, and no other app can read them.",
+    body: "Photos you scan or attach are written to Expyr's private app storage. They do not appear in your camera roll, are not added to iCloud Photo Library, and no other app can read them.",
   },
   {
     title: 'What happens when you scan',
-    body: 'To read a date from a photo, the image is sent once to Renewly\'s scanning service and passed to Anthropic\'s Claude API, which returns the extracted details. The image is not written to disk on the server, is not used to train any model, and is discarded as soon as the response is produced. Only the image you choose is ever sent — Renewly never uploads anything in the background.',
+    body: 'To read a date from a photo, the image is sent once to Expyr\'s scanning service and passed to Anthropic\'s Claude API, which returns the extracted details. The image is not written to disk on the server, is not used to train any model, and is discarded as soon as the response is produced. Only the image you choose is ever sent — Expyr never uploads anything in the background.',
   },
   {
     title: 'If you would rather not send anything',
@@ -28,7 +28,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: 'If you lose your phone',
-    body: "Renewly's data sits in the app's own storage, which iOS includes in your iPhone backup. Set up a new phone from that backup and everything returns — items, dates and photos. You can also export a backup file yourself at any time, which is the belt-and-braces option if you would rather hold a copy you control.",
+    body: "Expyr's data sits in the app's own storage, which iOS includes in your iPhone backup. Set up a new phone from that backup and everything returns — items, dates and photos. You can also export a backup file yourself at any time, which is the belt-and-braces option if you would rather hold a copy you control.",
   },
   {
     title: 'Backups you create',
@@ -36,7 +36,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: 'Locking the app',
-    body: 'Turning on the app lock requires Face ID, Touch ID or your device passcode to open Renewly. The check is performed by iOS; Renewly never sees your biometric data.',
+    body: 'Turning on the app lock requires Face ID, Touch ID or your device passcode to open Expyr. The check is performed by iOS; Expyr never sees your biometric data.',
   },
 ];
 
@@ -48,7 +48,7 @@ export default function PrivacyScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ThemedText type="headline">Your documents are yours</ThemedText>
         <ThemedText type="body" themeColor="textSecondary">
-          Renewly asks you to photograph identity documents, so it owes you a plain answer about
+          Expyr asks you to photograph identity documents, so it owes you a plain answer about
           what happens to them.
         </ThemedText>
 

@@ -18,7 +18,9 @@ import { cancelReminders, scheduleReminders, snoozeReminder } from '@/lib/notifi
 import { useSettings } from '@/store/settings';
 import { Attachment, DocumentDraft, TrackedDocument } from '@/types';
 
-const STORAGE_KEY = 'renewly.documents.v1';
+const STORAGE_KEY = 'expyr.documents.v1';
+/** Where documents lived before the app was renamed. Read once, then migrated. */
+const LEGACY_STORAGE_KEY = 'renewly.documents.v1';
 
 type DocumentsContextValue = {
   /** Active items only — archived ones are kept separately. */
@@ -133,13 +135,18 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
-        if (!raw) return;
-        const parsed: unknown = JSON.parse(raw);
+      .then(async (raw) => {
+        // Anything saved under the old name is adopted, then written back under
+        // the new one on the next change. Renaming the app must not look like
+        // losing everything you had put in it.
+        const source = raw ?? (await AsyncStorage.getItem(LEGACY_STORAGE_KEY));
+        if (!source) return;
+        const parsed: unknown = JSON.parse(source);
         if (!Array.isArray(parsed)) return;
         const migrated = parsed.map(migrate).filter((d): d is TrackedDocument => d !== null);
         latest.current = migrated;
         setDocuments(migrated);
+        if (!raw) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated)).catch(() => {});
       })
       .catch(() => {})
       .finally(() => setLoaded(true));

@@ -54,14 +54,14 @@ export default function OnboardingScreen() {
           {step === 'welcome' && (
             <View style={styles.pane}>
               <ThemedText type="display" style={styles.centered}>
-                Renewly
+                Expyr
               </ThemedText>
               <ThemedText type="headline" style={styles.centered}>
                 Nothing expires unnoticed.
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
                 A visa, an Emirates ID, a car registration, a tenancy contract. Photograph it once
-                and Renewly does the remembering.
+                and Expyr does the remembering.
               </ThemedText>
 
               <View style={styles.points}>
@@ -78,7 +78,7 @@ export default function OnboardingScreen() {
                 Where do you live?
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                Renewal rules are national, so this decides what Renewly can tell you about
+                Renewal rules are national, so this decides what Expyr can tell you about
                 renewing.
               </ThemedText>
 
@@ -150,7 +150,7 @@ export default function OnboardingScreen() {
               {country !== null && !hasGuidance(country) && (
                 <View style={[styles.note, { borderColor: theme.border }]}>
                   <ThemedText type="small" themeColor="textSecondary">
-                    Renewly tracks your dates and reminds you wherever you are. Renewal steps, costs
+                    Expyr tracks your dates and reminds you wherever you are. Renewal steps, costs
                     and fines have only been checked for the UAE, so{' '}
                     {country === 'other'
                       ? 'you will not see them'

@@ -8,7 +8,12 @@ const PORT = Number(process.env.PORT ?? 8787);
  * Shared secret the app sends. It ships inside the app bundle, so a determined
  * person can extract it — it raises the bar, and the rate limiter does the rest.
  */
-const APP_TOKEN = process.env.RENEWLY_APP_TOKEN;
+/*
+ * The old name is still read because it is what is set in Render's dashboard
+ * today. Dropping it here would not fail loudly — APP_TOKEN would simply be
+ * undefined and the check below would wave every request through.
+ */
+const APP_TOKEN = process.env.EXPYR_APP_TOKEN ?? process.env.RENEWLY_APP_TOKEN;
 /**
  * Base64 inflates by about a third, and PDFs are far larger than photos.
  * Claude accepts a 32 MB request, so this leaves room while staying below it.
@@ -74,7 +79,7 @@ function parseRequest(raw: string): {
 
 const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-renewly-token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-expyr-token, x-renewly-token');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
 
   if (req.method === 'OPTIONS') {
@@ -95,7 +100,9 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (APP_TOKEN && req.headers['x-renewly-token'] !== APP_TOKEN) {
+  // Both header names, so a phone running a cached bundle is not locked out.
+  const sent = req.headers['x-expyr-token'] ?? req.headers['x-renewly-token'];
+  if (APP_TOKEN && sent !== APP_TOKEN) {
     res.writeHead(401, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not authorised.' }));
     return;
@@ -141,5 +148,5 @@ server.listen(PORT, '0.0.0.0', () => {
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn('⚠  ANTHROPIC_API_KEY is not set — scanning will fail until you add it.');
   }
-  console.log(`Renewly extraction service listening on http://0.0.0.0:${PORT}`);
+  console.log(`Expyr extraction service listening on http://0.0.0.0:${PORT}`);
 });

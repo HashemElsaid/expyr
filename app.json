@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Renewly",
-    "slug": "renewly",
+    "name": "Expyr",
+    "slug": "expyr",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "renewly",
+    "scheme": "expyr",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.renewly.app"
+      "bundleIdentifier": "com.expyr.app"
     },
     "android": {
-      "package": "com.renewly.app",
+      "package": "com.expyr.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -39,8 +39,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Renewly uses the camera to read expiry dates from your documents.",
-          "photosPermission": "Renewly reads photos and screenshots you choose so it can fill in dates for you."
+          "cameraPermission": "Expyr uses the camera to read expiry dates from your documents.",
+          "photosPermission": "Expyr reads photos and screenshots you choose so it can fill in dates for you."
         }
       ],
       "expo-font"

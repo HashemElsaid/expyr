@@ -317,7 +317,7 @@ export default function DocumentDetailScreen() {
               How to renew
             </ThemedText>
             <ThemedText type="body" themeColor="textSecondary">
-              Renewly has verified renewal steps for the UAE only. It will keep the date and remind
+              Expyr has verified renewal steps for the UAE only. It will keep the date and remind
               you — it just will not guess at the procedure where you are.
             </ThemedText>
           </View>

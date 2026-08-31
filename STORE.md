@@ -117,7 +117,7 @@ our own service, which forwards them to the Anthropic Claude API for text
 extraction, and are not stored. No account is required. All user data is kept
 locally on the device.
 
-To test scanning, photograph any document or product label containing a date —
+To test scanning, photograph any document containing an expiry date —
 for example a passport, a driving licence, or an insurance certificate.
 ```
 

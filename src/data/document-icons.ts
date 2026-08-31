@@ -15,7 +15,6 @@ export const DOCUMENT_ICONS: Record<DocumentTypeId, string> = {
   'tenancy-ejari': 'home-outline',
   'trade-license': 'briefcase-outline',
   'labor-card': 'badge-account-outline',
-  supplement: 'pill',
   assignment: 'school-outline',
   membership: 'ticket-outline',
   warranty: 'wrench-outline',

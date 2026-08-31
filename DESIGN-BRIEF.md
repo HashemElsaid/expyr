@@ -17,8 +17,8 @@ what it costs, and the fine for leaving it late.
 
 It tracks residence visas, Emirates ID, passports, car registration (Mulkiya),
 car and health insurance, tenancy contracts (Ejari), driving licences, trade
-licences and work permits — and also everyday things with dates: medicine and
-supplements, warranties, subscriptions, and coursework deadlines.
+licences and work permits — and also the everyday things that carry dates:
+warranties, subscriptions, and coursework deadlines.
 
 ## Who uses it
 

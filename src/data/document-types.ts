@@ -207,24 +207,6 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     },
   },
   {
-    id: 'supplement',
-    label: 'Supplement / Medicine',
-    emoji: '💊',
-    defaultLeadDays: [14, 3],
-    typicalValidity: '6 months – 3 years',
-    guide: {
-      where: 'Pharmacy, supplement store, or online',
-      steps: [
-        'Check if it’s worth finishing the tub before expiry — adjust servings if needed',
-        'Expired protein/vitamins lose potency; expired medicines can be unsafe — dispose properly',
-        'Reorder before you run out or it expires',
-      ],
-      typicalCost: 'Varies',
-      lateFee: 'Reduced potency or unsafe to use',
-      processingTime: '—',
-    },
-  },
-  {
     id: 'assignment',
     label: 'Assignment / Exam',
     emoji: '🎓',

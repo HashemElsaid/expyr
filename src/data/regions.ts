@@ -67,7 +67,9 @@ export function portalFor(typeId: DocumentTypeId, emirate: Emirate | null): Auth
     case 'driving-license':
       return emirate ? TRANSPORT[emirate] : undefined;
     case 'residence-visa':
-      return emirate ? RESIDENCY[emirate] : ICP;
+      // No default to ICP here: residency in Dubai is GDRFA's, not ICP's, so a
+      // guess is wrong for the largest population of users we have.
+      return emirate ? RESIDENCY[emirate] : undefined;
     case 'emirates-id':
       return ICP;
     case 'labor-card':

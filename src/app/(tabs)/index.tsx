@@ -275,8 +275,8 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
     <View style={styles.empty}>
       <ThemedText type="verdict">Nothing yet.</ThemedText>
       <ThemedText type="body" themeColor="textSecondary">
-        Photograph a visa, a licence, a contract — or a carton of milk. Renewly reads the date and
-        remembers it for you.
+        Photograph a visa, a licence, a tenancy contract. Renewly reads the date and remembers it
+        for you.
       </ThemedText>
       <Pressable onPress={onAdd} accessibilityRole="button">
         {({ pressed }) => (

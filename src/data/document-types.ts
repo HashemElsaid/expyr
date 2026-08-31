@@ -207,24 +207,6 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     },
   },
   {
-    id: 'food-item',
-    label: 'Food / Fridge Item',
-    emoji: '🥛',
-    defaultLeadDays: [3, 1],
-    typicalValidity: 'Days to months',
-    guide: {
-      where: 'Your fridge or pantry',
-      steps: [
-        '“Use by” is about safety — don’t eat past it; “best before” is about quality — usually fine a bit after',
-        'Move items expiring this week to the front of the fridge',
-        'Plan a meal around it before it goes to waste',
-      ],
-      typicalCost: '—',
-      lateFee: 'Wasted food and money',
-      processingTime: '—',
-    },
-  },
-  {
     id: 'supplement',
     label: 'Supplement / Medicine',
     emoji: '💊',

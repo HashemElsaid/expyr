@@ -52,8 +52,8 @@ export default function OnboardingScreen() {
                 Nothing expires unnoticed.
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                A visa, a licence, a tenancy contract — or the milk in your fridge. Photograph it
-                once and Renewly does the remembering.
+                A visa, an Emirates ID, a car registration, a tenancy contract. Photograph it once
+                and Renewly does the remembering.
               </ThemedText>
 
               <View style={styles.points}>

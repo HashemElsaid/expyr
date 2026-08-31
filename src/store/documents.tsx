@@ -10,7 +10,7 @@ import {
   useState,
 } from 'react';
 
-import { getDocumentType } from '@/data/document-types';
+import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
 import { daysUntil } from '@/lib/dates';
 import { deleteAttachment, newAttachmentKey, storeAttachment } from '@/lib/files';
 import { cancelReminders, scheduleReminders, snoozeReminder } from '@/lib/notifications';
@@ -53,6 +53,9 @@ function migrate(raw: unknown): TrackedDocument | null {
   };
   if (!doc.id || !doc.typeId || !doc.expiryDate) return null;
 
+  // A category removed in a later version falls back rather than disappearing.
+  const typeId = DOCUMENT_TYPES.some((t) => t.id === doc.typeId) ? doc.typeId : 'other';
+
   /*
    * Two older shapes to carry forward: `imageUri` from before PDFs, and a
    * single `fileUri` from before multiple attachments. The files on disk keep
@@ -67,14 +70,14 @@ function migrate(raw: unknown): TrackedDocument | null {
 
   return {
     id: doc.id,
-    typeId: doc.typeId,
-    title: doc.title ?? getDocumentType(doc.typeId).label,
+    typeId,
+    title: doc.title ?? getDocumentType(typeId).label,
     expiryDate: doc.expiryDate,
     documentNumber: doc.documentNumber,
     notes: doc.notes,
     owner: doc.owner,
     files,
-    leadDays: doc.leadDays?.length ? doc.leadDays : getDocumentType(doc.typeId).defaultLeadDays,
+    leadDays: doc.leadDays?.length ? doc.leadDays : getDocumentType(typeId).defaultLeadDays,
     archivedAt: doc.archivedAt,
     history: doc.history,
     notificationIds: doc.notificationIds ?? [],

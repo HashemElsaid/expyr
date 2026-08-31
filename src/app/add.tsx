@@ -299,7 +299,7 @@ export default function AddDocumentScreen() {
             Show it to Renewly
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-            A document, a food label, a screenshot, or a PDF. Renewly reads the date.
+            A document, a screenshot, or a PDF. Renewly reads the date.
           </ThemedText>
 
           {error && <ErrorNote message={error} />}

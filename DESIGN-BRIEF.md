@@ -17,8 +17,8 @@ what it costs, and the fine for leaving it late.
 
 It tracks residence visas, Emirates ID, passports, car registration (Mulkiya),
 car and health insurance, tenancy contracts (Ejari), driving licences, trade
-licences and work permits — and also everyday things with dates: food, medicine
-and supplements, warranties, subscriptions, and coursework deadlines.
+licences and work permits — and also everyday things with dates: medicine and
+supplements, warranties, subscriptions, and coursework deadlines.
 
 ## Who uses it
 
@@ -84,7 +84,7 @@ where one exists.
 - "Toyota Corolla — Mulkiya", expires 2 Mar 2027
 - "Marina Heights, Apartment 1204", Ejari, expires 31 Aug 2027
 - "CS101 midterm", due 20 Oct 2026
-- "Almarai Laban 500ml", use by 9 Sep 2026
+- "Daman health insurance", expires 1 Jan 2027
 - A renewal guide reads: *Pay any outstanding traffic fines — renewal is blocked
   until cleared.* Cost: *AED 350–500 plus inspection.* Late: *fines apply after
   the 30-day grace period.*

@@ -39,8 +39,8 @@ Renewly makes sure nothing in your life expires without warning.
 Photograph a document and Renewly reads the expiry date for you. No typing, no
 forms. It works on residence visas, Emirates ID, passports, car registration,
 insurance policies, tenancy contracts, driving licences — and on things that
-are not documents at all, like the use-by date on food or a coursework deadline
-in an email screenshot.
+are not documents at all, like a warranty card or a coursework deadline in an
+email screenshot.
 
 WHAT IT DOES
 
@@ -118,8 +118,7 @@ extraction, and are not stored. No account is required. All user data is kept
 locally on the device.
 
 To test scanning, photograph any document or product label containing a date —
-for example a passport, a driving licence, or a food package with a best-before
-date.
+for example a passport, a driving licence, or an insurance certificate.
 ```
 
 ## Required before submission

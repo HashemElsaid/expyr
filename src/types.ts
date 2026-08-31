@@ -9,7 +9,6 @@ export type DocumentTypeId =
   | 'tenancy-ejari'
   | 'trade-license'
   | 'labor-card'
-  | 'food-item'
   | 'supplement'
   | 'assignment'
   | 'membership'

@@ -6,7 +6,7 @@ import type { Persona } from '@/store/settings';
  * this only decides the order of the category grid.
  */
 const PRIORITY: Record<Persona, DocumentTypeId[]> = {
-  student: ['assignment', 'residence-visa', 'emirates-id', 'passport', 'membership', 'food-item'],
+  student: ['assignment', 'residence-visa', 'emirates-id', 'passport', 'membership', 'health-insurance'],
   resident: [
     'residence-visa',
     'emirates-id',

@@ -67,7 +67,7 @@ Today's date is ${today}.
 
 The user has photographed or uploaded one item. It is usually one of:
 - an official document (Emirates ID, residence visa, passport, car registration/Mulkiya, insurance policy, tenancy contract, driving licence, trade licence)
-- a product with a printed date (food packaging, supplements, medicine)
+- a product with a printed expiry date (supplements, medicine)
 - a screenshot of an email or course portal announcing an assignment, quiz, or exam
 - a PDF such as a tenancy contract, insurance policy or licence certificate
 
@@ -76,11 +76,11 @@ Return exactly one item: the single most important date on it.
 Rules:
 - expiryDate is the date the item EXPIRES or falls DUE, formatted YYYY-MM-DD. Never return an issue date, a date of birth, or a manufacture date. When several dates appear, choose the one that answers "when does this stop being valid, or when is this due".
 - Dates in the Gulf are usually written day-first. Read 03/09/2027 as 3 September 2027, not 9 March.
-- On food and supplements use "Best before", "Use by", "EXP" or "Expiry". If both a best-before and a use-by date appear, use the use-by date.
+- On supplements and medicine use "EXP", "Expiry" or "Use by".
 - On assignment or exam screenshots use the due or submission date. Ignore any time of day and keep only the date.
 - In multi-page contracts and policies, the date that matters is when cover or tenancy ENDS, not when it started and not when the document was signed. A tenancy contract running "01/09/2026 to 31/08/2027" expires on 31 August 2027.
 - typeId must be one of the ids listed below. Use "other" only when nothing else fits.
-- title is a short human name the user will recognise in a list, such as "Emirates ID", "Toyota Corolla registration", "Al Ain full cream milk", or "CS101 midterm". Include a distinguishing detail when the photo shows one. Never put the date in the title.
+- title is a short human name the user will recognise in a list, such as "Emirates ID", "Toyota Corolla registration", "Marina Heights tenancy", or "CS101 midterm". Include a distinguishing detail when the photo shows one. Never put the date in the title.
 - documentNumber only when an official number is clearly legible AND the category is one that actually carries a number. Otherwise return an empty string. Never guess digits that are blurred or cropped.
 - confidence is "high" only when you read the date clearly and are certain it is the expiry or due date.
 - note is one short plain-language sentence telling the user which date you used. No jargon.

@@ -262,9 +262,10 @@ export default function AddDocumentScreen() {
   if (overFreeLimit) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText type="verdict">Five is the free limit.</ThemedText>
+        <ThemedText type="verdict">That is {FREE_ITEM_LIMIT}.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-          Unlock Renewly to track everything, for everyone.
+          The free plan holds {FREE_ITEM_LIMIT} items. Unlock Renewly to track everything you own,
+          and everyone in the house.
         </ThemedText>
         <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />
         <Pressable onPress={() => router.back()} style={styles.link}>

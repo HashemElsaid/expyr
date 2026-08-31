@@ -17,6 +17,14 @@ Renewly: Expiry Reminders
 Visa, licence & renewal alerts
 ```
 
+## Pricing
+
+One tier, not two. AED 79/year or AED 12/month unlocks unlimited items for the
+whole household. Tracking family members is a reason to upgrade rather than a
+separate product — there is no per-household infrastructure behind it today, so
+charging separately would not be honest. Revisit if real cross-device sharing
+is ever built.
+
 ## Promotional text (170 characters, changeable without review)
 
 ```
@@ -63,10 +71,11 @@ else needs to know your dates. Everything travels with your iPhone backup, so a
 new phone brings it all back. You can lock Renewly behind Face ID, and export a
 copy only you hold.
 
-FREE AND UNLIMITED
+FREE TO START
 
-Track five items free, for as long as you like. Unlock Renewly to track
-everything you own and everyone in your household.
+Track ten items free, for as long as you like — enough for your visa, your
+Emirates ID, your car and your tenancy. Unlock Renewly to track everything you
+own, and everyone in your household.
 ```
 
 ## Keywords (100 characters, comma separated, no spaces)

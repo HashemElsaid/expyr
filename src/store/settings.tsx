@@ -32,8 +32,12 @@ const DEFAULTS: Settings = {
   premium: false,
 };
 
-/** How many items a free account can track. */
-export const FREE_ITEM_LIMIT = 5;
+/**
+ * How many items a free account can track. Set high enough that someone can
+ * put their whole life in and feel a reminder arrive before meeting the wall —
+ * a typical UAE resident has eight or so documents before anything unusual.
+ */
+export const FREE_ITEM_LIMIT = 10;
 
 type SettingsContextValue = {
   settings: Settings;

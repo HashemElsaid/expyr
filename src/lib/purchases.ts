@@ -37,10 +37,15 @@ export const PLANS: Plan[] = [
   },
 ];
 
+/**
+ * One tier, not two. Tracking the family is a reason to upgrade, not a separate
+ * product — today it is a name on an item, with no per-household cost behind it.
+ * Revisit if real cross-device sharing is ever built.
+ */
 export const PREMIUM_FEATURES = [
   'Track as many items as you like',
+  'Everyone in the house, not just you',
   'Scan documents without limit',
-  'Keep everyone in the family in one app',
   'Back up and restore your whole archive',
 ];
 

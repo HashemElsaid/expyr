@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActionSheetIOS,
   Alert,
@@ -47,6 +47,7 @@ export default function DocumentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { documents, archived, removeDocument, setArchived } = useDocuments();
   const { settings } = useSettings();
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
   const days = doc ? daysUntil(doc.expiryDate) : 0;
@@ -264,35 +265,76 @@ export default function DocumentDetailScreen() {
           </View>
         )}
 
-        <View style={styles.sectionHeader}>
-          <ThemedText type="label" themeColor="textTertiary">
-            Do these, in order
-          </ThemedText>
-          <View style={[styles.rule, { backgroundColor: theme.border }]} />
-        </View>
-
-        {notes.length > 0 && (
-          <View style={styles.notes}>
-            {notes.map((note) => (
-              <ThemedText key={note} type="small" themeColor="textTertiary">
-                {note}
-              </ThemedText>
-            ))}
+        {/* The penalty is the reason to act today, so it never hides. */}
+        {type.guide.lateFee !== '—' && (
+          <View style={styles.lateRow}>
+            <ThemedText type="label" themeColor="textTertiary">
+              If you leave it
+            </ThemedText>
+            <ThemedText type="body" style={{ color: theme.urgentSoft }}>
+              {type.guide.lateFee}
+            </ThemedText>
           </View>
         )}
 
-        <View style={styles.steps}>
-          {type.guide.steps.map((step, i) => (
-            <View key={i} style={styles.stepRow}>
-              <ThemedText type="ledgerFigure" themeColor="textTertiary" style={styles.stepNumber}>
-                {i + 1}
-              </ThemedText>
-              <ThemedText type="body" style={styles.flex}>
-                {step}
-              </ThemedText>
+        {/*
+         * Everything below is a tutorial. Someone renewing their third Mulkiya
+         * does not need it, so it stays folded until asked for.
+         */}
+        <Pressable
+          onPress={() => setGuideOpen((open) => !open)}
+          accessibilityRole="button"
+          accessibilityLabel={guideOpen ? 'Hide how to renew' : 'Show how to renew'}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="label" themeColor="textTertiary">
+              How to renew
+            </ThemedText>
+            <View style={[styles.rule, { backgroundColor: theme.border }]} />
+            <MaterialCommunityIcons
+              name={guideOpen ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={theme.textTertiary}
+            />
+          </View>
+        </Pressable>
+
+        {guideOpen && (
+          <View style={styles.guide}>
+            {notes.length > 0 && (
+              <View style={styles.notes}>
+                {notes.map((note) => (
+                  <ThemedText key={note} type="small" themeColor="textTertiary">
+                    {note}
+                  </ThemedText>
+                ))}
+              </View>
+            )}
+
+            <View style={styles.steps}>
+              {type.guide.steps.map((step, i) => (
+                <View key={i} style={styles.stepRow}>
+                  <ThemedText
+                    type="ledgerFigure"
+                    themeColor="textTertiary"
+                    style={styles.stepNumber}>
+                    {i + 1}
+                  </ThemedText>
+                  <ThemedText type="body" style={styles.flex}>
+                    {step}
+                  </ThemedText>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+
+            <DataRow label="Where" value={where} bordered />
+            <DataRow label="Cost" value={type.guide.typicalCost} bordered />
+            <DataRow label="Takes" value={type.guide.processingTime} bordered />
+
+            <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
+              Figures are indicative — confirm with the official channel.
+            </ThemedText>
+          </View>
+        )}
 
         {doc.history && doc.history.length > 0 && (
           <DataRow
@@ -301,11 +343,6 @@ export default function DocumentDetailScreen() {
             bordered
           />
         )}
-
-        <DataRow label="Where" value={where} bordered />
-        <DataRow label="Cost" value={type.guide.typicalCost} bordered />
-        <DataRow label="If late" value={type.guide.lateFee} bordered />
-        <DataRow label="Takes" value={type.guide.processingTime} bordered />
 
         <View style={styles.actions}>
           {portal ? (
@@ -469,7 +506,10 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     marginTop: Spacing.four,
   },
+  lateRow: { gap: 3, paddingTop: Spacing.four },
+  guide: { paddingTop: Spacing.two },
   notes: { gap: 4, paddingBottom: Spacing.three },
+  disclaimer: { paddingTop: Spacing.three },
   steps: { gap: 14, paddingBottom: Spacing.three },
   stepRow: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
   stepNumber: { width: 22, fontSize: 24, lineHeight: 26 },

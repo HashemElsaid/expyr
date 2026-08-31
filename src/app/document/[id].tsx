@@ -202,16 +202,35 @@ export default function DocumentDetailScreen() {
             </View>
           )}
 
-          <ThemedText type="label" themeColor="textTertiary">
-            {reminders.length === 0
-              ? 'No reminders set'
-              : [
-                  fired.length ? `${fired.length} sent` : null,
-                  next ? `next ${dayMonth(next.date)}` : 'none upcoming',
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-          </ThemedText>
+          {/*
+           * Every warning date, not just the next one. The whole promise of the
+           * app is "you will be told in time", and the only way to believe that
+           * is to see the dates it will happen on.
+           */}
+          {reminders.length === 0 ? (
+            <ThemedText type="label" themeColor="textTertiary">
+              No reminders set
+            </ThemedText>
+          ) : (
+            <View style={styles.reminderRow}>
+              {reminders.map((r) => (
+                <ThemedText
+                  key={r.lead}
+                  type="label"
+                  themeColor={r.past ? 'textTertiary' : 'textSecondary'}
+                  style={r.past && styles.sent}>
+                  {dayMonth(r.date)}
+                </ThemedText>
+              ))}
+              <ThemedText type="label" themeColor="textTertiary">
+                {fired.length === reminders.length
+                  ? '· all sent'
+                  : fired.length
+                    ? `· ${fired.length} sent`
+                    : '· none sent yet'}
+              </ThemedText>
+            </View>
+          )}
         </View>
 
         {doc.files.length > 0 && (
@@ -493,6 +512,8 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.6 },
   hero: { gap: 10, paddingBottom: 20, borderBottomWidth: StyleSheet.hairlineWidth },
   verdict: { fontSize: 52, lineHeight: 54 },
+  reminderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' },
+  sent: { textDecorationLine: 'line-through' },
   runway: { height: 8, justifyContent: 'center' },
   runwayLine: { position: 'absolute', left: 0, right: 0, top: 3, height: 2 },
   tick: { position: 'absolute', top: 0, width: 1, height: 8 },

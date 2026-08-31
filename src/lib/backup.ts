@@ -3,7 +3,8 @@ import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
-import { getDocumentType } from '@/data/document-types';
+import type { Country } from '@/data/countries';
+import { getDocumentType, labelForId } from '@/data/document-types';
 import { formatDate } from '@/lib/dates';
 import { Attachment, TrackedDocument } from '@/types';
 
@@ -76,7 +77,10 @@ export async function exportBackup(documents: TrackedDocument[]): Promise<void> 
 }
 
 /** A plain spreadsheet of what you track, for people who want it readable. */
-export async function exportCsv(documents: TrackedDocument[]): Promise<void> {
+export async function exportCsv(
+  documents: TrackedDocument[],
+  country: Country | null = null
+): Promise<void> {
   if (Platform.OS === 'web') throw new Error('Export is only available on the phone app.');
 
   const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
@@ -85,7 +89,7 @@ export async function exportCsv(documents: TrackedDocument[]): Promise<void> {
     ...documents.map((doc) =>
       [
         escape(doc.title),
-        escape(getDocumentType(doc.typeId).label),
+        escape(labelForId(doc.typeId, country)),
         escape(formatDate(doc.expiryDate)),
         escape(doc.owner ?? ''),
         escape(doc.documentNumber ?? ''),

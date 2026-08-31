@@ -8,11 +8,12 @@ import { isDocumentClass, LedgerRow } from '@/components/ledger-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { getDocumentType } from '@/data/document-types';
+import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
 import { countdownShort, countWord, daysUntil, mastheadDate } from '@/lib/dates';
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
+import { useSettings } from '@/store/settings';
 import { TrackedDocument } from '@/types';
 
 type Section = { title: string; data: TrackedDocument[] };
@@ -47,6 +48,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { documents, archived, loaded, rescheduleAll } = useDocuments();
+  const { settings } = useSettings();
   const [query, setQuery] = useState('');
   const [ownerFilter, setOwnerFilter] = useState<string | null>(null);
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
@@ -67,10 +69,9 @@ export default function HomeScreen() {
     return documents.filter((doc) => {
       if (ownerFilter && (doc.owner ?? '') !== ownerFilter) return false;
       if (!q) return true;
-      const type = getDocumentType(doc.typeId);
       return (
         doc.title.toLowerCase().includes(q) ||
-        type.label.toLowerCase().includes(q) ||
+        labelForId(doc.typeId, settings.country).toLowerCase().includes(q) ||
         doc.owner?.toLowerCase().includes(q) ||
         doc.documentNumber?.toLowerCase().includes(q) ||
         doc.notes?.toLowerCase().includes(q)

@@ -4,21 +4,24 @@ import { DocIcon } from '@/components/doc-icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
-import { getDocumentType } from '@/data/document-types';
+import { getDocumentType, labelFor } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
 import { useUrgency } from '@/hooks/use-urgency';
 import { countdownParts, daysUntil, formatDate } from '@/lib/dates';
+import { useSettings } from '@/store/settings';
 import { TrackedDocument } from '@/types';
 
 export function DocumentCard({ doc, onPress }: { doc: TrackedDocument; onPress: () => void }) {
   const theme = useTheme();
+  const { settings } = useSettings();
   const type = getDocumentType(doc.typeId);
+  const label = labelFor(type, settings.country);
   const days = daysUntil(doc.expiryDate);
   const { color } = useUrgency(days);
   const countdown = countdownParts(days);
 
   const meta = [doc.owner, formatDate(doc.expiryDate)].filter(Boolean).join(' · ');
-  const secondary = doc.title.trim() === type.label ? meta : `${type.label} · ${meta}`;
+  const secondary = doc.title.trim() === label ? meta : `${label} · ${meta}`;
 
   return (
     <Pressable onPress={onPress}>

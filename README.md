@@ -10,6 +10,14 @@ tells you how to renew it.
 Built for the UAE first: every category carries the real renewal steps, typical
 cost, and the penalty for being late.
 
+The tracker works anywhere — the guidance does not. Renewal steps, costs, fines
+and prerequisite chains were verified against UAE sources only, so the app asks
+which country you are in and shows the advisory half of the detail screen only
+where it has been checked. Everywhere else keeps the dates, the reminders and
+the actions, drops the guides, and uses country-neutral category names. Adding a
+country means writing its guides and adding it to `WITH_GUIDANCE` in
+`src/data/countries.ts`; no screen needs touching.
+
 ## Running it
 
 Two processes, in two terminals.
@@ -56,7 +64,7 @@ src/
     paywall.tsx     subscription
     privacy.tsx     what happens to your data
   components/       shared UI, including the ledger row and its runway
-  data/             categories, renewal guides, emirate authorities, icons
+  data/             categories, renewal guides, countries, emirate authorities, icons
   hooks/            theme and urgency
   lib/              dates, files, scanning, notifications, backup, biometrics
   store/            documents and settings (AsyncStorage)

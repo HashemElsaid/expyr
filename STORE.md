@@ -61,6 +61,10 @@ matters for your DEWA account, and that your landlord must give you 90 days'
 notice before raising the rent. Every category carries the steps, the typical
 cost, and the penalty for leaving it late.
 
+Renewly tracks dates and sends reminders wherever you live. The renewal steps,
+costs and fines have been checked for the UAE only, so outside it Renewly keeps
+the dates and stays quiet about the paperwork rather than guessing.
+
 PRIVATE BY DESIGN
 
 Your documents stay on your phone. Photos are kept in Renewly's own storage —

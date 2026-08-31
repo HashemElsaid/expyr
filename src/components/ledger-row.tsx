@@ -2,11 +2,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { getDocumentType } from '@/data/document-types';
+import { getDocumentType, labelFor } from '@/data/document-types';
 import { findBlockers } from '@/data/prerequisites';
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { useUrgency } from '@/hooks/use-urgency';
+import { useSettings } from '@/store/settings';
 import { countdownShort, daysUntil, shortDate } from '@/lib/dates';
 import { TrackedDocument } from '@/types';
 
@@ -54,7 +55,9 @@ export function LedgerRow({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const { settings } = useSettings();
   const type = getDocumentType(doc.typeId);
+  const label = labelFor(type, settings.country);
   const days = daysUntil(doc.expiryDate);
   const { color } = useUrgency(days);
   const isDocument = isDocumentClass(doc);
@@ -64,7 +67,7 @@ export function LedgerRow({
   // Skip the category when the user never renamed it — no point saying it twice.
   const meta = [
     doc.owner,
-    doc.title.trim() === type.label ? null : type.label,
+    doc.title.trim() === label ? null : label,
     shortDate(doc.expiryDate),
   ]
     .filter(Boolean)

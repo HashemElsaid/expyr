@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { COUNTRIES, countryLabel, hasGuidance, usesEmirates, type Country } from '@/data/countries';
 import { EMIRATES, type Emirate } from '@/data/regions';
 import { useTheme } from '@/hooks/use-theme';
 import { ensureNotificationPermission } from '@/lib/notifications';
@@ -19,11 +20,20 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { settings, update } = useSettings();
   const [step, setStep] = useState<Step>('welcome');
+  const [country, setCountry] = useState<Country | null>(settings.country);
   const [emirate, setEmirate] = useState<Emirate | null>(settings.emirate);
   const [asking, setAsking] = useState(false);
 
+  /*
+   * The country is the one answer the app cannot sensibly default. Guessing UAE
+   * would hand wrong procedures to everyone else; guessing "unsupported" would
+   * strip the guides from the users we built them for. So this step is the only
+   * one that will not let you past without an answer.
+   */
+  const blocked = step === 'location' && country === null;
+
   function finish() {
-    update({ onboarded: true, emirate });
+    update({ onboarded: true, country, emirate });
     router.replace('/');
   }
 
@@ -68,40 +78,87 @@ export default function OnboardingScreen() {
                 Where do you live?
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                Vehicle and licence services are run by each emirate, not federally. This is how
-                Renewly knows which authority to send you to.
+                Renewal rules are national, so this decides what Renewly can tell you about
+                renewing.
               </ThemedText>
 
-              <View style={styles.options}>
-                {EMIRATES.map((option) => {
-                  const selected = emirate === option.value;
+              <View style={styles.chipRow}>
+                {COUNTRIES.map((option) => {
+                  const on = country === option.value;
                   return (
-                    <Pressable key={option.value} onPress={() => setEmirate(option.value)}>
+                    <Pressable
+                      key={option.value}
+                      onPress={() => {
+                        setCountry(option.value);
+                        // An emirate means nothing once you have left the UAE.
+                        if (option.value !== 'ae') setEmirate(null);
+                      }}>
                       <View
                         style={[
-                          styles.option,
+                          styles.chip,
                           {
-                            borderColor: selected ? theme.accent : theme.border,
-                            backgroundColor: selected
-                              ? theme.backgroundSelected
-                              : theme.backgroundElement,
+                            backgroundColor: on ? theme.accent : 'transparent',
+                            borderColor: on ? theme.accent : theme.border,
                           },
                         ]}>
-                        <ThemedText type="bodyMedium" style={styles.flex}>
+                        <ThemedText
+                          type="smallBold"
+                          style={on ? { color: theme.accentContrast } : undefined}>
                           {option.label}
                         </ThemedText>
-                        {selected && (
-                          <MaterialCommunityIcons name="check" size={20} color={theme.accent} />
-                        )}
                       </View>
                     </Pressable>
                   );
                 })}
               </View>
 
-              <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
-                You can change this later in Settings.
-              </ThemedText>
+              {usesEmirates(country) && (
+                <View style={styles.options}>
+                  <ThemedText type="label" themeColor="textTertiary">
+                    Which emirate
+                  </ThemedText>
+                  {EMIRATES.map((option) => {
+                    const selected = emirate === option.value;
+                    return (
+                      <Pressable key={option.value} onPress={() => setEmirate(option.value)}>
+                        <View
+                          style={[
+                            styles.option,
+                            {
+                              borderColor: selected ? theme.accent : theme.border,
+                              backgroundColor: selected
+                                ? theme.backgroundSelected
+                                : theme.backgroundElement,
+                            },
+                          ]}>
+                          <ThemedText type="bodyMedium" style={styles.flex}>
+                            {option.label}
+                          </ThemedText>
+                          {selected && (
+                            <MaterialCommunityIcons name="check" size={20} color={theme.accent} />
+                          )}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                  <ThemedText type="small" themeColor="textTertiary">
+                    Vehicles and licences are run by each emirate, not federally.
+                  </ThemedText>
+                </View>
+              )}
+
+              {country !== null && !hasGuidance(country) && (
+                <View style={[styles.note, { borderColor: theme.border }]}>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Renewly tracks your dates and reminds you wherever you are. Renewal steps, costs
+                    and fines have only been checked for the UAE, so{' '}
+                    {country === 'other'
+                      ? 'you will not see them'
+                      : `there are none for ${countryLabel(country)} yet`}{' '}
+                    — we would rather show you nothing than guess about your documents.
+                  </ThemedText>
+                </View>
+              )}
             </View>
           )}
 
@@ -133,13 +190,13 @@ export default function OnboardingScreen() {
               else if (step === 'location') setStep('reminders');
               else askForReminders();
             }}
-            disabled={asking}>
+            disabled={asking || blocked}>
             {({ pressed }) => (
               <View
                 style={[
                   styles.primary,
                   { backgroundColor: theme.accent },
-                  (pressed || asking) && styles.dim,
+                  (pressed || asking || blocked) && styles.dim,
                 ]}>
                 <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
                   {step === 'reminders' ? 'Allow reminders' : 'Continue'}
@@ -194,6 +251,19 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   points: { gap: Spacing.three, paddingTop: Spacing.four },
   point: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, paddingTop: Spacing.three },
+  chip: {
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  note: {
+    borderRadius: Radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.three,
+    marginTop: Spacing.two,
+  },
   options: { gap: Spacing.two, paddingTop: Spacing.three },
   option: {
     flexDirection: 'row',

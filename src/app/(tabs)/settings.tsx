@@ -17,6 +17,7 @@ import {
   getNotificationPermission,
   sendTestReminder,
 } from '@/lib/notifications';
+import { COUNTRIES, usesEmirates } from '@/data/countries';
 import { EMIRATES } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, useSettings, type ThemePreference } from '@/store/settings';
@@ -200,10 +201,18 @@ export default function SettingsScreen() {
 
           <Section title="Where you live">
             <View style={styles.chipRow}>
-              {EMIRATES.map((option) => {
-                const on = settings.emirate === option.value;
+              {COUNTRIES.map((option) => {
+                const on = settings.country === option.value;
                 return (
-                  <Pressable key={option.value} onPress={() => update({ emirate: option.value })}>
+                  <Pressable
+                    key={option.value}
+                    onPress={() =>
+                      update(
+                        option.value === 'ae'
+                          ? { country: option.value }
+                          : { country: option.value, emirate: null }
+                      )
+                    }>
                     <View
                       style={[
                         styles.chip,
@@ -222,11 +231,49 @@ export default function SettingsScreen() {
                 );
               })}
             </View>
-            <ThemedText type="small" themeColor="textTertiary">
-              {settings.emirate
-                ? 'Renewal steps and portals follow your emirate — vehicles and licences are run locally, not federally.'
-                : 'Set this and Renewly will point you at the right authority. Vehicle and licence rules differ by emirate.'}
-            </ThemedText>
+
+            {usesEmirates(settings.country) && (
+              <>
+                <View style={styles.chipRow}>
+                  {EMIRATES.map((option) => {
+                    const on = settings.emirate === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => update({ emirate: option.value })}>
+                        <View
+                          style={[
+                            styles.chip,
+                            {
+                              backgroundColor: on ? theme.accent : 'transparent',
+                              borderColor: on ? theme.accent : theme.border,
+                            },
+                          ]}>
+                          <ThemedText
+                            type="smallBold"
+                            style={on ? { color: theme.accentContrast } : undefined}>
+                            {option.label}
+                          </ThemedText>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <ThemedText type="small" themeColor="textTertiary">
+                  {settings.emirate
+                    ? 'Renewal steps and portals follow your emirate — vehicles and licences are run locally, not federally.'
+                    : 'Pick your emirate and Renewly will point you at the right authority.'}
+                </ThemedText>
+              </>
+            )}
+
+            {!usesEmirates(settings.country) && (
+              <ThemedText type="small" themeColor="textTertiary">
+                {settings.country
+                  ? 'Renewly tracks your dates anywhere. Renewal steps, costs and fines are verified for the UAE only, so they stay hidden here rather than being guessed.'
+                  : 'Set this so Renewly knows whether it can tell you how to renew things where you are.'}
+              </ThemedText>
+            )}
           </Section>
 
           <Section title="Reminders">
@@ -379,7 +426,7 @@ export default function SettingsScreen() {
               subtitle="A plain CSV of what you track, without photos."
               action={{
                 label: busy === 'csv' ? 'Working…' : 'Export',
-                onPress: () => run('csv', () => exportCsv(documents)),
+                onPress: () => run('csv', () => exportCsv(documents, settings.country)),
               }}
             />
             <Row

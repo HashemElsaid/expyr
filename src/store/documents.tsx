@@ -115,6 +115,9 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   /** Read inside callbacks so they never capture a stale hour. */
   const reminderHour = useRef(settings.reminderHour);
   reminderHour.current = settings.reminderHour;
+  /** Same reason — it decides what a reminder can promise the user. */
+  const country = useRef(settings.country);
+  country.current = settings.country;
 
   const commit = useCallback((next: TrackedDocument[]) => {
     latest.current = next;
@@ -146,7 +149,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         notificationIds: [],
         createdAt: new Date().toISOString(),
       };
-      doc.notificationIds = await scheduleReminders(doc, reminderHour.current);
+      doc.notificationIds = await scheduleReminders(doc, reminderHour.current, country.current);
       commit([...latest.current, doc]);
       return doc;
     },
@@ -167,7 +170,11 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         notificationIds: [],
         createdAt: previous.createdAt,
       };
-      updated.notificationIds = await scheduleReminders(updated, reminderHour.current);
+      updated.notificationIds = await scheduleReminders(
+        updated,
+        reminderHour.current,
+        country.current
+      );
       commit(latest.current.map((d) => (d.id === id ? updated : d)));
     },
     [commit]
@@ -192,7 +199,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         ...doc,
         notificationIds: doc.archivedAt
           ? []
-          : await scheduleReminders(doc, reminderHour.current),
+          : await scheduleReminders(doc, reminderHour.current, country.current),
       });
     }
     commit(next);
@@ -205,7 +212,10 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       }
       const next: TrackedDocument[] = [];
       for (const doc of restored) {
-        next.push({ ...doc, notificationIds: await scheduleReminders(doc, reminderHour.current) });
+        next.push({
+          ...doc,
+          notificationIds: await scheduleReminders(doc, reminderHour.current, country.current),
+        });
       }
       commit(next);
     },
@@ -232,7 +242,11 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         // Archived items keep no reminders; restoring one re-books them.
         notificationIds: archived
           ? []
-          : await scheduleReminders({ ...target, archivedAt: undefined }, reminderHour.current),
+          : await scheduleReminders(
+              { ...target, archivedAt: undefined },
+              reminderHour.current,
+              country.current
+            ),
       };
       commit(latest.current.map((d) => (d.id === id ? updated : d)));
     },

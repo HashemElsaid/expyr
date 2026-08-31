@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { getDocumentType } from '@/data/document-types';
+import { hasGuidance, type Country } from '@/data/countries';
+import { getDocumentType, labelFor } from '@/data/document-types';
 import { countdownLabel, daysUntil, formatDate } from '@/lib/dates';
 import { TrackedDocument } from '@/types';
 
@@ -72,7 +73,8 @@ export async function ensureNotificationPermission(): Promise<boolean> {
  */
 export async function scheduleReminders(
   doc: TrackedDocument,
-  reminderHour = 9
+  reminderHour = 9,
+  country: Country | null = null
 ): Promise<string[]> {
   if (Platform.OS === 'web') return [];
   const granted = await ensureNotificationPermission();
@@ -92,7 +94,10 @@ export async function scheduleReminders(
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: `${type.emoji} ${doc.title}: ${countdownLabel(lead)}`,
-        body: `${type.label} · open Renewly for what to do and what it costs.`,
+        // Only promise the renewal advice where we actually have it.
+        body: hasGuidance(country)
+          ? `${labelFor(type, country)} · open Renewly for what to do and what it costs.`
+          : `${labelFor(type, country)} · open Renewly to see the details.`,
         data: { documentId: doc.id },
         categoryIdentifier: REMINDER_CATEGORY,
       },

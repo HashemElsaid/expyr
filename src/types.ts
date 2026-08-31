@@ -24,9 +24,17 @@ export type RenewalGuide = {
 export type DocumentType = {
   id: DocumentTypeId;
   label: string;
+  /**
+   * What to call this outside the UAE. "Emirates ID" and "Mulkiya" are the
+   * right words in Dubai and meaningless in Doha; only set where the UAE label
+   * is a local term rather than a description.
+   */
+  genericLabel?: string;
   emoji: string;
   /** Only set for documents that actually carry an official number. */
   numberField?: { label: string; placeholder: string };
+  /** Used instead of numberField outside the UAE, where the format differs. */
+  genericNumberField?: { label: string; placeholder: string };
   /** Days before expiry at which reminders fire, largest first. */
   defaultLeadDays: number[];
   typicalValidity: string;

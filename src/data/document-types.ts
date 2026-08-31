@@ -1,3 +1,4 @@
+import type { Country } from '@/data/countries';
 import { DocumentType, DocumentTypeId } from '@/types';
 
 /**
@@ -9,6 +10,7 @@ export const DOCUMENT_TYPES: DocumentType[] = [
   {
     id: 'residence-visa',
     label: 'Residence Visa',
+    genericLabel: 'Residence Permit',
     emoji: '🛂',
     numberField: { label: 'Visa / file number', placeholder: 'e.g. 201/2024/1234567' },
     defaultLeadDays: [60, 30, 7],
@@ -30,8 +32,10 @@ export const DOCUMENT_TYPES: DocumentType[] = [
   {
     id: 'emirates-id',
     label: 'Emirates ID',
+    genericLabel: 'National ID',
     emoji: '🪪',
     numberField: { label: 'Emirates ID number', placeholder: '784-XXXX-XXXXXXX-X' },
+    genericNumberField: { label: 'ID number', placeholder: 'As printed on the card' },
     defaultLeadDays: [30, 14, 7],
     typicalValidity: 'Matches your residence visa duration',
     guide: {
@@ -70,8 +74,10 @@ export const DOCUMENT_TYPES: DocumentType[] = [
   {
     id: 'car-registration',
     label: 'Car Registration (Mulkiya)',
+    genericLabel: 'Vehicle Registration',
     emoji: '🚗',
     numberField: { label: 'Plate number', placeholder: 'e.g. Dubai A 12345' },
+    genericNumberField: { label: 'Plate number', placeholder: 'e.g. A 12345' },
     defaultLeadDays: [30, 14, 7],
     typicalValidity: '1 year (+30 day grace period)',
     guide: {
@@ -150,8 +156,10 @@ export const DOCUMENT_TYPES: DocumentType[] = [
   {
     id: 'tenancy-ejari',
     label: 'Tenancy Contract (Ejari)',
+    genericLabel: 'Tenancy Contract',
     emoji: '🏠',
     numberField: { label: 'Ejari contract number', placeholder: 'e.g. 1234567890123' },
+    genericNumberField: { label: 'Contract number', placeholder: 'If it has one' },
     defaultLeadDays: [90, 60, 30],
     typicalValidity: '1 year',
     guide: {
@@ -190,6 +198,7 @@ export const DOCUMENT_TYPES: DocumentType[] = [
   {
     id: 'labor-card',
     label: 'Work Permit / Labor Card',
+    genericLabel: 'Work Permit',
     emoji: '🧾',
     numberField: { label: 'Work permit number', placeholder: 'e.g. 12345678' },
     defaultLeadDays: [60, 30, 7],
@@ -262,4 +271,28 @@ export const DOCUMENT_TYPES: DocumentType[] = [
 
 export function getDocumentType(id: DocumentTypeId): DocumentType {
   return DOCUMENT_TYPES.find((t) => t.id === id) ?? DOCUMENT_TYPES[DOCUMENT_TYPES.length - 1];
+}
+
+/**
+ * The name to show this user. Outside the UAE the local terms are replaced by
+ * plain descriptions — someone in Muscat tracking their residence permit should
+ * not have to work out that "Mulkiya" is their car registration.
+ */
+export function labelFor(type: DocumentType, country: Country | null): string {
+  if (country && country !== 'ae' && type.genericLabel) return type.genericLabel;
+  return type.label;
+}
+
+/** Convenience for the many places that hold an id rather than the type. */
+export function labelForId(id: DocumentTypeId, country: Country | null): string {
+  return labelFor(getDocumentType(id), country);
+}
+
+/** The number to ask for, and the example to show — both vary by country. */
+export function numberFieldFor(
+  type: DocumentType,
+  country: Country | null
+): { label: string; placeholder: string } | undefined {
+  if (country && country !== 'ae' && type.genericNumberField) return type.genericNumberField;
+  return type.numberField;
 }

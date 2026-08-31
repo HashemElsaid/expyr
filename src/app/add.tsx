@@ -17,7 +17,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
+import { DOCUMENT_TYPES, getDocumentType, labelFor, numberFieldFor } from '@/data/document-types';
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -90,6 +90,7 @@ export default function AddDocumentScreen() {
   }, [editing, params.renew]);
 
   const type = useMemo(() => (typeId ? getDocumentType(typeId) : null), [typeId]);
+  const numberField = type ? numberFieldFor(type, settings.country) : undefined;
 
   const knownOwners = useMemo(
     () => [...new Set(documents.map((d) => d.owner).filter((o): o is string => !!o))].slice(0, 5),
@@ -112,7 +113,7 @@ export default function AddDocumentScreen() {
   function applyScan(result: ScanResult, scannedUri: string, scannedKind: 'image' | 'pdf') {
     const scannedType = getDocumentType(result.typeId);
     setTypeId(result.typeId);
-    setTitle(result.title || scannedType.label);
+    setTitle(result.title || labelFor(scannedType, settings.country));
     if (result.expiryDate) {
       const parsed = new Date(`${result.expiryDate}T00:00:00`);
       if (!Number.isNaN(parsed.getTime())) setExpiry(parsed);
@@ -132,7 +133,7 @@ export default function AddDocumentScreen() {
       const picked = source === 'files' ? await pickDocument() : await pickImage(source);
       if (!picked) return;
       setBusy('scanning');
-      const { result, fileUri: scannedUri } = await scanFile(picked);
+      const { result, fileUri: scannedUri } = await scanFile(picked, settings.country);
       if (!result.found) {
         setError(result.note || 'No date found in that file.');
         setStep('type');
@@ -165,10 +166,14 @@ export default function AddDocumentScreen() {
   }
 
   function pickType(t: DocumentType) {
+    // A title the user never touched is one of ours, under either naming.
     const isAutoTitle =
-      !title.trim() || DOCUMENT_TYPES.some((candidate) => candidate.label === title.trim());
+      !title.trim() ||
+      DOCUMENT_TYPES.some(
+        (c) => c.label === title.trim() || c.genericLabel === title.trim()
+      );
     setTypeId(t.id);
-    if (isAutoTitle) setTitle(t.label);
+    if (isAutoTitle) setTitle(labelFor(t, settings.country));
     if (!t.numberField) setDocumentNumber('');
     if (leadDays.length === 0 || !editing) setLeadDays(t.defaultLeadDays);
     setScanNote(null);
@@ -344,7 +349,7 @@ export default function AddDocumentScreen() {
                       pressed && styles.dim,
                     ]}>
                     <ThemedText type="ledgerTitle" style={styles.flex}>
-                      {t.label}
+                      {labelFor(t, settings.country)}
                     </ThemedText>
                     <MaterialCommunityIcons
                       name="chevron-right"
@@ -374,7 +379,7 @@ export default function AddDocumentScreen() {
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder={type!.label}
+            placeholder={labelFor(type!, settings.country)}
             placeholderTextColor={theme.textTertiary}
             style={[styles.serifInput, { color: theme.text, borderBottomColor: theme.textTertiary }]}
           />
@@ -384,7 +389,7 @@ export default function AddDocumentScreen() {
           <Pressable onPress={() => !editing && setStep('type')} disabled={!!editing}>
             <View style={[styles.ruledRow, { borderBottomColor: theme.border }]}>
               <ThemedText type="fieldValue" style={styles.flex}>
-                {type!.label}
+                {labelFor(type!, settings.country)}
               </ThemedText>
               {!editing && (
                 <ThemedText type="smallBold" style={{ color: theme.accent }}>
@@ -473,12 +478,12 @@ export default function AddDocumentScreen() {
           )}
         </Field>
 
-        {type!.numberField && (
-          <Field label={`${type!.numberField.label} · optional`}>
+        {numberField && (
+          <Field label={`${numberField.label} · optional`}>
             <TextInput
               value={documentNumber}
               onChangeText={setDocumentNumber}
-              placeholder={type!.numberField.placeholder}
+              placeholder={numberField.placeholder}
               placeholderTextColor={theme.textTertiary}
               autoCapitalize="characters"
               style={[styles.ruledInput, { color: theme.text, borderBottomColor: theme.border }]}

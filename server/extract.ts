@@ -61,7 +61,7 @@ function buildSystemPrompt(today: string, categories: Category[]): string {
     .map((c) => `- ${c.id}: ${c.label}${c.hint ? ` — ${c.hint}` : ''}`)
     .join('\n');
 
-  return `You read expiry dates out of photos of documents for Renewly, an app that tracks documents so they get renewed before they lapse. Most users live in the UAE.
+  return `You read expiry dates out of photos of documents for Renewly, an app that tracks documents so they get renewed before they lapse. Most users live in the Gulf.
 
 Today's date is ${today}.
 

@@ -16,7 +16,8 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { getDocumentType } from '@/data/document-types';
+import { hasGuidance } from '@/data/countries';
+import { getDocumentType, numberFieldFor } from '@/data/document-types';
 import { findBlockers, notesFor } from '@/data/prerequisites';
 import { portalFor, whereFor } from '@/data/regions';
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
@@ -131,14 +132,21 @@ export default function DocumentDetailScreen() {
   if (!doc) return <ThemedView style={styles.container} />;
 
   const type = getDocumentType(doc.typeId);
+  /*
+   * Every step, cost, fine and prerequisite in the app was checked against UAE
+   * sources. Shown to someone in Doha they would be confident and wrong, so
+   * outside the UAE the whole advisory half of this screen stays shut and the
+   * tracker half — verdict, runway, reminders, actions — carries on as normal.
+   */
+  const guided = hasGuidance(settings.country);
   // The right authority depends on which emirate the user actually lives in.
-  const portal = portalFor(doc.typeId, settings.emirate);
+  const portal = guided ? portalFor(doc.typeId, settings.emirate) : undefined;
   const where = whereFor(doc.typeId, settings.emirate) ?? type.guide.where;
   const canRoll = RENEWAL_PERIOD_DAYS[doc.typeId] !== undefined;
   const period = RENEWAL_PERIOD_DAYS[doc.typeId];
   const reminders = reminderDates(doc);
-  const blockers = findBlockers(doc, documents);
-  const notes = notesFor(doc.typeId);
+  const blockers = guided ? findBlockers(doc, documents) : [];
+  const notes = guided ? notesFor(doc.typeId) : [];
   const fired = reminders.filter((r) => r.past);
   const next = reminders.find((r) => !r.past);
 
@@ -243,7 +251,10 @@ export default function DocumentDetailScreen() {
         {(doc.documentNumber || doc.notes) && (
           <View style={styles.plainRows}>
             {doc.documentNumber && (
-              <DataRow label={type.numberField?.label ?? 'Number'} value={doc.documentNumber} />
+              <DataRow
+                label={numberFieldFor(type, settings.country)?.label ?? 'Number'}
+                value={doc.documentNumber}
+              />
             )}
             {doc.notes && <DataRow label="Notes" value={doc.notes} />}
           </View>
@@ -266,7 +277,7 @@ export default function DocumentDetailScreen() {
         )}
 
         {/* The penalty is the reason to act today, so it never hides. */}
-        {type.guide.lateFee !== '—' && (
+        {guided && type.guide.lateFee !== '—' && (
           <View style={styles.lateRow}>
             <ThemedText type="label" themeColor="textTertiary">
               If you leave it
@@ -281,24 +292,38 @@ export default function DocumentDetailScreen() {
          * Everything below is a tutorial. Someone renewing their third Mulkiya
          * does not need it, so it stays folded until asked for.
          */}
-        <Pressable
-          onPress={() => setGuideOpen((open) => !open)}
-          accessibilityRole="button"
-          accessibilityLabel={guideOpen ? 'Hide how to renew' : 'Show how to renew'}>
-          <View style={styles.sectionHeader}>
+        {!guided && (
+          <View style={styles.lateRow}>
             <ThemedText type="label" themeColor="textTertiary">
               How to renew
             </ThemedText>
-            <View style={[styles.rule, { backgroundColor: theme.border }]} />
-            <MaterialCommunityIcons
-              name={guideOpen ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={theme.textTertiary}
-            />
+            <ThemedText type="body" themeColor="textSecondary">
+              Renewly has verified renewal steps for the UAE only. It will keep the date and remind
+              you — it just will not guess at the procedure where you are.
+            </ThemedText>
           </View>
-        </Pressable>
+        )}
 
-        {guideOpen && (
+        {guided && (
+          <Pressable
+            onPress={() => setGuideOpen((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel={guideOpen ? 'Hide how to renew' : 'Show how to renew'}>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="label" themeColor="textTertiary">
+                How to renew
+              </ThemedText>
+              <View style={[styles.rule, { backgroundColor: theme.border }]} />
+              <MaterialCommunityIcons
+                name={guideOpen ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={theme.textTertiary}
+              />
+            </View>
+          </Pressable>
+        )}
+
+        {guided && guideOpen && (
           <View style={styles.guide}>
             {notes.length > 0 && (
               <View style={styles.notes}>

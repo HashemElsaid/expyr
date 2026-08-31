@@ -6,12 +6,13 @@ import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { getDocumentType } from '@/data/document-types';
+import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
 import { urgencyColor } from '@/hooks/use-urgency';
 import { countdownShort, daysUntil, shortDate, urgencyFor } from '@/lib/dates';
 import { successFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
+import { useSettings } from '@/store/settings';
 import { TrackedDocument } from '@/types';
 
 /** Blank owner means the phone's owner — shown as "Mine". */
@@ -60,6 +61,7 @@ export default function HouseholdScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { documents, updateDocument } = useDocuments();
+  const { settings } = useSettings();
   const [renaming, setRenaming] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
 
@@ -172,7 +174,8 @@ export default function HouseholdScreen() {
                             {doc.title}
                           </ThemedText>
                           <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
-                            {getDocumentType(doc.typeId).label} · {shortDate(doc.expiryDate)}
+                            {labelForId(doc.typeId, settings.country)} ·{' '}
+                            {shortDate(doc.expiryDate)}
                           </ThemedText>
                         </View>
                         <ThemedText type="smallBold" style={{ color }}>

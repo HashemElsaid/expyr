@@ -7,11 +7,12 @@ import { DocIcon } from '@/components/doc-icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { getDocumentType } from '@/data/document-types';
+import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
 import { urgencyColor } from '@/hooks/use-urgency';
 import { daysUntil, urgencyFor } from '@/lib/dates';
 import { useDocuments } from '@/store/documents';
+import { useSettings } from '@/store/settings';
 import { TrackedDocument } from '@/types';
 
 type Section = { title: string; data: TrackedDocument[] };
@@ -56,6 +57,7 @@ export default function TimelineScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { documents, loaded } = useDocuments();
+  const { settings } = useSettings();
 
   const sections = useMemo(() => buildSections(documents), [documents]);
 
@@ -97,7 +99,7 @@ export default function TimelineScreen() {
               const date = new Date(`${item.expiryDate}T00:00:00`);
               const days = daysUntil(item.expiryDate);
               const color = urgencyColor(urgencyFor(days), theme);
-              const type = getDocumentType(item.typeId);
+              const label = labelForId(item.typeId, settings.country);
 
               return (
                 <Pressable onPress={() => router.push(`/document/${item.id}`)}>
@@ -121,7 +123,7 @@ export default function TimelineScreen() {
                           {item.title}
                         </ThemedText>
                         <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
-                          {[item.owner, item.title.trim() === type.label ? null : type.label]
+                          {[item.owner, item.title.trim() === label ? null : label]
                             .filter(Boolean)
                             .join(' · ') || 'Expires this day'}
                         </ThemedText>

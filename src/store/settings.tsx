@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import type { Country } from '@/data/countries';
 import type { Emirate } from '@/data/regions';
 
 const STORAGE_KEY = 'renewly.settings.v1';
@@ -16,8 +17,13 @@ export type Settings = {
   /** False until the first-run flow has been completed. */
   onboarded: boolean;
   /**
+   * Decides whether renewal guidance is shown at all — we only have verified
+   * steps for the UAE. Null means we have not asked yet.
+   */
+  country: Country | null;
+  /**
    * Vehicle and licence services are run by the emirate, so guidance is wrong
-   * without this. Null means we have not asked yet and stay generic.
+   * without this. Only meaningful when country is 'ae'.
    */
   emirate: Emirate | null;
   /**
@@ -32,6 +38,7 @@ const DEFAULTS: Settings = {
   themePreference: 'system',
   lockEnabled: false,
   onboarded: false,
+  country: null,
   emirate: null,
   premium: false,
 };
@@ -70,6 +77,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           themePreference: parsed.themePreference ?? DEFAULTS.themePreference,
           lockEnabled: parsed.lockEnabled ?? DEFAULTS.lockEnabled,
           onboarded: parsed.onboarded ?? DEFAULTS.onboarded,
+          // Installs that pre-date the country question had already answered it
+          // implicitly by picking an emirate.
+          country: parsed.country ?? (parsed.emirate ? 'ae' : DEFAULTS.country),
           emirate: parsed.emirate ?? DEFAULTS.emirate,
           premium: parsed.premium ?? DEFAULTS.premium,
         });

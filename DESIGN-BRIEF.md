@@ -22,9 +22,13 @@ licences and work permits — plus warranties and subscriptions.
 ## Who uses it
 
 Expatriates living in the UAE, where almost everything expires and late renewal
-carries a daily fine. A secondary audience is students on a student visa, who
-carry the same visa, Emirates ID and passport but no car or tenancy. Many users
-track documents for their whole family, not just themselves.
+carries a daily fine. Many users track documents for their whole family, not
+just themselves.
+
+People elsewhere in the Gulf, and the occasional user from further afield, get
+the tracker without the renewal advice. That is deliberate: the advice is only
+worth showing where it has been checked, and a confident wrong answer about
+someone's visa is worse than no answer at all.
 
 ## How it should feel
 

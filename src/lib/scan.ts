@@ -3,7 +3,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
-import { DOCUMENT_TYPES } from '@/data/document-types';
+import type { Country } from '@/data/countries';
+import { DOCUMENT_TYPES, labelFor } from '@/data/document-types';
 import { fileTypeFor, type FileType } from '@/lib/files';
 import { DocumentTypeId } from '@/types';
 
@@ -128,7 +129,10 @@ async function readBase64(file: PickedFile): Promise<{ data: string; mediaType: 
   return { data: processed.base64, mediaType: 'image/jpeg', uri: processed.uri };
 }
 
-export async function scanFile(file: PickedFile): Promise<{ result: ScanResult; fileUri: string }> {
+export async function scanFile(
+  file: PickedFile,
+  country: Country | null = null
+): Promise<{ result: ScanResult; fileUri: string }> {
   const { data, mediaType, uri } = await readBase64(file);
 
   const controller = new AbortController();
@@ -146,7 +150,9 @@ export async function scanFile(file: PickedFile): Promise<{ result: ScanResult; 
       body: JSON.stringify({
         imageBase64: data,
         mediaType,
-        categories: DOCUMENT_TYPES.map((t) => ({ id: t.id, label: t.label })),
+        // Send the names this user will actually see, so the model classifies a
+        // Kuwaiti civil ID as a National ID rather than reaching for "Emirates ID".
+        categories: DOCUMENT_TYPES.map((t) => ({ id: t.id, label: labelFor(t, country) })),
       }),
     });
 

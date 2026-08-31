@@ -15,6 +15,7 @@ export default function PaywallScreen() {
   const router = useRouter();
   const [selected, setSelected] = useState<Plan['id']>('annual');
   const [busy, setBusy] = useState(false);
+  const selectedPlan = PLANS.find((p) => p.id === selected) ?? PLANS[0];
 
   async function buy() {
     setBusy(true);
@@ -112,14 +113,42 @@ export default function PaywallScreen() {
         </Pressable>
 
         <Pressable onPress={restorePurchases} style={styles.restore}>
-          <ThemedText type="small" themeColor="textTertiary">
+          <ThemedText type="smallBold" style={{ color: theme.accent }}>
             Restore a previous purchase
           </ThemedText>
         </Pressable>
 
-        <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
-          Cancel any time from your Apple ID settings.
-        </ThemedText>
+        {/*
+         * Required by App Store Review Guideline 3.1.2: the title, length and
+         * price of the subscription, the auto-renewal terms, and working links
+         * to the Terms of Use and Privacy Policy must all be on the screen
+         * where the purchase is made.
+         */}
+        <View style={[styles.legal, { borderTopColor: theme.border }]}>
+          <ThemedText type="small" themeColor="textTertiary">
+            {selectedPlan.title} — {selectedPlan.price} {selectedPlan.cadence}. Payment is charged
+            to your Apple Account at confirmation. The subscription renews automatically unless
+            cancelled at least 24 hours before the end of the current period, and renewal is charged
+            within 24 hours before the period ends. Manage or cancel it any time in your Apple
+            Account settings.
+          </ThemedText>
+
+          <View style={styles.legalLinks}>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/terms')}>
+              <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                Terms of Use
+              </ThemedText>
+            </Pressable>
+            <ThemedText type="small" themeColor="textTertiary">
+              ·
+            </ThemedText>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}>
+              <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                Privacy Policy
+              </ThemedText>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -153,5 +182,11 @@ const styles = StyleSheet.create({
   planPrice: { alignItems: 'flex-end', gap: 2 },
   primary: { borderRadius: Radius.pill, paddingVertical: Spacing.three, alignItems: 'center' },
   restore: { alignItems: 'center' },
+  legal: {
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  legalLinks: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.two },
   dim: { opacity: 0.6 },
 });

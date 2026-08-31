@@ -174,6 +174,7 @@ function AppShell() {
         />
         <Stack.Screen name="document/[id]" options={{ title: '' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
+        <Stack.Screen name="terms" options={{ title: 'Terms' }} />
         <Stack.Screen name="archive" options={{ title: 'Archive' }} />
         <Stack.Screen name="household" options={{ title: 'Household' }} />
         <Stack.Screen

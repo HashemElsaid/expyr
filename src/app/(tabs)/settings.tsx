@@ -355,7 +355,30 @@ export default function SettingsScreen() {
             />
           </Section>
 
-          <Section title="Privacy">
+          <Section title="Legal">
+            <Pressable onPress={() => router.push('/terms')} accessibilityRole="button">
+              {({ pressed }) => (
+                <View style={[styles.row, pressed && styles.pressed]}>
+                  <MaterialCommunityIcons
+                    name="script-text-outline"
+                    size={20}
+                    color={theme.textSecondary}
+                  />
+                  <View style={styles.rowBody}>
+                    <ThemedText type="bodyMedium">Terms of use</ThemedText>
+                    <ThemedText type="small" themeColor="textTertiary">
+                      What Renewly promises, and what it does not.
+                    </ThemedText>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={theme.textTertiary}
+                  />
+                </View>
+              )}
+            </Pressable>
+
             <Pressable onPress={() => router.push('/privacy')}>
               {({ pressed }) => (
                 <View style={[styles.row, pressed && styles.pressed]}>

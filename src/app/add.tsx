@@ -396,7 +396,7 @@ export default function AddDocumentScreen() {
           </Pressable>
         </Field>
 
-        <Field label={type!.id === 'assignment' ? 'Due' : 'Expires'}>
+        <Field label="Expires">
           <View style={[styles.ruledRow, { borderBottomColor: theme.border }]}>
             <ThemedText type="fieldValue" style={styles.flex}>
               {longDate(toISODate(expiry))}

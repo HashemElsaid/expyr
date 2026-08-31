@@ -12,7 +12,7 @@ import { TrackedDocument } from '@/types';
 
 /**
  * Things that get renewed are set in the serif and carry a runway; things you
- * simply use up — an exam, a warranty, a subscription — compress to a line. The
+ * simply run out — a warranty, a subscription — compress to a single line. The
  * distinction is whether the category has a renewal period at all.
  */
 export function isDocumentClass(doc: TrackedDocument): boolean {

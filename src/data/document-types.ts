@@ -207,24 +207,6 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     },
   },
   {
-    id: 'assignment',
-    label: 'Assignment / Exam',
-    emoji: '🎓',
-    defaultLeadDays: [7, 3, 1],
-    typicalValidity: '—',
-    guide: {
-      where: 'Your school/university portal (Moodle, Canvas, Blackboard...)',
-      steps: [
-        'Break the work into chunks the moment it’s assigned — future you will be grateful',
-        'For exams: start reviewing at the 7-day reminder, practice papers at 3 days',
-        'Double-check the submission time and timezone — 23:59 deadlines catch everyone once',
-      ],
-      typicalCost: '—',
-      lateFee: 'Late penalties or a zero — check your course policy',
-      processingTime: '—',
-    },
-  },
-  {
     id: 'membership',
     label: 'Subscription / Membership',
     emoji: '🎟️',

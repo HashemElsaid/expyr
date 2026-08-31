@@ -17,15 +17,14 @@ what it costs, and the fine for leaving it late.
 
 It tracks residence visas, Emirates ID, passports, car registration (Mulkiya),
 car and health insurance, tenancy contracts (Ejari), driving licences, trade
-licences and work permits — and also the everyday things that carry dates:
-warranties, subscriptions, and coursework deadlines.
+licences and work permits — plus warranties and subscriptions.
 
 ## Who uses it
 
 Expatriates living in the UAE, where almost everything expires and late renewal
-carries a daily fine. A secondary audience is university students tracking
-assignment and exam deadlines. Many users track documents for their whole
-family, not just themselves.
+carries a daily fine. A secondary audience is students on a student visa, who
+carry the same visa, Emirates ID and passport but no car or tenancy. Many users
+track documents for their whole family, not just themselves.
 
 ## How it should feel
 
@@ -83,7 +82,7 @@ where one exists.
 - "UAE Driving Licence", expires 10 Sep 2026, 11 days left
 - "Toyota Corolla — Mulkiya", expires 2 Mar 2027
 - "Marina Heights, Apartment 1204", Ejari, expires 31 Aug 2027
-- "CS101 midterm", due 20 Oct 2026
+- "Salik account", subscription, renews 20 Oct 2026
 - "Daman health insurance", expires 1 Jan 2027
 - A renewal guide reads: *Pay any outstanding traffic fines — renewal is blocked
   until cleared.* Cost: *AED 350–500 plus inspection.* Late: *fines apply after

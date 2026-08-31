@@ -9,7 +9,6 @@ export type DocumentTypeId =
   | 'tenancy-ejari'
   | 'trade-license'
   | 'labor-card'
-  | 'assignment'
   | 'membership'
   | 'warranty'
   | 'other';

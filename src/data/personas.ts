@@ -6,7 +6,16 @@ import type { Persona } from '@/store/settings';
  * this only decides the order of the category grid.
  */
 const PRIORITY: Record<Persona, DocumentTypeId[]> = {
-  student: ['assignment', 'residence-visa', 'emirates-id', 'passport', 'membership', 'health-insurance'],
+  // A student visa comes with a passport and an Emirates ID, rarely a Mulkiya
+  // or an Ejari — the car and the tenancy sink to the bottom of the grid.
+  student: [
+    'residence-visa',
+    'emirates-id',
+    'passport',
+    'health-insurance',
+    'membership',
+    'driving-license',
+  ],
   resident: [
     'residence-visa',
     'emirates-id',
@@ -16,12 +25,12 @@ const PRIORITY: Record<Persona, DocumentTypeId[]> = {
     'passport',
   ],
   both: [
-    'assignment',
     'residence-visa',
     'emirates-id',
+    'passport',
     'car-registration',
     'tenancy-ejari',
-    'passport',
+    'health-insurance',
   ],
 };
 
@@ -46,14 +55,14 @@ export const PERSONA_OPTIONS: { value: Persona; title: string; blurb: string; ic
   },
   {
     value: 'student',
-    title: 'Studying',
-    blurb: 'Assignments and exams, plus the documents you still need.',
+    title: 'Studying here',
+    blurb: 'Student visa, Emirates ID, passport, insurance.',
     icon: 'school-outline',
   },
   {
     value: 'both',
     title: 'Both',
-    blurb: 'Coursework and life admin in one place.',
+    blurb: 'Studying and running a household.',
     icon: 'layers-outline',
   },
 ];

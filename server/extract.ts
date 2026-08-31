@@ -61,14 +61,14 @@ function buildSystemPrompt(today: string, categories: Category[]): string {
     .map((c) => `- ${c.id}: ${c.label}${c.hint ? ` — ${c.hint}` : ''}`)
     .join('\n');
 
-  return `You read expiry dates and deadlines out of photos for Renewly, an app that tracks anything that expires or falls due. Most users live in the UAE.
+  return `You read expiry dates out of photos of documents for Renewly, an app that tracks documents so they get renewed before they lapse. Most users live in the UAE.
 
 Today's date is ${today}.
 
 The user has photographed or uploaded one item. It is usually one of:
 - an official document (Emirates ID, residence visa, passport, car registration/Mulkiya, insurance policy, tenancy contract, driving licence, trade licence)
-- a screenshot of an email or course portal announcing an assignment, quiz, or exam
 - a warranty card, membership card, or subscription receipt
+- a screenshot of an email or portal page stating when one of the above expires
 - a PDF such as a tenancy contract, insurance policy or licence certificate
 
 Return exactly one item: the single most important date on it.
@@ -76,10 +76,10 @@ Return exactly one item: the single most important date on it.
 Rules:
 - expiryDate is the date the item EXPIRES or falls DUE, formatted YYYY-MM-DD. Never return an issue date, a date of birth, or a manufacture date. When several dates appear, choose the one that answers "when does this stop being valid, or when is this due".
 - Dates in the Gulf are usually written day-first. Read 03/09/2027 as 3 September 2027, not 9 March.
-- On assignment or exam screenshots use the due or submission date. Ignore any time of day and keep only the date.
+- Ignore any time of day attached to a date and keep only the date itself.
 - In multi-page contracts and policies, the date that matters is when cover or tenancy ENDS, not when it started and not when the document was signed. A tenancy contract running "01/09/2026 to 31/08/2027" expires on 31 August 2027.
 - typeId must be one of the ids listed below. Use "other" only when nothing else fits.
-- title is a short human name the user will recognise in a list, such as "Emirates ID", "Toyota Corolla registration", "Marina Heights tenancy", or "CS101 midterm". Include a distinguishing detail when the photo shows one. Never put the date in the title.
+- title is a short human name the user will recognise in a list, such as "Emirates ID", "Toyota Corolla registration", or "Marina Heights tenancy". Include a distinguishing detail when the photo shows one. Never put the date in the title.
 - documentNumber only when an official number is clearly legible AND the category is one that actually carries a number. Otherwise return an empty string. Never guess digits that are blurred or cropped.
 - confidence is "high" only when you read the date clearly and are certain it is the expiry or due date.
 - note is one short plain-language sentence telling the user which date you used. No jargon.
@@ -139,8 +139,8 @@ export async function extractFromImage(opts: {
             type: 'text',
             text:
               opts.mediaType === 'application/pdf'
-                ? 'Extract the expiry date or deadline from this document. Contracts often state a start and an end date — return the end date.'
-                : 'Extract the expiry date or deadline from this image.',
+                ? 'Extract the expiry date from this document. Contracts often state a start and an end date — return the end date.'
+                : 'Extract the expiry date from this image.',
           },
         ],
       },

@@ -2,9 +2,9 @@
 
 Nothing expires unnoticed.
 
-Renewly tracks anything with a deadline — residence visas, Emirates ID, car
-registration, insurance, tenancy contracts, warranties, coursework deadlines.
-You photograph the thing; Claude reads the date; Renewly reminds you in time and
+Renewly tracks the documents that expire on you — residence visas, Emirates ID,
+car registration, insurance, tenancy contracts, licences, warranties. You
+photograph the document; Claude reads the date; Renewly reminds you in time and
 tells you how to renew it.
 
 Built for the UAE first: every category carries the real renewal steps, typical

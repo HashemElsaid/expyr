@@ -2,8 +2,8 @@ import { DocumentTypeId } from '@/types';
 
 /**
  * How long a fresh one usually lasts, used to roll the date forward when
- * someone marks an item as renewed. Types that are one-offs (a warranty,
- * an exam) are absent on purpose — there is nothing sensible to roll to.
+ * someone marks an item as renewed. One-off types (a warranty) are absent on
+ * purpose — there is nothing sensible to roll the date forward to.
  */
 export const RENEWAL_PERIOD_DAYS: Partial<Record<DocumentTypeId, number>> = {
   'residence-visa': 730,

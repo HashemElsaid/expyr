@@ -18,7 +18,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
-import { orderForPersona } from '@/data/personas';
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -335,7 +334,7 @@ export default function AddDocumentScreen() {
             What are you tracking?
           </ThemedText>
           <View style={styles.typeList}>
-            {orderForPersona(DOCUMENT_TYPES, settings.persona).map((t) => (
+            {DOCUMENT_TYPES.map((t) => (
               <Pressable key={t.id} onPress={() => pickType(t)} accessibilityRole="button">
                 {({ pressed }) => (
                   <View

@@ -6,7 +6,6 @@ import type { Emirate } from '@/data/regions';
 const STORAGE_KEY = 'renewly.settings.v1';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type Persona = 'student' | 'resident' | 'both';
 
 export type Settings = {
   /** Local hour of day (0–23) that reminders fire. */
@@ -16,8 +15,6 @@ export type Settings = {
   lockEnabled: boolean;
   /** False until the first-run flow has been completed. */
   onboarded: boolean;
-  /** Decides which categories are offered first. */
-  persona: Persona;
   /**
    * Vehicle and licence services are run by the emirate, so guidance is wrong
    * without this. Null means we have not asked yet and stay generic.
@@ -35,7 +32,6 @@ const DEFAULTS: Settings = {
   themePreference: 'system',
   lockEnabled: false,
   onboarded: false,
-  persona: 'resident',
   emirate: null,
   premium: false,
 };
@@ -74,7 +70,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           themePreference: parsed.themePreference ?? DEFAULTS.themePreference,
           lockEnabled: parsed.lockEnabled ?? DEFAULTS.lockEnabled,
           onboarded: parsed.onboarded ?? DEFAULTS.onboarded,
-          persona: parsed.persona ?? DEFAULTS.persona,
           emirate: parsed.emirate ?? DEFAULTS.emirate,
           premium: parsed.premium ?? DEFAULTS.premium,
         });

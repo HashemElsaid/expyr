@@ -56,7 +56,7 @@ src/
     paywall.tsx     subscription
     privacy.tsx     what happens to your data
   components/       shared UI, including the ledger row and its runway
-  data/             categories, renewal guides, portals, icons, personas
+  data/             categories, renewal guides, emirate authorities, icons
   hooks/            theme and urgency
   lib/              dates, files, scanning, notifications, backup, biometrics
   store/            documents and settings (AsyncStorage)

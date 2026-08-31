@@ -7,25 +7,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { PERSONA_OPTIONS } from '@/data/personas';
 import { EMIRATES, type Emirate } from '@/data/regions';
 import { useTheme } from '@/hooks/use-theme';
 import { ensureNotificationPermission } from '@/lib/notifications';
-import { useSettings, type Persona } from '@/store/settings';
+import { useSettings } from '@/store/settings';
 
-type Step = 'welcome' | 'persona' | 'reminders';
+type Step = 'welcome' | 'location' | 'reminders';
 
 export default function OnboardingScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings, update } = useSettings();
   const [step, setStep] = useState<Step>('welcome');
-  const [persona, setPersona] = useState<Persona>(settings.persona);
   const [emirate, setEmirate] = useState<Emirate | null>(settings.emirate);
   const [asking, setAsking] = useState(false);
 
   function finish() {
-    update({ onboarded: true, persona, emirate });
+    update({ onboarded: true, emirate });
     router.replace('/');
   }
 
@@ -64,52 +62,21 @@ export default function OnboardingScreen() {
             </View>
           )}
 
-          {step === 'persona' && (
+          {step === 'location' && (
             <View style={styles.pane}>
               <ThemedText type="headline" style={styles.centered}>
-                What brings you here?
+                Where do you live?
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                This only decides what Renewly offers you first. You can track anything either way.
+                Vehicle and licence services are run by each emirate, not federally. This is how
+                Renewly knows which authority to send you to.
               </ThemedText>
 
-              <View style={styles.emirateBlock}>
-                <ThemedText type="label" themeColor="textTertiary">
-                  Which emirate
-                </ThemedText>
-                <View style={styles.chipRow}>
-                  {EMIRATES.map((option) => {
-                    const on = emirate === option.value;
-                    return (
-                      <Pressable key={option.value} onPress={() => setEmirate(option.value)}>
-                        <View
-                          style={[
-                            styles.chip,
-                            {
-                              backgroundColor: on ? theme.accent : 'transparent',
-                              borderColor: on ? theme.accent : theme.border,
-                            },
-                          ]}>
-                          <ThemedText
-                            type="smallBold"
-                            style={on ? { color: theme.accentContrast } : undefined}>
-                            {option.label}
-                          </ThemedText>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <ThemedText type="small" themeColor="textTertiary">
-                  Vehicle and licence rules are set by each emirate, not federally.
-                </ThemedText>
-              </View>
-
               <View style={styles.options}>
-                {PERSONA_OPTIONS.map((option) => {
-                  const selected = persona === option.value;
+                {EMIRATES.map((option) => {
+                  const selected = emirate === option.value;
                   return (
-                    <Pressable key={option.value} onPress={() => setPersona(option.value)}>
+                    <Pressable key={option.value} onPress={() => setEmirate(option.value)}>
                       <View
                         style={[
                           styles.option,
@@ -120,17 +87,9 @@ export default function OnboardingScreen() {
                               : theme.backgroundElement,
                           },
                         ]}>
-                        <MaterialCommunityIcons
-                          name={option.icon as never}
-                          size={22}
-                          color={selected ? theme.accent : theme.textSecondary}
-                        />
-                        <View style={styles.optionBody}>
-                          <ThemedText type="bodyMedium">{option.title}</ThemedText>
-                          <ThemedText type="small" themeColor="textTertiary">
-                            {option.blurb}
-                          </ThemedText>
-                        </View>
+                        <ThemedText type="bodyMedium" style={styles.flex}>
+                          {option.label}
+                        </ThemedText>
                         {selected && (
                           <MaterialCommunityIcons name="check" size={20} color={theme.accent} />
                         )}
@@ -139,6 +98,10 @@ export default function OnboardingScreen() {
                   );
                 })}
               </View>
+
+              <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
+                You can change this later in Settings.
+              </ThemedText>
             </View>
           )}
 
@@ -166,8 +129,8 @@ export default function OnboardingScreen() {
         <View style={styles.footer}>
           <Pressable
             onPress={() => {
-              if (step === 'welcome') setStep('persona');
-              else if (step === 'persona') setStep('reminders');
+              if (step === 'welcome') setStep('location');
+              else if (step === 'location') setStep('reminders');
               else askForReminders();
             }}
             disabled={asking}>
@@ -194,7 +157,7 @@ export default function OnboardingScreen() {
           )}
 
           <View style={styles.dots}>
-            {(['welcome', 'persona', 'reminders'] as Step[]).map((s) => (
+            {(['welcome', 'location', 'reminders'] as Step[]).map((s) => (
               <View
                 key={s}
                 style={[
@@ -231,14 +194,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   points: { gap: Spacing.three, paddingTop: Spacing.four },
   point: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  emirateBlock: { gap: Spacing.two, paddingTop: Spacing.three },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  chip: {
-    borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
   options: { gap: Spacing.two, paddingTop: Spacing.three },
   option: {
     flexDirection: 'row',
@@ -248,7 +203,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     padding: Spacing.three,
   },
-  optionBody: { flex: 1, gap: 2 },
   footer: { padding: Spacing.four, gap: Spacing.three },
   primary: { borderRadius: Radius.pill, paddingVertical: Spacing.three, alignItems: 'center' },
   skip: { alignItems: 'center' },

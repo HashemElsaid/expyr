@@ -17,7 +17,6 @@ import {
   getNotificationPermission,
   sendTestReminder,
 } from '@/lib/notifications';
-import { PERSONA_OPTIONS } from '@/data/personas';
 import { EMIRATES } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, useSettings, type ThemePreference } from '@/store/settings';
@@ -227,35 +226,6 @@ export default function SettingsScreen() {
               {settings.emirate
                 ? 'Renewal steps and portals follow your emirate — vehicles and licences are run locally, not federally.'
                 : 'Set this and Renewly will point you at the right authority. Vehicle and licence rules differ by emirate.'}
-            </ThemedText>
-          </Section>
-
-          <Section title="What you track">
-            <View style={styles.chipRow}>
-              {PERSONA_OPTIONS.map((option) => {
-                const on = settings.persona === option.value;
-                return (
-                  <Pressable key={option.value} onPress={() => update({ persona: option.value })}>
-                    <View
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: on ? theme.accent : 'transparent',
-                          borderColor: on ? theme.accent : theme.border,
-                        },
-                      ]}>
-                      <ThemedText
-                        type="smallBold"
-                        style={on ? { color: theme.accentContrast } : undefined}>
-                        {option.title}
-                      </ThemedText>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <ThemedText type="small" themeColor="textTertiary">
-              Decides which categories Renewly offers you first.
             </ThemedText>
           </Section>
 

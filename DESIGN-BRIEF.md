@@ -71,7 +71,7 @@ where one exists.
    and actions: *I have renewed this*, *Renew at RTA*, *Edit*, *Archive*, *Delete*.
 8. **Timeline** — the year laid out in date order, grouped by month, each row
    showing the day as a large figure with its weekday beneath.
-9. **Settings** — plan and item usage, persona, reminder time, appearance,
+9. **Settings** — plan and item usage, emirate, reminder time, appearance,
    Face ID toggle, backup/restore/export/delete, privacy link.
 10. **Paywall** — free tier is five items; yearly AED 79 and monthly AED 12.
 11. **Lock screen** — shown when the app is locked behind Face ID.

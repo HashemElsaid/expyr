@@ -63,11 +63,13 @@ export default function HomeScreen() {
     () => [...new Set(documents.map((d) => d.owner).filter((o): o is string => !!o))],
     [documents]
   );
+  const hasOwnItems = useMemo(() => documents.some((d) => !d.owner), [documents]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return documents.filter((doc) => {
-      if (ownerFilter && (doc.owner ?? '') !== ownerFilter) return false;
+      // null is "everyone"; '' is the phone's owner, who has no name on file.
+      if (ownerFilter !== null && (doc.owner ?? '') !== ownerFilter) return false;
       if (!q) return true;
       return (
         doc.title.toLowerCase().includes(q) ||
@@ -175,6 +177,14 @@ export default function HomeScreen() {
                     active={ownerFilter === null}
                     onPress={() => setOwnerFilter(null)}
                   />
+                  {/* Once other people are on the list, you are a person too. */}
+                  {hasOwnItems && (
+                    <FilterChip
+                      label="Mine"
+                      active={ownerFilter === ''}
+                      onPress={() => setOwnerFilter(ownerFilter === '' ? null : '')}
+                    />
+                  )}
                   {owners.map((name) => (
                     <FilterChip
                       key={name}

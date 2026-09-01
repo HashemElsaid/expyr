@@ -269,7 +269,7 @@ export default function SettingsScreen() {
                 </View>
                 <ThemedText type="small" themeColor="textTertiary">
                   {settings.emirate
-                    ? 'Renewal steps and portals follow your emirate — vehicles and licences are run locally, not federally.'
+                    ? 'Renewal steps and portals follow your emirate. Vehicles and licences are run locally, not federally.'
                     : 'Pick your emirate and Expyr will point you at the right authority.'}
                 </ThemedText>
               </>
@@ -308,7 +308,7 @@ export default function SettingsScreen() {
                 title="Check they arrive"
                 subtitle={
                   testState === 'sent'
-                    ? 'Sent — it should appear in a few seconds. Lock your phone to see it properly.'
+                    ? 'Sent. It should appear in a few seconds, so lock your phone to see it properly.'
                     : `${bookedWithIOS} booked with iOS right now. Send one to yourself to be sure.`
                 }
                 action={{
@@ -411,7 +411,7 @@ export default function SettingsScreen() {
             <Row
               icon="cellphone-check"
               title="Saved on this iPhone"
-              subtitle="Your items and photos live in Expyr's private storage, and they travel with your iPhone backup — restore a new phone from iCloud and they come back. Nothing is stored on a server."
+              subtitle="Your items and photos live in Expyr's private storage, and they travel with your iPhone backup. Restore a new phone from iCloud and they come back. Nothing is stored on a server."
             />
             <Row
               icon="tray-arrow-up"

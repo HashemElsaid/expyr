@@ -101,7 +101,7 @@ export default function AddDocumentScreen() {
 
   /** The actual dates the reminders will arrive — more useful than day counts. */
   const nudgeSummary = useMemo(() => {
-    if (leadDays.length === 0) return 'No reminders — you will not be warned.';
+    if (leadDays.length === 0) return 'No reminders set, so you will not be warned.';
     const dates = [...leadDays]
       .sort((a, b) => b - a)
       .map((lead) => {
@@ -109,7 +109,7 @@ export default function AddDocumentScreen() {
         d.setDate(d.getDate() - lead);
         return dayMonth(d);
       });
-    return `${countWord(leadDays.length)} nudge${leadDays.length === 1 ? '' : 's'}: ${dates.join(', ')} — each at 9am.`;
+    return `${countWord(leadDays.length)} nudge${leadDays.length === 1 ? '' : 's'}: ${dates.join(', ')}, each at 9am.`;
   }, [leadDays, expiry]);
 
   function applyScan(result: ScanResult, scannedUri: string, scannedKind: 'image' | 'pdf') {
@@ -304,7 +304,7 @@ export default function AddDocumentScreen() {
           {FREE_SCAN_LIMIT} of them. Unlock Expyr to scan without counting.
         </ThemedText>
         <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
-          You can still add anything you like by typing the date — that stays free.
+          You can still add anything you like by typing the date, and that stays free.
         </ThemedText>
         <View style={styles.wallAction}>
           <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />
@@ -367,7 +367,7 @@ export default function AddDocumentScreen() {
           {!settings.premium && scansLeft <= 5 && (
             <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
               {scansLeft === 0
-                ? 'No free scans left — typing a date in is still free.'
+                ? 'No free scans left. Typing a date in is still free.'
                 : `${scansLeft} free ${scansLeft === 1 ? 'scan' : 'scans'} left.`}
             </ThemedText>
           )}

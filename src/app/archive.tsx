@@ -16,8 +16,9 @@ export default function ArchiveScreen() {
       {archived.length === 0 ? (
         <View style={styles.empty}>
           <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-            Nothing archived yet. When you are finished with something — a document you replaced, a
-            deadline that has passed — archive it and it moves here, out of the way but not lost.
+            Nothing archived yet. When you are finished with something, whether a document you
+            replaced or a deadline that has passed, archive it and it moves here, out of the way but
+            not lost.
           </ThemedText>
         </View>
       ) : (

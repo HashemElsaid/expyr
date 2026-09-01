@@ -70,7 +70,7 @@ export default function TermsScreen() {
             <View style={[styles.rule, { backgroundColor: theme.border }]} />
           </View>
           <ThemedText type="body" themeColor="textSecondary">
-            {plan.title} — {plan.price}, {plan.cadence}. Prices may differ by region and are shown
+            {plan.title}, {plan.price}, {plan.cadence}. Prices may differ by region and are shown
             in the App Store before you confirm.
           </ThemedText>
         </View>

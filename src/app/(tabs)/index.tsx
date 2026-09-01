@@ -176,7 +176,7 @@ export default function HomeScreen() {
                       />
                       <ThemedText type="small" style={styles.flex}>
                         Nothing due for months. The ones that catch people out come round every
-                        year — {missingAnnual.slice(0, 3).join(', ')}.
+                        year: {missingAnnual.slice(0, 3).join(', ')}.
                       </ThemedText>
                     </View>
                   )}

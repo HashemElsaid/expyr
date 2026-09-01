@@ -18,7 +18,7 @@ const CATALOGUE: DocumentType[] = [
     guide: {
       where: 'GDRFA (Dubai) or ICP app/website (other emirates); employer or sponsor usually initiates',
       steps: [
-        'Confirm who renews it — employer, sponsor, or you (Golden Visa / freelance)',
+        'Confirm who renews it: employer, sponsor, or you (Golden Visa / freelance)',
         'Complete the medical fitness test at an approved centre',
         'Renew or verify your health insurance (required for the visa)',
         'Apply through your residency authority’s app, or an accredited service centre',
@@ -41,7 +41,7 @@ const CATALOGUE: DocumentType[] = [
     guide: {
       where: 'ICP app or website, or an accredited typing centre',
       steps: [
-        'Usually renewed together with your residence visa — check if yours is bundled',
+        'Usually renewed together with your residence visa, so check if yours is bundled',
         'Apply within 30 days of expiry to avoid fines',
         'Complete biometrics at an ICP centre if requested',
         'Collect the new card from the designated post office or opt for delivery',
@@ -61,7 +61,7 @@ const CATALOGUE: DocumentType[] = [
     guide: {
       where: "Your home country's embassy or consulate in the UAE",
       steps: [
-        'Check your embassy’s renewal process — many require appointments booked weeks ahead',
+        'Check your embassy’s renewal process, as many require appointments booked weeks ahead',
         'Start at least 6 months before expiry: many countries and airlines refuse travel on <6 months validity',
         'Gather photos, application form, and your Emirates ID / visa copies',
         'After renewal, transfer your UAE residence visa to the new passport if required',
@@ -83,7 +83,7 @@ const CATALOGUE: DocumentType[] = [
     guide: {
       where: 'Your emirate’s transport authority, or an approved testing centre',
       steps: [
-        'Renew or confirm car insurance first — it must cover the new registration year',
+        'Renew or confirm car insurance first, as it must cover the new registration year',
         'Pay any outstanding traffic fines (renewal is blocked until cleared)',
         'Vehicles older than 3 years need a technical inspection (passing test)',
         'Renew online through your emirate’s portal, or in person at a testing centre',
@@ -101,11 +101,11 @@ const CATALOGUE: DocumentType[] = [
     defaultLeadDays: [30, 14, 7],
     typicalValidity: '13 months (12 + 1 to cover the registration grace period)',
     guide: {
-      where: 'Any UAE insurer or comparison sites (compare quotes each year — loyalty is rarely rewarded)',
+      where: 'Any UAE insurer or comparison sites (compare quotes each year, because loyalty is rarely rewarded)',
       steps: [
-        'Get 3+ quotes about a month before expiry — prices vary widely for identical cover',
+        'Get 3+ quotes about a month before expiry, as prices vary widely for identical cover',
         'Check if agency (dealer) repair is worth it for your car’s age',
-        'Buy the new policy before the old one lapses — a gap can void claims and block registration renewal',
+        'Buy the new policy before the old one lapses. A gap can void claims and block registration renewal',
         'Keep the policy certificate handy for registration renewal',
       ],
       typicalCost: 'AED 1,000–3,500+ depending on car value and cover type',
@@ -141,11 +141,11 @@ const CATALOGUE: DocumentType[] = [
     defaultLeadDays: [45, 14, 7],
     typicalValidity: '1 year',
     guide: {
-      where: 'Through your employer, or directly with an insurer — mandatory across all seven emirates',
+      where: 'Through your employer, or directly with an insurer. Mandatory across all seven emirates',
       steps: [
-        'If employer-provided, confirm they’ve renewed it — lapses still fine the sponsor/you',
+        'If employer-provided, confirm they’ve renewed it, because a lapse still fines the sponsor or you',
         'For self-sponsored: compare plans that meet your emirate’s minimum cover',
-        'Ensure continuous coverage — a lapse can trigger fines and blocks visa renewal',
+        'Ensure continuous coverage, as a lapse can trigger fines and blocks visa renewal',
         'Save the new insurance card/policy to your phone wallet',
       ],
       typicalCost: 'AED 700–10,000+ depending on plan and age',
@@ -165,10 +165,10 @@ const CATALOGUE: DocumentType[] = [
     guide: {
       where: 'Ejari via the Dubai REST app or typing centres (Dubai); Tawtheeq (Abu Dhabi)',
       steps: [
-        'Landlords must give 90 days notice for rent increases — 90 days out, check the RERA rent calculator',
+        'Landlords must give 90 days notice for rent increases, so check the RERA rent calculator at that point',
         'Decide renew vs. move well before the notice deadline in your contract',
         'Negotiate using the RERA index if the increase exceeds the legal cap',
-        'Re-register the contract afterwards — utilities, visas and school registration depend on it',
+        'Re-register the contract afterwards, because utilities, visas and school registration depend on it',
       ],
       typicalCost: 'Ejari registration ~AED 120–220 + rent per your contract',
       lateFee: 'No fine, but missing notice deadlines locks you into the landlord’s terms',
@@ -204,11 +204,11 @@ const CATALOGUE: DocumentType[] = [
     defaultLeadDays: [60, 30, 7],
     typicalValidity: '2 years (typically)',
     guide: {
-      where: 'MOHRE — normally handled by your employer',
+      where: 'MOHRE, normally handled by your employer',
       steps: [
         'Confirm your employer has started the renewal (it’s their obligation)',
         'Check status via the MOHRE app with your passport or Emirates ID number',
-        'Chase HR early — an expired permit affects your visa status',
+        'Chase HR early, as an expired permit affects your visa status',
       ],
       typicalCost: 'Paid by the employer by law',
       lateFee: 'Employer fines; for you, risk of status complications',
@@ -225,7 +225,7 @@ const CATALOGUE: DocumentType[] = [
     guide: {
       where: 'The provider’s app or website',
       steps: [
-        'Check if it auto-renews — cancel before the renewal date if unwanted',
+        'Check if it auto-renews, and cancel before the renewal date if unwanted',
         'For gyms: many UAE gyms need written notice 30 days before renewal',
         'Compare current promo prices before renewing at the old rate',
       ],
@@ -248,9 +248,9 @@ const CATALOGUE: DocumentType[] = [
         'Check if an extended warranty is worth it (often it isn’t)',
         'Keep the receipt photo attached to this document',
       ],
-      typicalCost: '—',
+      typicalCost: '',
       lateFee: 'Repairs at your own cost after expiry',
-      processingTime: '—',
+      processingTime: '',
     },
   },
   {
@@ -260,11 +260,11 @@ const CATALOGUE: DocumentType[] = [
     defaultLeadDays: [30, 7],
     typicalValidity: 'Varies',
     guide: {
-      where: '—',
+      where: '',
       steps: ['Add your own notes about how to renew this document'],
-      typicalCost: '—',
-      lateFee: '—',
-      processingTime: '—',
+      typicalCost: '',
+      lateFee: '',
+      processingTime: '',
     },
   },
 ];

@@ -35,7 +35,7 @@ export function countdownLabel(days: number): string {
 /** Split into a figure and a unit so the countdown can be set as a numeral. */
 export function countdownParts(days: number): { value: string; unit: string } {
   if (days < 0) return { value: String(-days), unit: -days === 1 ? 'day over' : 'days over' };
-  if (days === 0) return { value: '—', unit: 'today' };
+  if (days === 0) return { value: '0', unit: 'days left' };
   if (days < 60) return { value: String(days), unit: days === 1 ? 'day left' : 'days left' };
   const months = Math.floor(days / 30);
   if (months < 24) return { value: String(months), unit: months === 1 ? 'month' : 'months' };

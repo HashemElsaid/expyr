@@ -106,7 +106,7 @@ export default function PaywallScreen() {
          */}
         <View style={[styles.legal, { borderTopColor: theme.border }]}>
           <ThemedText type="small" themeColor="textTertiary">
-            {selectedPlan.title} — {selectedPlan.price}, {selectedPlan.cadence}. Payment is charged
+            {selectedPlan.title}, {selectedPlan.price}, {selectedPlan.cadence}. Payment is charged
             to your Apple Account at confirmation. This is a one-off purchase: it does not renew,
             there is nothing to cancel, and you will not be charged again. It can be shared with
             your Apple Family group, up to six people.

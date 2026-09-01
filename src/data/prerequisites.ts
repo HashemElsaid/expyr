@@ -32,7 +32,7 @@ export const PREREQUISITES: Prerequisite[] = [
     // The RTA wants a policy that covers the whole new registration year, which
     // is why insurers sell 13-month motor policies here.
     bufferDays: 30,
-    warning: 'Renew your car insurance first — registration cannot be renewed without a policy covering the new year.',
+    warning: 'Renew your car insurance first. Registration cannot be renewed without a policy covering the new year.',
     note: 'You will need valid insurance covering the new registration year, and all traffic fines cleared.',
     source: 'Vehicle registration renewal requirements (RTA in Dubai, Abu Dhabi Mobility via TAMM, Ministry of Interior elsewhere)',
   },
@@ -40,7 +40,7 @@ export const PREREQUISITES: Prerequisite[] = [
     dependent: 'residence-visa',
     requires: 'health-insurance',
     bufferDays: 0,
-    warning: 'Renew your health insurance first — a visa cannot be issued or renewed without active cover.',
+    warning: 'Renew your health insurance first. A visa cannot be issued or renewed without active cover.',
     note: 'Health insurance must be active before the visa can be renewed. It is mandatory in all seven emirates.',
     source: 'ICP / GDRFA residence visa requirements; federal health insurance mandate from 1 January 2025',
   },
@@ -49,7 +49,7 @@ export const PREREQUISITES: Prerequisite[] = [
     requires: 'passport',
     // A passport must carry at least six months' validity at the point of renewal.
     bufferDays: 180,
-    warning: 'Your passport needs at least six months left when you renew the visa — start the passport first.',
+    warning: 'Your passport needs at least six months left when you renew the visa, so start the passport first.',
     note: 'Your passport must have at least six months of validity at renewal.',
     source: 'ICP / GDRFA residence visa requirements',
   },
@@ -57,7 +57,7 @@ export const PREREQUISITES: Prerequisite[] = [
     dependent: 'driving-license',
     requires: 'emirates-id',
     bufferDays: 0,
-    warning: 'Renew your Emirates ID first — a valid one is required to renew your licence.',
+    warning: 'Renew your Emirates ID first. A valid one is required to renew your licence.',
     note: 'You will need a valid Emirates ID, an approved eye test, and all traffic fines cleared.',
     source: 'Driving licence renewal requirements across the emirates',
   },

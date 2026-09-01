@@ -76,7 +76,7 @@ export default function TimelineScreen() {
         {loaded && documents.length === 0 ? (
           <View style={styles.empty}>
             <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-              Once you add something, this is where you will see the year laid out — every renewal
+              Once you add something, this is where you will see the year laid out, with every renewal
               in the order it arrives.
             </ThemedText>
           </View>

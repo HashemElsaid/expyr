@@ -59,7 +59,7 @@ export const PLANS: Plan[] = [
  */
 export const PREMIUM_FEATURES = [
   'Track as many items as you like',
-  'Scan without counting — no 15-scan ceiling',
+  'Scan without counting, with no 15-scan ceiling',
   'Everyone in the house, not just you',
   'Shared with your Apple family, up to six people',
   'Back up and restore your whole archive',

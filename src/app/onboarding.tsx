@@ -65,7 +65,7 @@ export default function OnboardingScreen() {
               </ThemedText>
 
               <View style={styles.points}>
-                <Point icon="line-scan" text="Point your camera at it — no typing" />
+                <Point icon="line-scan" text="Point your camera at it, no typing" />
                 <Point icon="bell-outline" text="Reminders long before the deadline" />
                 <Point icon="cellphone-lock" text="Everything stays on your phone" />
               </View>
@@ -155,7 +155,7 @@ export default function OnboardingScreen() {
                     {country === 'other'
                       ? 'you will not see them'
                       : `there are none for ${countryLabel(country)} yet`}{' '}
-                    — we would rather show you nothing than guess about your documents.
+                    . We would rather show you nothing than guess about your documents.
                   </ThemedText>
                 </View>
               )}

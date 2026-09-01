@@ -45,7 +45,7 @@ function ErrorScreen({ error, retry }: ErrorBoundaryProps) {
     <View style={[errorStyles.container, { backgroundColor: theme.background }]}>
       <Text style={[errorStyles.title, { color: theme.text }]}>Something went wrong.</Text>
       <Text style={[errorStyles.body, { color: theme.textSecondary }]}>
-        Your documents are safe on this phone — nothing was lost. Try again, and if it keeps
+        Your documents are safe on this phone and nothing was lost. Try again, and if it keeps
         happening, restarting Expyr usually clears it.
       </Text>
       <Text style={[errorStyles.detail, { color: theme.textTertiary }]} numberOfLines={3}>

@@ -39,7 +39,7 @@ Expyr makes sure nothing in your life expires without warning.
 Photograph a document and Expyr reads the expiry date for you. No typing, no
 forms. It works on residence visas, Emirates ID, passports, car registration,
 insurance policies, tenancy contracts, driving licences, trade licences and
-work permits — from a photo, a PDF, or a screenshot of an email.
+work permits, from a photo, a PDF, or a screenshot of an email.
 
 WHAT IT DOES
 
@@ -67,8 +67,8 @@ the dates and stays quiet about the paperwork rather than guessing.
 
 PRIVATE BY DESIGN
 
-Your documents stay on your phone. Photos are kept in Expyr's own storage —
-never your camera roll, never iCloud Photo Library. There is no account, no
+Your documents stay on your phone. Photos are kept in Expyr's own storage,
+never your camera roll and never iCloud Photo Library. There is no account, no
 sign-up and no server database. Reminders are scheduled by iOS itself, so nobody
 else needs to know your dates. Everything travels with your iPhone backup, so a
 new phone brings it all back. You can lock Expyr behind Face ID, and export a
@@ -76,9 +76,9 @@ copy only you hold.
 
 FREE TO START
 
-Track ten items free, for as long as you like — enough for your visa, your
-Emirates ID, your car and your tenancy. Unlock Expyr to track everything you
-own, and everyone in your household.
+Track ten items and fifteen scans free, for as long as you like. That is enough
+for your visa, your Emirates ID, your car and your tenancy. Unlock Expyr with a
+single payment to track everything you own, and everyone in your household.
 ```
 
 ## Keywords (100 characters, comma separated, no spaces)

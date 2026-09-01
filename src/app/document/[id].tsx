@@ -296,7 +296,7 @@ export default function DocumentDetailScreen() {
         )}
 
         {/* The penalty is the reason to act today, so it never hides. */}
-        {guided && type.guide.lateFee !== '—' && (
+        {guided && type.guide.lateFee !== '' && (
           <View style={styles.lateRow}>
             <ThemedText type="label" themeColor="textTertiary">
               If you leave it
@@ -318,7 +318,7 @@ export default function DocumentDetailScreen() {
             </ThemedText>
             <ThemedText type="body" themeColor="textSecondary">
               Expyr has verified renewal steps for the UAE only. It will keep the date and remind
-              you — it just will not guess at the procedure where you are.
+              you. It just will not guess at the procedure where you are.
             </ThemedText>
           </View>
         )}
@@ -370,12 +370,17 @@ export default function DocumentDetailScreen() {
               ))}
             </View>
 
-            <DataRow label="Where" value={where} bordered />
-            <DataRow label="Cost" value={type.guide.typicalCost} bordered />
-            <DataRow label="Takes" value={type.guide.processingTime} bordered />
+            {/* A blank means we have nothing to say, which beats a row saying so. */}
+            {where !== '' && <DataRow label="Where" value={where} bordered />}
+            {type.guide.typicalCost !== '' && (
+              <DataRow label="Cost" value={type.guide.typicalCost} bordered />
+            )}
+            {type.guide.processingTime !== '' && (
+              <DataRow label="Takes" value={type.guide.processingTime} bordered />
+            )}
 
             <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
-              Figures are indicative — confirm with the official channel.
+              Figures are indicative, so confirm with the official channel.
             </ThemedText>
           </View>
         )}

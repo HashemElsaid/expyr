@@ -114,22 +114,124 @@ Caption each screenshot with a short benefit line rather than a feature name —
 
 ## Review notes for Apple
 
-```
-Expyr reads expiry dates from photos the user chooses. Images are sent once to
-our own service, which forwards them to the Anthropic Claude API for text
-extraction, and are not stored. No account is required. All user data is kept
-locally on the device.
+Paste this whole thing into App Review Information. It answers, in advance,
+every question that turns a review into a two-week correspondence: how to get
+in without an account, how the money works, and what leaves the phone. A
+reviewer who has to ask is a reviewer who has already rejected you once.
 
-To test scanning, photograph any document containing an expiry date —
-for example a passport, a driving licence, or an insurance certificate.
 ```
+THERE IS NO SIGN-IN, AND NO DEMO ACCOUNT IS NEEDED
+
+Expyr has no accounts, no login and no server-side user data. Open the app and
+every feature is available immediately. Nothing is gated behind a sign-in, so
+there are no credentials to supply. If the Beta App Review Information asks for
+a username and password, please leave it blank: there is nothing to enter.
+
+HOW TO SEE THE WHOLE APP IN TWO MINUTES
+
+1. On first launch, choose an emirate (any) and allow or decline notifications.
+   Both paths work.
+2. Tap + to add an item. "Take a photo" or "Choose a photo" runs the scanner;
+   "Enter it myself" adds an item by hand with no camera at all.
+3. To test the scanner without a real document, use the sample image attached to
+   this submission, or photograph any card or letter carrying a printed date.
+   The extracted date is always shown for confirmation before anything is saved.
+4. Open the saved item to see the countdown, the reminder dates, the renewal
+   steps, the cost, the late fine and the link to the relevant authority.
+5. Settings holds the reminder time, the Face ID lock, backup and export, and a
+   "Send a test reminder" button that fires a real notification within seconds.
+
+THE BUSINESS MODEL, IN FULL
+
+Expyr is free to use for 10 tracked items and 15 scans. Unlocking it removes
+both limits.
+
+- There is ONE product: a non-consumable in-app purchase, AED 149, paid once.
+- It is NOT a subscription. Nothing auto-renews and there is nothing to cancel.
+- There is no other way to pay. No external payment, no web checkout, no link
+  out to a website, no Stripe, no coupon, no third-party billing of any kind.
+- Nothing in the app is unlocked by any transaction outside In-App Purchase.
+- No physical goods or real-world services are sold. The purchase unlocks
+  software features only.
+- The purchase is marked Family Shareable, up to six people.
+
+Renewal guidance shown in the app (government fees, fines, processing times) is
+published reference information about official UAE procedures. Expyr does not
+collect those fees, does not act as an agent for any authority, and does not
+transact with any government body.
+
+WHAT LEAVES THE DEVICE, AND WHEN
+
+Only an image the user explicitly picks, and only at the moment they pick it.
+That image is sent once to our extraction service, which forwards it to the
+Anthropic Claude API to read the date, and returns the result. The image is
+never written to disk on the server and is discarded as soon as the response is
+produced. It is not used to train any model.
+
+Nothing else is transmitted. Documents, dates, reference numbers, notes and
+photos are stored only in the app's private storage on the device. Reminders are
+scheduled locally by iOS, never pushed from a server. There is no analytics SDK,
+no advertising SDK, and no third-party tracking.
+
+Scanning is optional throughout. "Enter it myself" adds any item by hand, and
+photos can be attached without being scanned, in which case nothing leaves the
+phone at all.
+
+PERMISSIONS, AND WHY
+
+- Camera: to photograph a document so the expiry date can be read from it.
+- Photo library: to open the specific images the user selects, for the same
+  purpose. The app never enumerates or scans the library.
+- Face ID: optional app lock, off by default, so stored identity documents are
+  not visible to anyone who picks up the phone.
+- Notifications: local reminders before a document expires. This is the app's
+  core function.
+
+DEVICE SUPPORT
+
+iPhone only. The app does not claim iPad support.
+```
+
+### Attach to the submission
+
+- [ ] A sample document image with a clear printed expiry date, so the reviewer
+      can test scanning without owning a UAE document
+
+## Learned from a previous rejection
+
+A prior app of ours was rejected repeatedly on these, so they are worth checking
+before every submission.
+
+- **2.1(a), unable to access the app.** The reviewer could not get past a login.
+  Expyr has no login, but it has an equivalent trap: if the scanning service is
+  asleep or unreachable, the reviewer taps "Take a photo" and gets a timeout.
+  **The Render service must be on a paid plan before submitting** — the free
+  tier sleeps and cold-starts in roughly fifty seconds, which reads as broken.
+- **5.1.1(ii), purpose strings.** Rejected because the photo library string did
+  not say what the data would be used for or give an example. Every string in
+  `app.json` now names the resource, the reason, and a concrete example.
+  Do not shorten them.
+- **2.1(a), a broken feature.** Rejected for a sign-in button that did not work.
+  Everything visible must function, including the Face ID toggle and the test
+  reminder. Test on a real device before submitting, not in a simulator.
+- **2.1(b), business model questions.** Weeks were lost explaining who pays whom
+  and for what. The notes above answer that upfront, in the reviewer's own
+  vocabulary.
+- **Reviewed on iPad.** That app claimed iPad support and was reviewed on an
+  iPad Air. `supportsTablet` is false here, so review happens on iPhone.
 
 ## Required before submission
 
 - [ ] Apple Developer Program membership (USD 99/year)
-- [ ] App icon (1024×1024, no transparency, no rounded corners)
-- [ ] Privacy policy hosted at a public URL — the text is in `src/app/privacy.tsx`
-- [ ] Subscription products created in App Store Connect, matching `src/lib/purchases.ts`
-- [ ] RevenueCat project connected, replacing the stubs in `src/lib/purchases.ts`
-- [ ] Scanning service deployed and `EXPO_PUBLIC_EXTRACT_URL` pointed at it
-- [ ] App Privacy questionnaire completed (data is not collected or linked to the user)
+- [ ] App icon (1024×1024, no transparency, no alpha channel)
+- [ ] Privacy policy and support URLs live and reachable (`docs/`, GitHub Pages)
+- [ ] The one-time product created in App Store Connect as a NON-CONSUMABLE at
+      AED 149, Family Sharing enabled, matching `src/lib/purchases.ts`
+- [ ] Real purchases wired, replacing the stubs in `src/lib/purchases.ts`
+- [ ] Scanning service on a paid Render plan, `EXPO_PUBLIC_EXTRACT_URL` pointed
+      at it, and confirmed responding from a cold start
+- [ ] Anthropic spend limit and billing alerts set
+- [ ] App Privacy questionnaire completed. Declare that images are transmitted
+      for processing and not retained; nothing is linked to the user
+- [ ] Tested on a physical iPhone: scan, notification arrival, notification tap
+      from a fully closed app, Face ID lock, backup and restore

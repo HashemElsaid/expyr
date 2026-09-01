@@ -102,12 +102,15 @@ Replaces the deliberate stub in `src/lib/purchases.ts` with StoreKit/RevenueCat.
 
 ## 12. App Store Connect paperwork — YOU
 
-- [ ] Privacy labels — declare that scans go to our server and on to Anthropic
+- [ ] Paste the full review notes from `STORE.md` into App Review Information
+- [ ] Attach a sample document image so the reviewer can test scanning
+- [ ] Privacy labels: declare that scans go to our server and on to Anthropic
 - [ ] Age rating questionnaire
 - [ ] Export compliance (encryption) declaration
-- [ ] Review notes explaining the scanning service, **with a sample document**
+- [ ] Leave the Beta App Review sign-in fields blank; there is no account
 
-Reviewers reject what they cannot test.
+Reviewers reject what they cannot test. `STORE.md` also lists the five reasons
+the previous app was rejected and what was changed here to avoid each one.
 
 ## 13. TestFlight — YOU
 

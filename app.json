@@ -43,8 +43,15 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Expyr uses the camera to read expiry dates from your documents.",
-          "photosPermission": "Expyr reads photos and screenshots you choose so it can fill in dates for you."
+          "cameraPermission": "Expyr uses the camera so you can photograph a document, such as your Emirates ID or car registration, and it reads the expiry date off the picture so you never type it in. The photo is kept in Expyr on this phone.",
+          "photosPermission": "Expyr opens only the photos you pick, such as a screenshot of an insurance policy or a picture of your visa, so it can read the expiry date and keep the image with that document. It never looks through your library on its own.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Expyr uses Face ID to unlock the app, so the passport, visa and Emirates ID you keep in it are not open to anyone who picks up your phone."
         }
       ],
       "expo-font"

@@ -28,7 +28,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: 'Paying for Expyr',
-    body: 'Expyr is free to use for a limited number of items and scans. Unlocking it removes both limits, and there are two ways to pay. The yearly plan is a subscription: payment is charged to your Apple Account at confirmation, it renews automatically unless cancelled at least 24 hours before the end of the current period, renewal is charged within 24 hours before the period ends, and you can manage or cancel it in your Apple Account settings. The one-off payment is not a subscription — nothing renews and there is nothing to cancel. Either can be shared with your Apple Family group, up to six people.',
+    body: 'Expyr is free to use for a limited number of items and scans. Unlocking it removes both limits and costs one payment. It is not a subscription: payment is charged to your Apple Account at confirmation, nothing renews, there is nothing to cancel, and you will not be charged again. The purchase can be shared with your Apple Family group, up to six people.',
   },
   {
     title: 'Ending your use',
@@ -38,8 +38,7 @@ const SECTIONS: { title: string; body: string }[] = [
 
 export default function TermsScreen() {
   const theme = useTheme();
-  const annual = PLANS.find((p) => p.id === 'annual');
-  const lifetime = PLANS.find((p) => p.id === 'lifetime');
+  const plan = PLANS[0];
 
   return (
     <ThemedView style={styles.container}>
@@ -71,9 +70,8 @@ export default function TermsScreen() {
             <View style={[styles.rule, { backgroundColor: theme.border }]} />
           </View>
           <ThemedText type="body" themeColor="textSecondary">
-            {annual?.title} — {annual?.price} {annual?.cadence}. {lifetime?.title} —{' '}
-            {lifetime?.price} {lifetime?.cadence}. Prices may differ by region and are shown in the
-            App Store before you confirm.
+            {plan.title} — {plan.price}, {plan.cadence}. Prices may differ by region and are shown
+            in the App Store before you confirm.
           </ThemedText>
         </View>
 

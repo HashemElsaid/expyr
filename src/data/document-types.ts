@@ -6,7 +6,7 @@ import { DocumentType, DocumentTypeId } from '@/types';
  * (AED, as of 2026) and shown to users with a "verify with the official
  * channel" disclaimer in the UI.
  */
-export const DOCUMENT_TYPES: DocumentType[] = [
+const CATALOGUE: DocumentType[] = [
   {
     id: 'residence-visa',
     label: 'Residence Visa',
@@ -268,6 +268,36 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     },
   },
 ];
+
+/**
+ * The order categories are offered in.
+ *
+ * Led by the things that renew every year, not by the headline documents.
+ * Someone who reaches for their passport first sees ten years left and decides
+ * the app has nothing to do; someone who adds a Mulkiya, an insurance policy
+ * and an Ejari gets a reminder within months and sees it earn its place. The
+ * residence visa stays at the top because it is what most people came for, and
+ * the ten-year documents sink below the annual ones.
+ */
+const DISPLAY_ORDER: DocumentTypeId[] = [
+  'residence-visa',
+  'car-registration',
+  'car-insurance',
+  'health-insurance',
+  'tenancy-ejari',
+  'emirates-id',
+  'driving-license',
+  'trade-license',
+  'labor-card',
+  'passport',
+  'membership',
+  'warranty',
+  'other',
+];
+
+export const DOCUMENT_TYPES: DocumentType[] = [...CATALOGUE].sort(
+  (a, b) => DISPLAY_ORDER.indexOf(a.id) - DISPLAY_ORDER.indexOf(b.id)
+);
 
 export function getDocumentType(id: DocumentTypeId): DocumentType {
   return DOCUMENT_TYPES.find((t) => t.id === id) ?? DOCUMENT_TYPES[DOCUMENT_TYPES.length - 1];

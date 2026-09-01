@@ -7,19 +7,18 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { PLANS, PREMIUM_FEATURES, purchase, restore, type Plan } from '@/lib/purchases';
+import { PLANS, PREMIUM_FEATURES, purchase, restore } from '@/lib/purchases';
 import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT } from '@/store/settings';
 
 export default function PaywallScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const [selected, setSelected] = useState<Plan['id']>('annual');
   const [busy, setBusy] = useState(false);
-  const selectedPlan = PLANS.find((p) => p.id === selected) ?? PLANS[0];
+  const selectedPlan = PLANS[0];
 
   async function buy() {
     setBusy(true);
-    const outcome = await purchase(selected);
+    const outcome = await purchase(selectedPlan.id);
     setBusy(false);
     if (outcome.ok) router.back();
     else Alert.alert('Not available yet', outcome.message);
@@ -55,46 +54,26 @@ export default function PaywallScreen() {
           ))}
         </View>
 
-        <View style={styles.plans}>
-          {PLANS.map((plan) => {
-            const on = selected === plan.id;
-            return (
-              <Pressable key={plan.id} onPress={() => setSelected(plan.id)}>
-                <View
-                  style={[
-                    styles.plan,
-                    {
-                      borderColor: on ? theme.accent : theme.border,
-                      backgroundColor: on ? theme.backgroundSelected : theme.backgroundElement,
-                    },
-                  ]}>
-                  <View style={styles.flex}>
-                    <View style={styles.planTitleRow}>
-                      <ThemedText type="bodyMedium">{plan.title}</ThemedText>
-                      {plan.highlight && (
-                        <View style={[styles.badge, { backgroundColor: theme.accent }]}>
-                          <ThemedText type="label" style={{ color: theme.accentContrast }}>
-                            {plan.highlight}
-                          </ThemedText>
-                        </View>
-                      )}
-                    </View>
-                    {plan.footnote && (
-                      <ThemedText type="small" themeColor="textTertiary">
-                        {plan.footnote}
-                      </ThemedText>
-                    )}
-                  </View>
-                  <View style={styles.planPrice}>
-                    <ThemedText type="numeral">{plan.price}</ThemedText>
-                    <ThemedText type="label" themeColor="textTertiary">
-                      {plan.cadence}
-                    </ThemedText>
-                  </View>
-                </View>
-              </Pressable>
-            );
-          })}
+        {/* One price, so there is nothing to choose — just state it. */}
+        <View
+          style={[
+            styles.plan,
+            { borderColor: theme.accent, backgroundColor: theme.backgroundSelected },
+          ]}>
+          <View style={styles.flex}>
+            <ThemedText type="bodyMedium">{selectedPlan.title}</ThemedText>
+            {selectedPlan.footnote && (
+              <ThemedText type="small" themeColor="textTertiary">
+                {selectedPlan.footnote}
+              </ThemedText>
+            )}
+          </View>
+          <View style={styles.planPrice}>
+            <ThemedText type="numeral">{selectedPlan.price}</ThemedText>
+            <ThemedText type="label" themeColor="textTertiary">
+              {selectedPlan.cadence}
+            </ThemedText>
+          </View>
         </View>
 
         <Pressable onPress={buy} disabled={busy}>
@@ -119,19 +98,18 @@ export default function PaywallScreen() {
         </Pressable>
 
         {/*
-         * Required by App Store Review Guideline 3.1.2: the title, length and
-         * price of the subscription, the auto-renewal terms, and working links
-         * to the Terms of Use and Privacy Policy must all be on the screen
-         * where the purchase is made.
+         * Guideline 3.1.2 asks for the title, price and terms of the purchase
+         * on the screen where it is made, with working links to the Terms and
+         * Privacy Policy. The auto-renewal disclosure it also requires is for
+         * subscriptions — there is none here, and claiming one would be worse
+         * than leaving it out.
          */}
         <View style={[styles.legal, { borderTopColor: theme.border }]}>
           <ThemedText type="small" themeColor="textTertiary">
-            {selectedPlan.title} — {selectedPlan.price} {selectedPlan.cadence}. Payment is charged
-            to your Apple Account at confirmation.{' '}
-            {selectedPlan.renews
-              ? 'The subscription renews automatically unless cancelled at least 24 hours before the end of the current period, and renewal is charged within 24 hours before the period ends. Manage or cancel it any time in your Apple Account settings.'
-              : 'This is a one-off purchase. Nothing renews, and there is nothing to cancel.'}{' '}
-            Expyr can be shared with your Apple Family group, up to six people.
+            {selectedPlan.title} — {selectedPlan.price}, {selectedPlan.cadence}. Payment is charged
+            to your Apple Account at confirmation. This is a one-off purchase: it does not renew,
+            there is nothing to cancel, and you will not be charged again. It can be shared with
+            your Apple Family group, up to six people.
           </ThemedText>
 
           <View style={styles.legalLinks}>

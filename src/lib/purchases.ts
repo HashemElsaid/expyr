@@ -19,42 +19,36 @@
  */
 
 export type Plan = {
-  id: 'annual' | 'lifetime';
+  id: 'lifetime';
   title: string;
   price: string;
   cadence: string;
   footnote?: string;
-  highlight?: string;
-  /** Auto-renewing plans carry disclosure a one-off purchase must not claim. */
-  renews: boolean;
 };
 
 /**
- * Placeholder pricing — these must match App Store Connect before launch.
+ * One price, paid once. Placeholder until it matches App Store Connect.
  *
- * The yearly price sits just under the utilities category median (about
- * AED 141) and under the one-time price the nearest competitor charges, so we
- * are cheaper in year one and still earning in year two. The one-off is priced
- * at roughly three years because scanning costs us a model call every time —
- * a single payment has to cover the reading somebody does for years afterwards.
+ * A subscription was the wrong shape for this app. Expyr is built to be silent
+ * — the months where nothing expires are the app working, not failing — and
+ * renting something designed to say nothing invites the question "what am I
+ * paying for" at every renewal. Every competitor in this category charges once,
+ * in the AED 119–150 band.
+ *
+ * AED 149 sits at the top of that band rather than under it, because the app
+ * does more than name a date: it carries the renewal steps, the fees, the fine
+ * for lateness and the authority for the user's own emirate.
+ *
+ * Scanning costs a fraction of a fil per read, so a single payment covers years
+ * of it comfortably. The free scan ceiling is there for abuse, not economics.
  */
 export const PLANS: Plan[] = [
   {
-    id: 'annual',
-    title: 'Yearly',
-    price: 'AED 129',
-    cadence: 'per year',
-    footnote: 'About AED 11 a month',
-    highlight: 'Most popular',
-    renews: true,
-  },
-  {
     id: 'lifetime',
-    title: 'One payment',
-    price: 'AED 399',
+    title: 'Expyr, unlocked',
+    price: 'AED 149',
     cadence: 'once',
-    footnote: 'Yours for good — nothing renews',
-    renews: false,
+    footnote: 'Pay once. Nothing renews, nothing to cancel.',
   },
 ];
 

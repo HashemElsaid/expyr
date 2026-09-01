@@ -14,9 +14,17 @@ import { countdownShort, countWord, daysUntil, mastheadDate } from '@/lib/dates'
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
-import { TrackedDocument } from '@/types';
+import { DocumentTypeId, TrackedDocument } from '@/types';
 
 type Section = { title: string; data: TrackedDocument[] };
+
+/** The renewals that come round every year, in the order worth suggesting. */
+const ANNUAL_STAPLES: DocumentTypeId[] = [
+  'car-registration',
+  'car-insurance',
+  'health-insurance',
+  'tenancy-ejari',
+];
 
 /** Urgent first, then things that renew, then things you simply use up. */
 function buildSections(docs: TrackedDocument[], allClear: boolean): Section[] {
@@ -64,6 +72,20 @@ export default function HomeScreen() {
     [documents]
   );
   const hasOwnItems = useMemo(() => documents.some((d) => !d.owner), [documents]);
+
+  /*
+   * The documents people reach for first — passport, ID — are the ones that
+   * last a decade, so a new list can read as "nothing happens here for years".
+   * These are the ones that actually come round, and they are worth naming
+   * rather than leaving a quiet screen to answer the question.
+   */
+  const missingAnnual = useMemo(
+    () =>
+      ANNUAL_STAPLES.filter((id) => !documents.some((d) => d.typeId === id)).map((id) =>
+        labelForId(id, settings.country)
+      ),
+    [documents, settings.country]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -136,6 +158,29 @@ export default function HomeScreen() {
                 <ThemedText type="body" themeColor="textSecondary" style={styles.reassurance}>
                   Next: {next.title}, {countdownShort(daysUntil(next.expiryDate))}.
                 </ThemedText>
+              )}
+
+              {allClear && next && daysUntil(next.expiryDate) > 120 && missingAnnual.length > 0 && (
+                <Pressable onPress={() => router.push('/add')} accessibilityRole="button">
+                  {({ pressed }) => (
+                    <View
+                      style={[
+                        styles.banner,
+                        { borderColor: theme.border },
+                        pressed && styles.pressed,
+                      ]}>
+                      <MaterialCommunityIcons
+                        name="calendar-sync-outline"
+                        size={18}
+                        color={theme.textTertiary}
+                      />
+                      <ThemedText type="small" style={styles.flex}>
+                        Nothing due for months. The ones that catch people out come round every
+                        year — {missingAnnual.slice(0, 3).join(', ')}.
+                      </ThemedText>
+                    </View>
+                  )}
+                </Pressable>
               )}
 
               {notificationsOn === false && documents.length > 0 && (

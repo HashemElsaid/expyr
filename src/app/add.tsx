@@ -62,6 +62,7 @@ export default function AddDocumentScreen() {
   const [files, setFiles] = useState<Attachment[]>(editing?.files ?? []);
   const [leadDays, setLeadDays] = useState<number[]>(editing?.leadDays ?? []);
   const [busy, setBusy] = useState<'scanning' | 'attaching' | null>(null);
+  const [slowScan, setSlowScan] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,16 @@ export default function AddDocumentScreen() {
   useEffect(() => {
     navigation.setOptions({ title: renewing ? 'Renewed' : editing ? 'Edit' : 'New entry' });
   }, [navigation, editing, renewing]);
+
+  // Long enough that a normal read never trips it.
+  useEffect(() => {
+    if (busy !== 'scanning') {
+      setSlowScan(false);
+      return;
+    }
+    const timer = setTimeout(() => setSlowScan(true), 6000);
+    return () => clearTimeout(timer);
+  }, [busy]);
 
   /**
    * Documents load from storage asynchronously, so opening this screen by URL
@@ -325,6 +336,16 @@ export default function AddDocumentScreen() {
         <ThemedText type="body" style={styles.centeredText}>
           {busy === 'scanning' ? 'Reading your document…' : 'Adding your file…'}
         </ThemedText>
+        {/*
+         * A warm read takes about three seconds; the first one after a quiet
+         * spell can take thirty. A spinner alone for that long reads as broken,
+         * so once it runs long the wait gets explained rather than hidden.
+         */}
+        {slowScan && (
+          <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
+            Still working. The first scan after a while takes longer than the rest.
+          </ThemedText>
+        )}
       </ThemedView>
     );
   }

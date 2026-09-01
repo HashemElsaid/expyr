@@ -194,8 +194,16 @@ iPhone only. The app does not claim iPad support.
 
 ### Attach to the submission
 
-- [ ] A sample document image with a clear printed expiry date, so the reviewer
-      can test scanning without owning a UAE document
+- [ ] `assets/review/sample-insurance-certificate.jpg`
+
+A fictional motor insurance certificate carrying four dates: an issue date, a
+period start, a period end and a date of birth. Only the period end is the
+answer, so it proves the scanner picks the right one rather than the first one
+it sees. Verified against the live service: it returns 19 March 2027, files it
+as Car Insurance, and reads the policy number.
+
+It is clearly marked as a sample and is not a real or official document, so a
+reviewer can test the whole flow without owning a UAE document.
 
 ## Learned from a previous rejection
 

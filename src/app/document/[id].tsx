@@ -16,6 +16,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { shareDocumentCopy } from '@/lib/share-copy';
 import { hasGuidance } from '@/data/countries';
 import { getDocumentType, numberFieldFor } from '@/data/document-types';
 import { findBlockers, notesFor } from '@/data/prerequisites';
@@ -49,6 +50,7 @@ export default function DocumentDetailScreen() {
   const { documents, archived, removeDocument, setArchived } = useDocuments();
   const { settings } = useSettings();
   const [guideOpen, setGuideOpen] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
   const days = doc ? daysUntil(doc.expiryDate) : 0;
@@ -153,6 +155,21 @@ export default function DocumentDetailScreen() {
   function markRenewed() {
     tapFeedback();
     router.push(canRoll ? `/add?id=${doc!.id}&renew=1` : `/add?id=${doc!.id}`);
+  }
+
+  async function sendCopy() {
+    if (!doc || sending) return;
+    tapFeedback();
+    setSending(true);
+    const outcome = await shareDocumentCopy(doc.files, doc.title);
+    setSending(false);
+    if (outcome.ok) return;
+    Alert.alert(
+      'Could not prepare the copy',
+      outcome.reason === 'nothing-to-send'
+        ? 'Attach a photo of this document first, then it can be sent as a PDF.'
+        : 'Something went wrong building the PDF. Try again.'
+    );
   }
 
   function openPortal() {
@@ -408,6 +425,18 @@ export default function DocumentDetailScreen() {
               icon="check-circle-outline"
               label={canRoll ? 'I have renewed this' : 'Update the date'}
               onPress={markRenewed}
+            />
+          )}
+
+          {/*
+           * The thing people are actually asked for, far more often than they
+           * are asked to renew anything.
+           */}
+          {doc.files.length > 0 && (
+            <SecondaryAction
+              icon="file-pdf-box"
+              label={sending ? 'Preparing…' : 'Send a copy as PDF'}
+              onPress={sendCopy}
             />
           )}
         </View>

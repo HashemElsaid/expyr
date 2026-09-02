@@ -19,6 +19,7 @@
     "expo-linking": "~8.0.0",
     "expo-local-authentication": "~17.0.9",
     "expo-notifications": "~0.32.12",
+    "expo-print": "~15.0.8",
     "expo-router": "~6.0.0",
     "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.0",

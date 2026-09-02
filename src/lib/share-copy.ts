@@ -120,6 +120,20 @@ function buildHtml(images: string[], perPage: number): string {
     max-width: 100%;
     max-height: ${slot}px;
     object-fit: contain;
+    /*
+     * A phone photo of a document carries the room with it: a warm cast off
+     * the ceiling light and a page that reads grey rather than white. The PDF
+     * is rendered by a web view, so a CSS filter is applied while rasterising
+     * and lands baked into the file.
+     *
+     * Deliberately restrained, for two reasons. Pushing contrast far enough to
+     * get a truly white page starts erasing light grey print, and a copy that
+     * has quietly dropped a line is worse than one that looks a bit warm. And
+     * it stays in colour: greyscale looks more like a scan, but it flattens
+     * visa stickers, stamps and blue ink signatures, and plenty of places ask
+     * for a colour copy outright.
+     */
+    filter: contrast(1.22) brightness(1.1) saturate(0.85);
   }
 </style>
 </head>

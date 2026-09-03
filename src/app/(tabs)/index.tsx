@@ -11,7 +11,14 @@ import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
 import { urgencyColor } from '@/hooks/use-urgency';
-import { countdownShort, countWord, daysUntil, mastheadDate, urgencyFor } from '@/lib/dates';
+import {
+  countdownLabel,
+  countdownShort,
+  countWord,
+  daysUntil,
+  mastheadDate,
+  urgencyFor,
+} from '@/lib/dates';
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
@@ -47,9 +54,21 @@ const ANNUAL_STAPLES: DocumentTypeId[] = [
 /** One section per calendar month, in date order, so the year reads as a story. */
 function buildSections(docs: TrackedDocument[]): Section[] {
   const byMonth = new Map<string, TrackedDocument[]>();
+  /*
+   * Anything already past comes out of the calendar and goes to the top under
+   * its own heading. Filed by month it reads as history — an Emirates ID that
+   * lapsed in August sits under "August 2026", above today, looking as settled
+   * as a tenancy that ends next year. It is not history. It is costing AED 20
+   * a day, and it is the only thing on the screen that cannot wait.
+   */
+  const overdue: TrackedDocument[] = [];
 
   const sorted = [...docs].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate));
   for (const doc of sorted) {
+    if (daysUntil(doc.expiryDate) < 0) {
+      overdue.push(doc);
+      continue;
+    }
     const date = new Date(`${doc.expiryDate}T00:00:00`);
     const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
     const existing = byMonth.get(key);
@@ -57,10 +76,12 @@ function buildSections(docs: TrackedDocument[]): Section[] {
     else byMonth.set(key, [doc]);
   }
 
-  return [...byMonth.entries()].map(([key, data]) => {
+  const months = [...byMonth.entries()].map(([key, data]) => {
     const [year, month] = key.split('-');
     return { title: `${MONTHS[Number(month)]} ${year}`, data };
   });
+
+  return overdue.length > 0 ? [{ title: 'Overdue', data: overdue }, ...months] : months;
 }
 
 /**
@@ -100,7 +121,12 @@ export default function HomeScreen() {
   );
 
   const sections = useMemo(() => buildSections(documents), [documents]);
-  const urgent = documents.filter((d) => daysUntil(d.expiryDate) <= 30);
+  const expired = documents.filter((d) => daysUntil(d.expiryDate) < 0);
+  const soon = documents.filter((d) => {
+    const days = daysUntil(d.expiryDate);
+    return days >= 0 && days <= 30;
+  });
+  const urgent = [...expired, ...soon];
   const allClear = urgent.length === 0;
   const next = useMemo(
     () => [...documents].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))[0],
@@ -128,11 +154,18 @@ export default function HomeScreen() {
                 <ThemedText type="label" themeColor="textTertiary">
                   {mastheadDate()}
                 </ThemedText>
+                {/*
+                 * Expired is a different fact from due soon, and saying "four
+                 * need you" flattens the one that is already costing money into
+                 * the three that are not.
+                 */}
                 {documents.length > 0 && (
                   <ThemedText type="verdict" style={styles.verdict}>
                     {allClear
                       ? 'All quiet.'
-                      : `${countWord(urgent.length)} need${urgent.length === 1 ? 's' : ''} you.`}
+                      : expired.length > 0
+                        ? `${countWord(expired.length)} expired.`
+                        : `${countWord(soon.length)} need${soon.length === 1 ? 's' : ''} you.`}
                   </ThemedText>
                 )}
                 {allClear && next && documents.length > 0 && (
@@ -177,14 +210,26 @@ export default function HomeScreen() {
               )}
             </View>
           }
-          renderSectionHeader={({ section }) => (
-            <View style={styles.monthHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
-                {section.title}
-              </ThemedText>
-              <View style={[styles.rule, { backgroundColor: theme.border }]} />
-            </View>
-          )}
+          renderSectionHeader={({ section }) => {
+            const overdue = section.title === 'Overdue';
+            return (
+              <View style={styles.monthHeader}>
+                <ThemedText
+                  type="label"
+                  themeColor={overdue ? undefined : 'textTertiary'}
+                  style={overdue ? { color: theme.urgentStrong } : undefined}>
+                  {section.title}
+                </ThemedText>
+                <View
+                  style={[
+                    styles.rule,
+                    { backgroundColor: overdue ? theme.urgentStrong : theme.border },
+                    overdue && styles.ruleStrong,
+                  ]}
+                />
+              </View>
+            );
+          }}
           renderItem={({ item }) => {
             const date = new Date(`${item.expiryDate}T00:00:00`);
             const days = daysUntil(item.expiryDate);
@@ -212,10 +257,30 @@ export default function HomeScreen() {
                       <ThemedText type="title" numberOfLines={1}>
                         {item.title}
                       </ThemedText>
+                      {/*
+                       * What this row cannot show any other way. The countdown
+                       * is the point of the app and was missing from the list
+                       * entirely, and "Expires this day" appeared under things
+                       * that expired a fortnight ago because it was written as
+                       * a filler for rows with nothing else to say.
+                       */}
                       <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
-                        {[item.owner, item.title.trim() === label ? null : label]
+                        {[
+                          /*
+                           * First, and only when it is close. The big date on
+                           * the left already says when; how long is what a
+                           * person needs when the answer is soon or already
+                           * past, and last in the line it was being truncated
+                           * away on every row.
+                           */
+                          days <= 30 ? countdownLabel(days) : null,
+                          item.owner,
+                          // A subscription's plan and price beat repeating its type.
+                          item.renewsEvery ? item.notes : null,
+                          item.title.trim() === label ? null : label,
+                        ]
                           .filter(Boolean)
-                          .join(' · ') || 'Expires this day'}
+                          .join(' · ')}
                       </ThemedText>
                     </View>
 
@@ -309,6 +374,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.two,
   },
   rule: { flex: 1, height: StyleSheet.hairlineWidth },
+  ruleStrong: { opacity: 0.4 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

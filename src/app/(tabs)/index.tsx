@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
+import { ensureBrandIcon, guessDomain } from '@/lib/brand-icons';
 import { useTheme } from '@/hooks/use-theme';
 import { urgencyColor } from '@/hooks/use-urgency';
 import {
@@ -132,6 +133,18 @@ export default function HomeScreen() {
     () => [...documents].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))[0],
     [documents]
   );
+
+  /*
+   * One pass over the subscriptions when the list appears, fetching any icon
+   * this phone has not got yet. ensureBrandIcon does nothing when the file is
+   * already there, so this costs one request per service, once, ever.
+   */
+  useEffect(() => {
+    for (const doc of documents) {
+      if (!doc.renewsEvery) continue;
+      void ensureBrandIcon(doc.iconDomain ?? guessDomain(doc.title));
+    }
+  }, [documents]);
 
   async function turnOnNotifications() {
     const granted = await ensureNotificationPermission();
@@ -287,7 +300,7 @@ export default function HomeScreen() {
                     <DocIcon
                       typeId={item.typeId}
                       attachment={item.files[0]}
-                      iconDomain={item.iconDomain}
+                      iconDomain={item.iconDomain ?? (item.renewsEvery ? guessDomain(item.title) : undefined)}
                       size={38}
                     />
                   </View>

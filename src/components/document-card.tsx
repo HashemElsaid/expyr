@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
 import { getDocumentType, labelFor } from '@/data/document-types';
+import { guessDomain } from '@/lib/brand-icons';
 import { useTheme } from '@/hooks/use-theme';
 import { useUrgency } from '@/hooks/use-urgency';
 import { countdownParts, daysUntil, formatDate } from '@/lib/dates';
@@ -29,7 +30,7 @@ export function DocumentCard({ doc, onPress }: { doc: TrackedDocument; onPress: 
         <ThemedView
           type={pressed ? 'backgroundSelected' : 'backgroundElement'}
           style={[styles.card, { borderColor: theme.border }]}>
-          <DocIcon typeId={doc.typeId} attachment={doc.files[0]} iconDomain={doc.iconDomain} />
+          <DocIcon typeId={doc.typeId} attachment={doc.files[0]} iconDomain={doc.iconDomain ?? (doc.renewsEvery ? guessDomain(doc.title) : undefined)} />
 
           <View style={styles.info}>
             <ThemedText type="title" numberOfLines={1}>

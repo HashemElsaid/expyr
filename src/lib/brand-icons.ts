@@ -24,6 +24,59 @@ function folder(): Directory {
   return dir;
 }
 
+/**
+ * The services whose name is not their website. Every one of these would
+ * otherwise fetch a stranger's logo: claude.com is not Anthropic, shahid.com is
+ * not MBC, and prime.com is not Amazon. Short on purpose — the guess below
+ * handles the long tail, and an import never needs either, because the model
+ * naming the site already knows what these are.
+ */
+const KNOWN: Record<string, string> = {
+  claude: 'claude.ai',
+  chatgpt: 'chatgpt.com',
+  openai: 'openai.com',
+  shahid: 'shahid.mbc.net',
+  prime: 'primevideo.com',
+  amazonprime: 'primevideo.com',
+  disney: 'disneyplus.com',
+  appletv: 'tv.apple.com',
+  icloud: 'icloud.com',
+  osn: 'osn.com',
+  du: 'du.ae',
+  etisalat: 'etisalat.ae',
+  eand: 'etisalat.ae',
+  twitter: 'x.com',
+  office: 'microsoft.com',
+  microsoft365: 'microsoft.com',
+};
+
+/**
+ * A domain worth trying for a subscription somebody typed in themselves.
+ *
+ * The import never needs this: the model reading the screenshot names the site
+ * because it knows what Anghami is. A hand-typed row has only a name, so this
+ * makes the obvious guess and lets it fail — nothing comes back, and the row
+ * keeps the tile it already had.
+ *
+ * Deliberately narrow, and only ever asked about subscriptions. A passport is
+ * not passport.com, "Gym" is not gym.com, and a stranger's logo on somebody's
+ * list is worse than no logo at all.
+ */
+export function guessDomain(title: string): string | undefined {
+  const plain = title.trim().toLowerCase();
+  // "Apple TV+" and "Amazon Prime" are known under one word.
+  const compact = plain.replace(/[^a-z0-9]/g, '');
+  if (KNOWN[compact]) return KNOWN[compact];
+
+  /*
+   * Everything else must be a single word to be guessed at. Squeezing the
+   * spaces out first turned "My gym membership" into mygymmembership.com,
+   * which is a request to a stranger about somebody's private list.
+   */
+  if (/\s/.test(plain)) return undefined;
+  return /^[a-z][a-z0-9]{3,19}$/.test(compact) ? `${compact}.com` : undefined;
+}
+
 /** Domains are already validated by the service; this keeps the filename sane. */
 function fileFor(domain: string): File {
   return new File(folder(), `${domain.toLowerCase().replace(/[^a-z0-9.-]/g, '')}.img`);

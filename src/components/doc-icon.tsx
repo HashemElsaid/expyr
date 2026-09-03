@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
 import { Radius } from '@/constants/theme';
@@ -22,6 +23,7 @@ type Props = {
  */
 export function DocIcon({ typeId, attachment, iconDomain, size = 46, tint }: Props) {
   const theme = useTheme();
+  const [brandFailed, setBrandFailed] = useState(false);
 
   /*
    * Before the photo, because a subscription has no photo and a service's own
@@ -29,12 +31,14 @@ export function DocIcon({ typeId, attachment, iconDomain, size = 46, tint }: Pro
    * its green circle long before you have read the word.
    */
   const brand = brandIconUri(iconDomain);
-  if (brand) {
+  if (brand && !brandFailed) {
     return (
       <Image
         source={{ uri: brand }}
         style={[styles.image, { width: size, height: size, borderRadius: Radius.small }]}
         resizeMode="contain"
+        // A guessed domain that turns out to have no icon falls back quietly.
+        onError={() => setBrandFailed(true)}
       />
     );
   }

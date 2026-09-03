@@ -57,6 +57,13 @@ export type Attachment = {
  */
 export type Visibility = 'private' | 'family';
 
+/**
+ * How often something charges itself. Set only for things that renew without
+ * anybody doing anything — a subscription bills again whether or not you deal
+ * with it, unlike a visa, which waits for you.
+ */
+export type Recurrence = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
 export type TrackedDocument = {
   id: string;
   typeId: DocumentTypeId;
@@ -78,6 +85,12 @@ export type TrackedDocument = {
   archivedAt?: string;
   /** Expiry dates this item has had before, oldest first. */
   history?: string[];
+  /**
+   * Set for subscriptions. The date rolls forward on its own once it passes,
+   * because the charge happened whether or not anyone opened the app — and a
+   * subscription tracker that needs to be told it renewed is a to-do list.
+   */
+  renewsEvery?: Recurrence;
   visibility: Visibility;
   /** Ids of scheduled local notifications, so they can be cancelled. */
   notificationIds: string[];

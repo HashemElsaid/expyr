@@ -390,6 +390,15 @@ export default function AddDocumentScreen() {
             icon="folder-open-outline"
             onPress={() => runScan('files')}
           />
+          {/*
+           * A different job from the others: one screenshot stands for every
+           * subscription somebody pays for, rather than one document.
+           */}
+          <SecondaryButton
+            label="Import my subscriptions"
+            icon="repeat-variant"
+            onPress={() => router.replace('/subscriptions')}
+          />
 
           <Pressable onPress={() => setStep('type')} style={styles.link}>
             <ThemedText type="small" themeColor="textTertiary">

@@ -11,7 +11,7 @@ import {
 } from 'react';
 
 import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
-import { daysUntil } from '@/lib/dates';
+import { daysUntil, toISODate } from '@/lib/dates';
 import { deleteAttachment, newAttachmentKey, storeAttachment } from '@/lib/files';
 import { newDocumentId } from '@/lib/ids';
 import { deleteReading } from '@/lib/reading';
@@ -48,6 +48,52 @@ const DocumentsContext = createContext<DocumentsContextValue | null>(null);
  * Fills in fields added after a document was first saved, so upgrading the app
  * never loses or breaks existing entries.
  */
+/**
+ * Moves a subscription's date past today, one period at a time, remembering
+ * the dates it has been. Nothing else in the app moves on its own: a visa sits
+ * expired until somebody deals with it, which is the point of the warning. A
+ * subscription has already taken the money and will take it again, so the only
+ * useful thing to show is the next time.
+ */
+function rollForward(doc: TrackedDocument): TrackedDocument {
+  if (!doc.renewsEvery || doc.archivedAt) return doc;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const next = new Date(`${doc.expiryDate}T00:00:00`);
+  if (Number.isNaN(next.getTime()) || next >= today) return doc;
+
+  /*
+   * The day of the month it charges on, kept for the whole journey. Adding a
+   * month to the 31st of January lands in March if you let the date do it
+   * itself, so each step moves whole months and then puts the day back, short
+   * months taking the last day they have.
+   */
+  const anchor = next.getDate();
+  const past: string[] = [];
+
+  // Guarded, so a nonsense date cannot spin here forever.
+  for (let i = 0; i < 400 && next < today; i += 1) {
+    past.push(toISODate(next));
+    if (doc.renewsEvery === 'weekly') {
+      next.setDate(next.getDate() + 7);
+      continue;
+    }
+    const months = doc.renewsEvery === 'monthly' ? 1 : doc.renewsEvery === 'quarterly' ? 3 : 12;
+    next.setDate(1);
+    next.setMonth(next.getMonth() + months);
+    const lastOfMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+    next.setDate(Math.min(anchor, lastOfMonth));
+  }
+
+  return {
+    ...doc,
+    // Local, not UTC: toISOString would hand back yesterday everywhere east of London.
+    expiryDate: toISODate(next),
+    history: [...(doc.history ?? []), ...past],
+  };
+}
+
 function migrate(raw: unknown): TrackedDocument | null {
   if (!raw || typeof raw !== 'object') return null;
   const doc = raw as Partial<TrackedDocument> & {
@@ -86,6 +132,7 @@ function migrate(raw: unknown): TrackedDocument | null {
     leadDays: doc.leadDays?.length ? doc.leadDays : getDocumentType(typeId).defaultLeadDays,
     archivedAt: doc.archivedAt,
     history: doc.history,
+    renewsEvery: doc.renewsEvery,
     visibility: doc.visibility ?? 'private',
     notificationIds: doc.notificationIds ?? [],
     createdAt: doc.createdAt ?? new Date().toISOString(),
@@ -141,7 +188,32 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         if (!source) return;
         const parsed: unknown = JSON.parse(source);
         if (!Array.isArray(parsed)) return;
-        const migrated = parsed.map(migrate).filter((d): d is TrackedDocument => d !== null);
+        const loaded = parsed.map(migrate).filter((d): d is TrackedDocument => d !== null);
+
+        /*
+         * Anything whose date moved is carrying reminders for a charge that has
+         * already happened. They are rebooked against the new date, after the
+         * list is on screen — the app should not wait on notification work to
+         * show somebody their own documents.
+         */
+        const moved = new Set<string>();
+        const migrated = loaded.map((doc) => {
+          const advanced = rollForward(doc);
+          if (advanced !== doc) moved.add(doc.id);
+          return advanced;
+        });
+        if (moved.size > 0) {
+          setTimeout(async () => {
+            const rebooked = await Promise.all(
+              latest.current.map(async (doc) => {
+                if (!moved.has(doc.id)) return doc;
+                await cancelReminders(doc.notificationIds);
+                return { ...doc, notificationIds: await scheduleReminders(doc, country.current) };
+              })
+            );
+            commit(rebooked);
+          }, 0);
+        }
         latest.current = migrated;
         setDocuments(migrated);
         if (!raw) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated)).catch(() => {});

@@ -224,6 +224,7 @@ function AppShell() {
         <Stack.Screen name="archive" options={{ title: 'Archive' }} />
         <Stack.Screen name="location" options={{ title: 'Where you live' }} />
         <Stack.Screen name="data" options={{ title: 'Your data' }} />
+        <Stack.Screen name="subscriptions" options={{ title: 'Subscriptions' }} />
         <Stack.Screen name="about" options={{ title: 'About Expyr' }} />
         <Stack.Screen
           name="onboarding"

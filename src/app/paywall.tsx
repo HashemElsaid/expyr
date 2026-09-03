@@ -17,7 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { PLANS, purchase, restore } from '@/lib/purchases';
+import { plans, purchase, restore } from '@/lib/purchases';
 import { FREE_ITEM_LIMIT, FREE_READ_LIMIT, FREE_SCAN_LIMIT } from '@/store/settings';
 
 /** Shorter than the word, and it reads the same in any language. */
@@ -38,7 +38,12 @@ export default function PaywallScreen() {
   const theme = useTheme();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const plan = PLANS[0];
+  /*
+   * Read once per render rather than at module load, so the price follows the
+   * phone's region — and, once StoreKit is wired, the storefront's own
+   * formatted price rather than anything written here.
+   */
+  const plan = plans()[0];
 
   /*
    * Normally this modal sits on top of Settings, but it can also be the first

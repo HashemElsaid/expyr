@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { PLANS } from '@/lib/purchases';
+import { plans } from '@/lib/purchases';
 
 /** Apple's standard licence, which these terms sit on top of. */
 const APPLE_EULA = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
@@ -38,7 +38,7 @@ const SECTIONS: { title: string; body: string }[] = [
 
 export default function TermsScreen() {
   const theme = useTheme();
-  const plan = PLANS[0];
+  const plan = plans()[0];
 
   return (
     <ThemedView style={styles.container}>

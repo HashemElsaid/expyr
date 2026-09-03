@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage } from 'node:http';
 
 import { askDocument, briefDocument, readDocument } from './comprehend.ts';
+import { readSubscriptions } from './subscriptions.ts';
 import { extractFromImage, type Category, type SupportedMediaType } from './extract.ts';
 import { BUCKETS, checkRateLimit, withinDailyBudget, withinInstallBudget } from './rate-limit.ts';
 import { canIssueTokens, issueInstallToken, verifyInstallToken } from './install-token.ts';
@@ -206,7 +207,7 @@ const server = createServer(async (req, res) => {
   }
 
   const route = (req.url ?? '').split('?')[0];
-  const ROUTES = ['/extract', '/read', '/brief', '/ask', '/register'];
+  const ROUTES = ['/extract', '/read', '/brief', '/ask', '/subscriptions', '/register'];
   if (req.method !== 'POST' || !ROUTES.includes(route)) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
@@ -313,6 +314,20 @@ const server = createServer(async (req, res) => {
       console.log(`read → ${text.length} chars in ${Date.now() - started}ms`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ text }));
+      return;
+    }
+
+    if (route === '/subscriptions') {
+      const { fileBase64, mediaType } = parseReadRequest(raw);
+      if (mediaType === 'application/pdf') throw new Error('Send a screenshot, not a PDF');
+      const today = new Date().toISOString().slice(0, 10);
+      const found = await readSubscriptions({ imageBase64: fileBase64, mediaType, today });
+      // The names and prices are the user's business; only the count is logged.
+      console.log(
+        `subscriptions → ${found.subscriptions.length} found in ${Date.now() - started}ms`
+      );
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(found));
       return;
     }
 

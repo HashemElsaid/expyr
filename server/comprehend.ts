@@ -13,7 +13,7 @@ import { z } from 'zod';
  */
 
 let cachedClient: Anthropic | null = null;
-function getClient(): Anthropic {
+export function getClient(): Anthropic {
   if (!cachedClient) {
     const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
     cachedClient = new Anthropic(
@@ -45,7 +45,7 @@ const BRIEF_MODEL = process.env.EXPYR_BRIEF_MODEL ?? 'claude-sonnet-5';
 const ASK_MODEL = process.env.EXPYR_ASK_MODEL ?? 'claude-haiku-4-5';
 
 /** Adaptive thinking is rejected outright by the older small models. */
-const THINKING_CAPABLE = [
+export const THINKING_CAPABLE = [
   'claude-fable-5',
   'claude-opus-5',
   'claude-sonnet-5',
@@ -57,7 +57,7 @@ const THINKING_CAPABLE = [
 
 export type SupportedMediaType = 'image/jpeg' | 'image/png' | 'application/pdf';
 
-function attachmentBlock(base64: string, mediaType: SupportedMediaType) {
+export function attachmentBlock(base64: string, mediaType: SupportedMediaType) {
   return mediaType === 'application/pdf'
     ? ({
         type: 'document',

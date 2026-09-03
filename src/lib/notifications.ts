@@ -67,18 +67,26 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return request.granted;
 }
 
-/** The hour and minute of day the user chose for every reminder. */
-export type ReminderTime = { hour: number; minute: number };
-
-const DEFAULT_TIME: ReminderTime = { hour: 9, minute: 0 };
+/**
+ * When every reminder arrives, for everybody.
+ *
+ * Nine in the morning is the hour this particular message can be acted on: the
+ * typing centres and service centres are open, the insurer answers the phone,
+ * and it is early enough that the day has not buried it yet. Earlier competes
+ * with the alarm and the commute; the evening arrives after everything that
+ * could be done about it has closed.
+ *
+ * If this ever becomes the user's to choose, it becomes a stored setting again
+ * and this constant is the default.
+ */
+export const REMINDER_TIME = { hour: 9, minute: 0 } as const;
 
 /**
- * Schedules one reminder per lead day at the chosen time, skipping any that
+ * Schedules one reminder per lead day at REMINDER_TIME, skipping any that
  * would already be in the past. Returns the scheduled notification ids.
  */
 export async function scheduleReminders(
   doc: TrackedDocument,
-  time: ReminderTime = DEFAULT_TIME,
   country: Country | null = null
 ): Promise<string[]> {
   if (Platform.OS === 'web') return [];
@@ -92,7 +100,7 @@ export async function scheduleReminders(
   for (const lead of doc.leadDays) {
     if (daysLeft < lead) continue;
     const fireDate = new Date(`${doc.expiryDate}T00:00:00`);
-    fireDate.setHours(time.hour, time.minute, 0, 0);
+    fireDate.setHours(REMINDER_TIME.hour, REMINDER_TIME.minute, 0, 0);
     fireDate.setDate(fireDate.getDate() - lead);
     if (fireDate.getTime() <= Date.now()) continue;
 

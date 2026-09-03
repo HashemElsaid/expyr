@@ -24,6 +24,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { newAttachmentKey } from '@/lib/files';
+import { REMINDER_TIME } from '@/lib/notifications';
 import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
 import { readInBackground } from '@/lib/reading';
@@ -111,7 +112,7 @@ export default function AddDocumentScreen() {
     [documents]
   );
 
-  const reminderAt = formatTime(settings.reminderHour, settings.reminderMinute);
+  const reminderAt = formatTime(REMINDER_TIME.hour, REMINDER_TIME.minute);
 
   /** The actual dates the reminders will arrive — more useful than day counts. */
   const nudgeSummary = useMemo(() => {

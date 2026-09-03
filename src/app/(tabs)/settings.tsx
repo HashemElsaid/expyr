@@ -6,7 +6,6 @@ import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Vi
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { TimeSelect } from '@/components/time-select';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -16,8 +15,10 @@ import {
   countScheduled,
   ensureNotificationPermission,
   getNotificationPermission,
+  REMINDER_TIME,
   sendTestReminder,
 } from '@/lib/notifications';
+import { formatTime } from '@/lib/dates';
 import { countryLabel, type Country } from '@/data/countries';
 import { emirateLabel, type Emirate } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
@@ -42,7 +43,6 @@ export default function SettingsScreen() {
   const { settings, update } = useSettings();
   const { documents, rescheduleAll, replaceAll, deleteEverything } = useDocuments();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
-  const [rescheduling, setRescheduling] = useState(false);
   const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
   const [busy, setBusy] = useState<string | null>(null);
   const [testState, setTestState] = useState<'idle' | 'sent'>('idle');
@@ -51,7 +51,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     countScheduled().then(setBookedWithIOS).catch(() => {});
-  }, [notificationsOn, settings.reminderHour, settings.reminderMinute, documents.length]);
+  }, [notificationsOn, documents.length]);
 
   useEffect(() => {
     checkBiometricSupport().then(setBiometrics).catch(() => {});
@@ -137,17 +137,7 @@ export default function SettingsScreen() {
     }
   }
 
-  async function changeTime({ hour, minute }: { hour: number; minute: number }) {
-    if (hour === settings.reminderHour && minute === settings.reminderMinute) return;
-    update({ reminderHour: hour, reminderMinute: minute });
-    setRescheduling(true);
-    // The stored time is read through a ref, so this picks up the new value.
-    setTimeout(async () => {
-      await rescheduleAll();
-      setRescheduling(false);
-    }, 0);
-  }
-
+  const reminderAt = formatTime(REMINDER_TIME.hour, REMINDER_TIME.minute);
   const scheduledCount = documents.reduce((sum, d) => sum + d.notificationIds.length, 0);
   const peopleCount = new Set(documents.map((d) => d.owner ?? '')).size || 1;
   const renewalsRecorded = documents.reduce((sum, d) => sum + (d.history?.length ?? 0), 0);
@@ -241,7 +231,7 @@ export default function SettingsScreen() {
                 notificationsOn === null
                   ? 'Checking…'
                   : notificationsOn
-                    ? `${scheduledCount} reminder${scheduledCount === 1 ? '' : 's'} booked across ${documents.length} item${documents.length === 1 ? '' : 's'}.`
+                    ? `${scheduledCount} reminder${scheduledCount === 1 ? '' : 's'} booked across ${documents.length} item${documents.length === 1 ? '' : 's'}, each at ${reminderAt}.`
                     : 'Expyr cannot warn you about anything until these are allowed.'
               }
               action={
@@ -271,21 +261,6 @@ export default function SettingsScreen() {
                   },
                 }}
               />
-            )}
-
-            {/*
-             * The time is on the row itself, so the only thing left to say is
-             * the one thing the row cannot show: that the change is landing.
-             */}
-            <TimeSelect
-              hour={settings.reminderHour}
-              minute={settings.reminderMinute}
-              onChange={changeTime}
-            />
-            {rescheduling && (
-              <ThemedText type="small" themeColor="textTertiary">
-                Rebooking your reminders…
-              </ThemedText>
             )}
           </Section>
 

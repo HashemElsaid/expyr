@@ -29,11 +29,22 @@ function fileFor(domain: string): File {
   return new File(folder(), `${domain.toLowerCase().replace(/[^a-z0-9.-]/g, '')}.img`);
 }
 
-/** The stored icon for a domain, or null when there is not one yet. */
+/**
+ * The stored icon for a domain, or null when there is not one yet.
+ *
+ * The web build has no private storage to keep files in, so it points straight
+ * at the service and lets the browser's own cache do the keeping. Same request,
+ * same privacy — it still goes through Expyr rather than to Google — and it
+ * means the preview shows what the phone will show.
+ */
 export function brandIconUri(domain?: string): string | null {
-  if (!domain || Platform.OS === 'web') return null;
+  if (!domain) return null;
+  const clean = domain.toLowerCase();
+  if (Platform.OS === 'web') {
+    return `${serviceBase()}/icon?domain=${encodeURIComponent(clean)}`;
+  }
   try {
-    const file = fileFor(domain);
+    const file = fileFor(clean);
     return file.exists ? file.uri : null;
   } catch {
     return null;

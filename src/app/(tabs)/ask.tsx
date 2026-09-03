@@ -1,15 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -17,7 +10,9 @@ import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
-import { askDocuments, readable, type Turn } from '@/lib/reading';
+import { askDocuments, hasReading, readable, type Turn } from '@/lib/reading';
+import { labelForId } from '@/data/document-types';
+import { longDate } from '@/lib/dates';
 import { useDocuments } from '@/store/documents';
 import { askAllowance, useSettings } from '@/store/settings';
 
@@ -26,6 +21,13 @@ import { askAllowance, useSettings } from '@/store/settings';
  * worth asking of almost any paperwork, and they double as a demonstration of
  * what the thing can do.
  */
+/**
+ * What it is doing, said in order. A question takes ten seconds or so against a
+ * warm service, and a screen that shows nothing for ten seconds looks broken —
+ * so it says which part of the work it has reached rather than spinning.
+ */
+const WORKING = ['Reading your papers', 'Looking for the clause', 'Checking the wording'];
+
 const STARTERS = [
   'What will cost me money?',
   'What am I not allowed to do?',
@@ -42,10 +44,47 @@ export default function AskScreen() {
   const allowance = askAllowance(settings);
   const scroller = useRef<ScrollView>(null);
 
+  /*
+   * The keyboard covers the tab bar, so lifting the composer by the whole
+   * keyboard leaves a band of empty page exactly the height of the bar. Lift by
+   * the difference instead. KeyboardAvoidingView cannot know about the bar,
+   * which is why it left that gap.
+   */
+  const tabBarHeight = useBottomTabBarHeight();
+  const [keyboard, setKeyboard] = useState(0);
+  useEffect(() => {
+    const shown = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => setKeyboard(event.endCoordinates.height)
+    );
+    const hidden = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboard(0)
+    );
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
+  const lift = Math.max(0, keyboard - tabBarHeight);
+
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
+  /** The question already sent, held until its answer arrives. */
+  const [pending, setPending] = useState<string | null>(null);
+  const [working, setWorking] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Moves through the stages while the answer is being formed.
+  useEffect(() => {
+    if (!busy) {
+      setWorking(0);
+      return;
+    }
+    const timer = setInterval(() => setWorking((n) => (n + 1) % WORKING.length), 2600);
+    return () => clearInterval(timer);
+  }, [busy]);
 
   /*
    * Everything Expyr has read, or one document when the question was started
@@ -57,6 +96,27 @@ export default function AskScreen() {
   const asking = useMemo(
     () => (scoped ? [scoped] : pool).map((doc) => ({ id: doc.id, title: doc.title })),
     [scoped, pool]
+  );
+
+  /*
+   * Expyr's own file, one line per item, whether or not it has been read. The
+   * app knew the tenancy expires in March and had no way to say so, because the
+   * only thing it sent was the text of documents it had transcribed.
+   */
+  const records = useMemo(
+    () =>
+      [...documents, ...archived].map((doc) => {
+        const parts = [
+          labelForId(doc.typeId, settings.country),
+          `expires ${longDate(doc.expiryDate)}`,
+          doc.owner ? `belongs to ${doc.owner}` : 'the phone owner’s',
+          doc.documentNumber ? `number ${doc.documentNumber}` : '',
+          hasReading(doc.id) ? 'read in full' : 'not read yet, so its wording is not available',
+          doc.archivedAt ? 'archived' : '',
+        ].filter(Boolean);
+        return `${doc.title}: ${parts.join(', ')}`;
+      }),
+    [documents, archived, settings.country]
   );
 
   // A different set of documents is a different conversation.
@@ -77,30 +137,35 @@ export default function AskScreen() {
     tapFeedback();
     setQuestion('');
     setError(null);
+    // On screen before the request leaves, where the person put it.
+    setPending(trimmed);
     setBusy(true);
     requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
     try {
-      const answer = await askDocuments(asking, trimmed, turns);
+      const answer = await askDocuments(asking, trimmed, turns, records);
       setTurns((current) => [...current, { question: trimmed, answer }]);
       // Only an answer is counted: a failure delivered nothing.
       update(allowance.spend());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That did not work. Try again.');
     } finally {
+      setPending(null);
       setBusy(false);
       requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
     }
   }
 
-  const nothingRead = pool.length === 0;
+  /*
+   * Nothing to go on at all — not one item tracked. Having items but no
+   * readings is a perfectly good place to ask from: the dates are answerable
+   * even when the wording is not.
+   */
+  const nothingRead = records.length === 0;
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}>
+        <View style={[styles.flex, { paddingBottom: lift }]}>
           <View style={styles.header}>
             <ThemedText type="display">Expyr AI</ThemedText>
             {scoped ? (
@@ -127,7 +192,7 @@ export default function AskScreen() {
                 <ThemedText type="label" themeColor="textTertiary">
                   {allowance.left <= 5
                     ? `${allowance.left} question${allowance.left === 1 ? '' : 's'} left today`
-                    : `${pool.length} document${pool.length === 1 ? '' : 's'} read`}
+                    : `${pool.length} of ${records.length} read`}
                 </ThemedText>
               )
             )}
@@ -244,11 +309,18 @@ export default function AskScreen() {
               </View>
             ))}
 
-            {busy && (
-              <View style={styles.reply}>
-                <ThemedText type="body" themeColor="textTertiary">
-                  Expyr AI is reading…
-                </ThemedText>
+            {pending && (
+              <View style={styles.turn}>
+                <View style={styles.askedRow}>
+                  <View style={[styles.asked, { backgroundColor: theme.backgroundSelected }]}>
+                    <ThemedText type="body">{pending}</ThemedText>
+                  </View>
+                </View>
+                <View style={styles.reply}>
+                  <ThemedText type="body" themeColor="textTertiary">
+                    {WORKING[working]}…
+                  </ThemedText>
+                </View>
               </View>
             )}
 
@@ -342,7 +414,7 @@ export default function AskScreen() {
               </View>
             </View>
           )}
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
     </ThemedView>
   );

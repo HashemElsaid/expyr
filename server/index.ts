@@ -116,17 +116,30 @@ const MAX_ASK_DOCUMENTS = 12;
  */
 const MAX_ASK_CHARS = 150_000;
 
+/** One line per tracked item; enough for a household, capped so it stays small. */
+const MAX_RECORDS = 60;
+const MAX_RECORD_CHARS = 300;
+
 function parseAskRequest(raw: string): {
   documents: { title: string; text: string }[];
+  records: string[];
   question: string;
   history: { question: string; answer: string }[];
 } {
   const body = JSON.parse(raw) as {
     text?: unknown;
     documents?: unknown;
+    records?: unknown;
     question?: unknown;
     history?: unknown;
   };
+
+  const records = Array.isArray(body.records)
+    ? body.records
+        .filter((r): r is string => typeof r === 'string' && r.trim().length > 0)
+        .slice(0, MAX_RECORDS)
+        .map((r) => r.slice(0, MAX_RECORD_CHARS))
+    : [];
 
   /*
    * One document arrives as `text`, a whole file of them as `documents`. Both
@@ -143,9 +156,14 @@ function parseAskRequest(raw: string): {
           (d as { text: string }).text.trim().length > 0
       )
       .slice(0, MAX_ASK_DOCUMENTS);
-    if (documents.length === 0) throw new Error('documents is required');
+    // A question about dates needs no transcript, only Expyr's own file.
+    if (documents.length === 0 && records.length === 0) {
+      throw new Error('documents is required');
+    }
     const total = documents.reduce((sum, d) => sum + d.text.length, 0);
     if (total > MAX_ASK_CHARS) throw new Error('That is more text than we can read at once');
+  } else if (records.length > 0 && body.text === undefined) {
+    documents = [];
   } else {
     documents = [{ title: '', text: parseText(raw) }];
   }
@@ -167,7 +185,7 @@ function parseAskRequest(raw: string): {
         .slice(-6)
     : [];
 
-  return { documents, question: body.question.trim(), history };
+  return { documents, records, question: body.question.trim(), history };
 }
 
 const server = createServer(async (req, res) => {
@@ -309,8 +327,8 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const { documents, question, history } = parseAskRequest(raw);
-    const answer = await askDocument({ documents, question, history });
+    const { documents, records, question, history } = parseAskRequest(raw);
+    const answer = await askDocument({ documents, records, question, history });
     // The question and answer are the user's business, so only the shape is logged.
     console.log(
       `ask → ${documents.length} document(s), answered=${answer.answered} in ${Date.now() - started}ms`

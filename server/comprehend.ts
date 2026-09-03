@@ -200,41 +200,49 @@ export const AnswerSchema = z.object({
 
 export type Answer = z.infer<typeof AnswerSchema>;
 
-const ASK_SYSTEM = `You answer questions about a document somebody has signed, for Expyr. Most users live in the UAE.
-
-You have the full text. Answer only from it.
-
-- When the document answers the question: set answered true, give the answer in plain language, copy the exact wording into "quote", and put the clause or section into "where".
-- When the document does not address it: set answered false and say so plainly in "answer". Leave quote and where empty. Do not reason from what such documents usually contain, do not infer from silence, and do not offer what is likely. Silence is a real and useful answer, because it tells the person the paper does not restrict them, which is a different thing from the paper permitting them.
-- Never give legal advice and never tell the person what they may or may not do. Report what the document says and let them decide.
-- Keep the answer to a few sentences. Quote the clause rather than paraphrasing it at length.
-- Where the document is ambiguous, say what it says and name the ambiguity rather than resolving it.
-- Leave "source" empty. There is only one document here.`;
-
 /**
- * The same rules, over somebody's whole file of papers. The difference that
- * matters is attribution: an answer that does not say which document it came
- * from cannot be checked, and two contracts can say opposite things without
- * either being wrong.
+ * One prompt, whether there is one document or a household's worth.
+ *
+ * It answers from two things, and the difference between them matters. Expyr's
+ * file is a line per tracked item — what it is, when it expires, whose it is —
+ * and those dates were scanned or entered by the person, so they are the right
+ * answer to "when does my tenancy expire" even when no contract text says it.
+ * The transcripts are the authority on what a document actually says. Losing
+ * that distinction is how an assistant either invents clauses or, as this one
+ * did, claims not to know something the app had written down.
  */
-const ASK_ACROSS_SYSTEM = `You answer questions about the documents somebody has signed, for Expyr. Most users live in the UAE.
+const ASK_SYSTEM = `You answer questions about somebody's own documents, for Expyr. Most users live in the UAE.
 
-You have the full text of several documents, each under a heading with its name. Answer only from them.
+You are given two things.
 
-- When a document answers the question: set answered true, give the answer in plain language, copy the exact wording into "quote", put the clause or section into "where", and put the document's name into "source".
-- When more than one document is relevant, answer from the one that addresses the question most directly and name it. If two documents genuinely conflict, say so and name both in "answer".
-- When none of them address it: set answered false and say so plainly in "answer". Leave quote, where and source empty. Do not reason from what such documents usually contain, do not infer from silence, and do not offer what is likely. Silence is a real and useful answer, because it tells the person their papers do not restrict them, which is a different thing from their papers permitting them.
-- Never give legal advice and never tell the person what they may or may not do. Report what the documents say and let them decide.
+1. Expyr's file: one line for every item this person tracks — what it is, when it expires, whose it is, and whether its full text has been read. These dates and names came from their own documents and are reliable.
+2. The full text of the documents that have been read. Some tracked items will not be here.
+
+Answer only from those two, and know which one you are using.
+
+- A question about when something expires, whose it is, its number, or what is being tracked: answer from the file. Set answered true, and leave "quote" empty, because a record is not a clause. Give the date as it is written in the file.
+- "source" is only ever the item's name — the words before the colon in the file, such as "Marina Heights tenancy". Never the type, the date, or the whole line.
+- A question about what a document says: answer from its text. Set answered true, put the answer in plain language, copy the exact wording into "quote", and put the clause or section into "where".
+- A question about what a document says when that document is in the file but its text is not here: say you know when it expires but have not read it, and that reading it in Expyr would let you answer questions about its wording. Set answered false and name it in "source".
+- A question neither the file nor the text covers: set answered false and say so plainly. Leave quote and where empty. Do not reason from what such documents usually contain, do not infer from silence, and do not offer what is likely. Silence is a real and useful answer, because it tells the person their papers do not restrict them, which is a different thing from their papers permitting them.
+- Where several documents are relevant, answer from the one that addresses the question most directly and name it. If two genuinely conflict, say so and name both.
+- Never give legal advice and never tell the person what they may or may not do. Report what their papers say and let them decide.
 - Keep the answer to a few sentences. Quote the clause rather than paraphrasing it at length.
 - Where a document is ambiguous, say what it says and name the ambiguity rather than resolving it.`;
 
 export async function askDocument(opts: {
   documents: { title: string; text: string }[];
+  /**
+   * Expyr's own file: one line per tracked item, including the ones never read.
+   * Dates in here were scanned or typed by the person, so they are the best
+   * answer to "when does it expire" even when no contract text mentions it.
+   */
+  records?: string[];
   question: string;
   history?: { question: string; answer: string }[];
 }): Promise<Answer> {
   const model = ASK_MODEL;
-  const across = opts.documents.length > 1;
+  const across = opts.documents.length !== 1;
   /*
    * The whole file of papers goes in one cached block, so a conversation of
    * ten questions pays to read them once rather than ten times.
@@ -242,6 +250,16 @@ export async function askDocument(opts: {
   const corpus = across
     ? opts.documents.map((doc) => `=== ${doc.title} ===\n\n${doc.text}`).join('\n\n\n')
     : (opts.documents[0]?.text ?? '');
+  /*
+   * Expyr's own file goes in first, and goes in even when there is no document
+   * text at all. It is what lets the app answer "when does my tenancy expire"
+   * about a contract it has never read, which it always knew and could not say.
+   */
+  const file = opts.records?.length
+    ? `Expyr's file — everything this person tracks:\n${opts.records
+        .map((record) => `- ${record}`)
+        .join('\n')}\n\n`
+    : '';
   const priorTurns = (opts.history ?? []).flatMap((turn) => [
     { role: 'user' as const, content: turn.question },
     { role: 'assistant' as const, content: turn.answer },
@@ -250,7 +268,7 @@ export async function askDocument(opts: {
   const response = await getClient().messages.parse({
     model,
     max_tokens: 4000,
-    system: across ? ASK_ACROSS_SYSTEM : ASK_SYSTEM,
+    system: ASK_SYSTEM,
     ...(THINKING_CAPABLE.includes(model) ? { thinking: { type: 'adaptive' as const } } : {}),
     output_config: { format: zodOutputFormat(AnswerSchema) },
     messages: [
@@ -259,9 +277,11 @@ export async function askDocument(opts: {
         content: [
           {
             type: 'text',
-            text: across
-              ? `Here are the documents:\n\n${corpus}`
-              : `Here is the document:\n\n${corpus}`,
+            text: !corpus
+              ? `${file}No document text this time — answer from the file above.`
+              : across
+                ? `${file}Here are the documents that have been read:\n\n${corpus}`
+                : `${file}Here is the document that has been read:\n\n${corpus}`,
             cache_control: { type: 'ephemeral' },
           },
           {

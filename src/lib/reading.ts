@@ -324,17 +324,27 @@ export function readable<T extends { id: string }>(documents: T[]): T[] {
 export async function askDocuments(
   entries: { id: string; title: string }[],
   question: string,
-  history: Turn[]
+  history: Turn[],
+  /*
+   * Everything Expyr tracks, in one line each — including the items it has
+   * never read. Their dates were scanned or typed by the user, so they are the
+   * right answer to "when does my tenancy expire" even when no transcript
+   * mentions it, and without them the app knows something it will not say.
+   */
+  records: string[] = []
 ): Promise<Answer> {
   const documents = entries
     .slice(0, MAX_ASK_DOCUMENTS)
     .map((entry) => ({ title: entry.title, text: loadTranscript(entry.id) }))
     .filter((doc): doc is { title: string; text: string } => Boolean(doc.text));
 
-  if (documents.length === 0) throw new Error('Nothing has been read yet.');
+  if (documents.length === 0 && records.length === 0) {
+    throw new Error('There is nothing to ask about yet.');
+  }
 
   return post<Answer>('/ask', {
     documents,
+    records,
     /*
      * The same question in the shape the old service understands. A phone
      * updates the moment it opens the App Store; the service updates when

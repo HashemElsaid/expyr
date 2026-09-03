@@ -215,6 +215,7 @@ function AppShell() {
         <Stack.Screen name="terms" options={{ title: 'Terms' }} />
         <Stack.Screen name="archive" options={{ title: 'Archive' }} />
         <Stack.Screen name="household" options={{ title: 'Household' }} />
+        <Stack.Screen name="location" options={{ title: 'Where you live' }} />
         <Stack.Screen
           name="onboarding"
           options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }}

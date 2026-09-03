@@ -17,8 +17,8 @@ import {
   getNotificationPermission,
   sendTestReminder,
 } from '@/lib/notifications';
-import { COUNTRIES, usesEmirates } from '@/data/countries';
-import { EMIRATES } from '@/data/regions';
+import { countryLabel, type Country } from '@/data/countries';
+import { emirateLabel, type Emirate } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
 import { useSettings, type ThemePreference } from '@/store/settings';
 
@@ -28,6 +28,13 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
 ];
+
+/** The one line the location row shows in place of the pickers. */
+function whereYouLive(settings: { country: Country | null; emirate: Emirate | null }): string {
+  if (!settings.country) return 'Not set yet';
+  const country = countryLabel(settings.country);
+  return settings.emirate ? `${emirateLabel(settings.emirate)}, ${country}` : country;
+}
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -199,81 +206,30 @@ export default function SettingsScreen() {
             </Section>
           )}
 
+          {/*
+           * Answered once during onboarding and rarely thought about again, so
+           * it states the answer and keeps the fourteen chips behind it.
+           */}
           <Section title="Where you live">
-            <View style={styles.chipRow}>
-              {COUNTRIES.map((option) => {
-                const on = settings.country === option.value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    onPress={() =>
-                      update(
-                        option.value === 'ae'
-                          ? { country: option.value }
-                          : { country: option.value, emirate: null }
-                      )
-                    }>
-                    <View
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: on ? theme.accent : 'transparent',
-                          borderColor: on ? theme.accent : theme.border,
-                        },
-                      ]}>
-                      <ThemedText
-                        type="smallBold"
-                        style={on ? { color: theme.accentContrast } : undefined}>
-                        {option.label}
-                      </ThemedText>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {usesEmirates(settings.country) && (
-              <>
-                <View style={styles.chipRow}>
-                  {EMIRATES.map((option) => {
-                    const on = settings.emirate === option.value;
-                    return (
-                      <Pressable
-                        key={option.value}
-                        onPress={() => update({ emirate: option.value })}>
-                        <View
-                          style={[
-                            styles.chip,
-                            {
-                              backgroundColor: on ? theme.accent : 'transparent',
-                              borderColor: on ? theme.accent : theme.border,
-                            },
-                          ]}>
-                          <ThemedText
-                            type="smallBold"
-                            style={on ? { color: theme.accentContrast } : undefined}>
-                            {option.label}
-                          </ThemedText>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
+            <Pressable onPress={() => router.push('/location')} accessibilityRole="button">
+              {({ pressed }) => (
+                <View style={[styles.row, pressed && styles.pressed]}>
+                  <MaterialCommunityIcons
+                    name="map-marker-outline"
+                    size={20}
+                    color={theme.textSecondary}
+                  />
+                  <View style={styles.rowBody}>
+                    <ThemedText type="bodyMedium">{whereYouLive(settings)}</ThemedText>
+                  </View>
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={theme.textTertiary}
+                  />
                 </View>
-                <ThemedText type="small" themeColor="textTertiary">
-                  {settings.emirate
-                    ? 'Renewal steps and portals follow your emirate. Vehicles and licences are run locally, not federally.'
-                    : 'Pick your emirate and Expyr will point you at the right authority.'}
-                </ThemedText>
-              </>
-            )}
-
-            {!usesEmirates(settings.country) && (
-              <ThemedText type="small" themeColor="textTertiary">
-                {settings.country
-                  ? 'Expyr tracks your dates anywhere. Renewal steps, costs and fines are verified for the UAE only, so they stay hidden here rather than being guessed.'
-                  : 'Set this so Expyr knows whether it can tell you how to renew things where you are.'}
-              </ThemedText>
-            )}
+              )}
+            </Pressable>
           </Section>
 
           <Section title="Reminders">

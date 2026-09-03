@@ -28,6 +28,11 @@ export const EMIRATES: { value: Emirate; label: string }[] = [
   { value: 'fujairah', label: 'Fujairah' },
 ];
 
+/** How an emirate is written wherever the app has to name it. */
+export function emirateLabel(emirate: Emirate): string {
+  return EMIRATES.find((e) => e.value === emirate)?.label ?? 'the UAE';
+}
+
 type Authority = { name: string; url: string };
 
 /** Who runs vehicle registration and driving licences in each emirate. */

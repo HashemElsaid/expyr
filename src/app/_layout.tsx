@@ -7,6 +7,7 @@ import { Stack, useRouter, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef } from 'react';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { LockGate } from '@/components/lock-gate';
@@ -95,25 +96,29 @@ export default function RootLayout() {
   );
 }
 
-function ModalCancelButton() {
+/**
+ * The way out of the add sheet.
+ *
+ * It used to be the word "Cancel", which sat immediately beside the title and
+ * left the two reading as one line — "Cancel New entry". A cross says the same
+ * thing in the space of a glyph, matches the close on the paywall sheet, and
+ * leaves the title the middle of the bar to itself.
+ */
+function ModalCloseButton() {
   const theme = useTheme();
   const router = useRouter();
   return (
     <Pressable
       onPress={() => router.back()}
-      hitSlop={12}
+      hitSlop={16}
       accessibilityRole="button"
       accessibilityLabel="Cancel">
       {({ pressed }) => (
-        <Text
-          style={{
-            fontFamily: Fonts.body,
-            fontSize: 17,
-            color: theme.accent,
-            opacity: pressed ? 0.6 : 1,
-          }}>
-          Cancel
-        </Text>
+        <MaterialCommunityIcons
+          name="close"
+          size={24}
+          color={pressed ? theme.text : theme.textSecondary}
+        />
       )}
     </Pressable>
   );
@@ -198,6 +203,7 @@ function AppShell() {
           headerTintColor: theme.accent,
           headerTitleStyle: { fontFamily: Fonts.bodyMedium, fontSize: 17, color: theme.text },
           headerShadowVisible: false,
+          headerTitleAlign: 'center',
           contentStyle: { backgroundColor: theme.background },
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -206,8 +212,10 @@ function AppShell() {
           options={{
             presentation: 'modal',
             title: 'Add',
+            // Centred so the title never runs into the button beside it.
+            headerTitleAlign: 'center',
             // A modal needs a visible way out; swiping down is not discoverable.
-            headerLeft: () => <ModalCancelButton />,
+            headerLeft: () => <ModalCloseButton />,
           }}
         />
         <Stack.Screen name="document/[id]" options={{ title: '' }} />

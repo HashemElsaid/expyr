@@ -32,7 +32,10 @@ export function DocumentCard({ doc, onPress }: { doc: TrackedDocument; onPress: 
           style={[styles.card, { borderColor: theme.border }]}>
           <DocIcon
             typeId={doc.typeId}
-            iconDomain={doc.iconDomain ?? (doc.renewsEvery ? guessDomain(doc.title) : undefined)}
+            iconDomain={doc.iconDomain ??
+              (doc.renewsEvery || doc.typeId === 'membership'
+                ? guessDomain(doc.title)
+                : undefined)}
           />
 
           <View style={styles.info}>

@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { authenticate, checkBiometricSupport } from '@/lib/biometrics';
+import { successFeedback } from '@/lib/haptics';
 import {
   countScheduled,
   ensureNotificationPermission,
@@ -231,6 +232,42 @@ export default function SettingsScreen() {
           <Section title="About">
             <LinkRow icon="information-outline" title="Expyr" onPress={() => router.push('/about')} />
           </Section>
+
+          {/*
+           * Development builds only — __DEV__ is false in anything shipped, so
+           * this section does not exist in the App Store build. It is here
+           * because testing the free limits uses them up, and a person building
+           * the app should not have to delete it and start again to get another
+           * ten scans.
+           */}
+          {__DEV__ && (
+            <Section title="Developer">
+              <Row
+                icon="refresh"
+                title="Reset the free allowances"
+                subtitle={`${settings.scansUsed} scans, ${settings.readsUsed} readings and ${settings.questionsAsked} questions used.`}
+                action={{
+                  label: 'Reset',
+                  onPress: () => {
+                    update({ scansUsed: 0, readsUsed: 0, questionsAsked: 0, questionsOn: '' });
+                    successFeedback();
+                  },
+                }}
+              />
+              <Row
+                icon={settings.premium ? 'lock-open-variant-outline' : 'lock-outline'}
+                title={settings.premium ? 'Pro is on' : 'Pro is off'}
+                subtitle="Flips the entitlement locally, to see both sides of the paywall."
+                action={{
+                  label: settings.premium ? 'Turn off' : 'Turn on',
+                  onPress: () => {
+                    update({ premium: !settings.premium });
+                    successFeedback();
+                  },
+                }}
+              />
+            </Section>
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>

@@ -33,6 +33,8 @@ function folder(): Directory {
  */
 const KNOWN: Record<string, string> = {
   claude: 'claude.ai',
+  // A receipt says who took the money, so the biller's name ends up on the row.
+  anthropic: 'claude.ai',
   chatgpt: 'chatgpt.com',
   openai: 'openai.com',
   shahid: 'shahid.mbc.net',
@@ -67,14 +69,21 @@ export function guessDomain(title: string): string | undefined {
   // "Apple TV+" and "Amazon Prime" are known under one word.
   const compact = plain.replace(/[^a-z0-9]/g, '');
   if (KNOWN[compact]) return KNOWN[compact];
+  if (!/\s/.test(plain)) {
+    return /^[a-z][a-z0-9]{3,19}$/.test(compact) ? `${compact}.com` : undefined;
+  }
 
   /*
-   * Everything else must be a single word to be guessed at. Squeezing the
-   * spaces out first turned "My gym membership" into mygymmembership.com,
-   * which is a request to a stranger about somebody's private list.
+   * A title with several words in it usually leads with the brand, because that
+   * is how a receipt names things: "Anthropic PBC Max plan", "Netflix Standard
+   * with ads", "Adobe Creative Cloud". So the first word is tried and the rest
+   * ignored. Squeezing the whole title together instead turned "My gym
+   * membership" into mygymmembership.com, which is a request to a stranger
+   * about somebody's private list.
    */
-  if (/\s/.test(plain)) return undefined;
-  return /^[a-z][a-z0-9]{3,19}$/.test(compact) ? `${compact}.com` : undefined;
+  const first = plain.split(/\s+/)[0].replace(/[^a-z0-9]/g, '');
+  if (KNOWN[first]) return KNOWN[first];
+  return /^[a-z][a-z0-9]{3,19}$/.test(first) ? `${first}.com` : undefined;
 }
 
 /** Domains are already validated by the service; this keeps the filename sane. */

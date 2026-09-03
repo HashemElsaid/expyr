@@ -164,7 +164,7 @@ export default function HomeScreen() {
    */
   useEffect(() => {
     for (const doc of documents) {
-      if (!doc.renewsEvery) continue;
+      if (!doc.renewsEvery && doc.typeId !== 'membership') continue;
       void ensureBrandIcon(doc.iconDomain ?? guessDomain(doc.title));
     }
   }, [documents]);
@@ -351,7 +351,10 @@ export default function HomeScreen() {
                     <DocIcon
                       typeId={item.typeId}
                       iconDomain={
-                        item.iconDomain ?? (item.renewsEvery ? guessDomain(item.title) : undefined)
+                        item.iconDomain ??
+                        (item.renewsEvery || item.typeId === 'membership'
+                          ? guessDomain(item.title)
+                          : undefined)
                       }
                       size={38}
                     />

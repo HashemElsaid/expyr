@@ -45,6 +45,12 @@ export type Settings = {
   /** Questions asked today, and the day they were asked — see askAllowance. */
   questionsAsked: number;
   questionsOn: string;
+  /**
+   * Whether the offer to lock the app has been made. Asked once, at the moment
+   * it starts to matter, and never again — an app that keeps asking for
+   * permissions it was refused is one people learn to dismiss without reading.
+   */
+  lockOffered: boolean;
 };
 
 const DEFAULTS: Settings = {
@@ -58,6 +64,7 @@ const DEFAULTS: Settings = {
   readsUsed: 0,
   questionsAsked: 0,
   questionsOn: '',
+  lockOffered: false,
 };
 
 /**
@@ -158,6 +165,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           readsUsed: parsed.readsUsed ?? DEFAULTS.readsUsed,
           questionsAsked: parsed.questionsAsked ?? DEFAULTS.questionsAsked,
           questionsOn: parsed.questionsOn ?? DEFAULTS.questionsOn,
+          lockOffered: parsed.lockOffered ?? DEFAULTS.lockOffered,
         });
       })
       .catch(() => {})

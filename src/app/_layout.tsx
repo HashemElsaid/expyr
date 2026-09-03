@@ -11,6 +11,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { LockGate } from '@/components/lock-gate';
+import { LockOffer } from '@/components/lock-offer';
 import { Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -240,6 +241,13 @@ function AppShell() {
           options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
         />
       </Stack>
+
+      {/*
+       * Over everything, because it is asked once and answered in a second, and
+       * because the moment it matters is the moment a document has just been
+       * saved — whichever screen that happened on.
+       */}
+      <LockOffer />
     </>
   );
 }

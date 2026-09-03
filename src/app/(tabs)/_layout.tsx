@@ -100,11 +100,7 @@ function CameraButton() {
           <View
             style={[
               styles.button,
-              {
-                backgroundColor: theme.accent,
-                borderColor: theme.background,
-                shadowColor: theme.text,
-              },
+              { backgroundColor: theme.accent, shadowColor: theme.text },
               pressed && styles.pressed,
             ]}>
             {/*
@@ -140,12 +136,15 @@ const styles = StyleSheet.create({
     marginTop: -CAMERA_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    // A ring of the page colour, so the list never touches the button.
-    borderWidth: 4,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 6,
+    /*
+     * No ring. A band of page colour around a green disc reads as a white halo
+     * on the phone, which is the one thing it was meant to avoid. The button
+     * sits on its own shadow instead, kept soft and low.
+     */
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   pressed: { opacity: 0.85, transform: [{ scale: 0.96 }] },
   frame: { ...StyleSheet.absoluteFillObject, margin: 11, opacity: 0.5 },

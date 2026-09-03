@@ -67,7 +67,19 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     }
     if (!response.ok) {
       const detail = (await response.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(detail?.error ?? 'The reading service could not be reached.');
+      const message = detail?.error ?? '';
+      /*
+       * The service's own validation errors are written for whoever is calling
+       * it, not for the person holding the phone. "text is required" tells them
+       * nothing they can act on, and it means the app and the service disagree
+       * about the request — which is a deployment, not a mistake they made.
+       */
+      const internal = /is required|too long|more text than/i.test(message);
+      throw new Error(
+        internal || !message
+          ? 'Expyr could not ask that just now. The reading service may need updating.'
+          : message
+      );
     }
     return (await response.json()) as T;
   } catch (error) {
@@ -323,6 +335,14 @@ export async function askDocuments(
 
   return post<Answer>('/ask', {
     documents,
+    /*
+     * The same question in the shape the old service understands. A phone
+     * updates the moment it opens the App Store; the service updates when
+     * somebody deploys it, and between those two moments this is the
+     * difference between one document answering and an error. Costs one
+     * repeated field, and the new service ignores it.
+     */
+    ...(documents.length === 1 ? { text: documents[0].text } : {}),
     question,
     // Only the recent exchange is worth carrying, and the server trims further.
     history: history.slice(-6).map((t) => ({ question: t.question, answer: t.answer.answer })),

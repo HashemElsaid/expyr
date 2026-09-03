@@ -171,36 +171,14 @@ export default function AskScreen() {
               </View>
             ) : turns.length === 0 ? (
               <View style={styles.intro}>
-                <ThemedText type="body" themeColor="textSecondary">
+                <ThemedText type="body" themeColor="textTertiary" style={styles.centered}>
                   {scoped
-                    ? `Answers come from ${scoped.title}, quoting the clause they came from.`
-                    : 'Answers come from your own documents, quoting the clause and naming which one said it.'}{' '}
-                  If your papers do not say, Expyr tells you that instead of guessing.
+                    ? `Ask ${scoped.title} anything.`
+                    : 'Ask your own paperwork anything.'}
                 </ThemedText>
-
-                <View style={styles.starters}>
-                  {STARTERS.map((starter) => (
-                    <Pressable key={starter} onPress={() => ask(starter)} disabled={busy}>
-                      {({ pressed }) => (
-                        <View
-                          style={[
-                            styles.starter,
-                            { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-                            pressed && styles.dim,
-                          ]}>
-                          <ThemedText type="small" style={styles.flex}>
-                            {starter}
-                          </ThemedText>
-                          <MaterialCommunityIcons
-                            name="arrow-top-right"
-                            size={14}
-                            color={theme.textTertiary}
-                          />
-                        </View>
-                      )}
-                    </Pressable>
-                  ))}
-                </View>
+                <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
+                  Every answer quotes the clause it came from.
+                </ThemedText>
               </View>
             ) : null}
 
@@ -285,6 +263,36 @@ export default function AskScreen() {
 
           {!nothingRead && (
             <View style={[styles.composer, { borderTopColor: theme.border }]}>
+              {/*
+               * A row of openers, at the edge of the thumb rather than filling
+               * the screen above it. They disappear the moment there is a
+               * conversation to read, which is the moment they stop helping.
+               */}
+              {turns.length === 0 && !busy && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={styles.starters}>
+                  {STARTERS.map((starter) => (
+                    <Pressable key={starter} onPress={() => ask(starter)} disabled={busy}>
+                      {({ pressed }) => (
+                        <View
+                          style={[
+                            styles.starter,
+                            { borderColor: theme.border },
+                            pressed && styles.dim,
+                          ]}>
+                          <ThemedText type="small" themeColor="textSecondary">
+                            {starter}
+                          </ThemedText>
+                        </View>
+                      )}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+
               <View
                 style={[
                   styles.inputWrap,
@@ -367,16 +375,13 @@ const styles = StyleSheet.create({
   thread: { paddingHorizontal: Spacing.four, paddingBottom: Spacing.four, gap: Spacing.four },
   blank: { alignItems: 'center', gap: Spacing.three, paddingTop: Spacing.six },
   centered: { textAlign: 'center' },
-  intro: { gap: Spacing.three, paddingTop: Spacing.two },
-  starters: { gap: Spacing.two },
+  intro: { gap: Spacing.two, paddingTop: Spacing.six, alignItems: 'center' },
+  starters: { gap: Spacing.two, paddingBottom: Spacing.three, paddingRight: Spacing.four },
   starter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    borderRadius: Radius.medium,
+    borderRadius: Radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   turn: { gap: Spacing.three },
   askedRow: { alignItems: 'flex-end' },
@@ -393,7 +398,8 @@ const styles = StyleSheet.create({
   sourceRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   silent: { flexDirection: 'row', gap: Spacing.two, alignItems: 'flex-start' },
   composer: {
-    paddingHorizontal: Spacing.four,
+    paddingLeft: Spacing.four,
+    paddingRight: Spacing.four,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.three,
     borderTopWidth: StyleSheet.hairlineWidth,

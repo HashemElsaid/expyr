@@ -37,7 +37,7 @@ import { useUrgency } from '@/hooks/use-urgency';
 import { dayMonth, daysUntil, longDate, shortDate, verdictPhrase } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
-import { useSettings } from '@/store/settings';
+import { FREE_READ_LIMIT, useSettings } from '@/store/settings';
 import { TrackedDocument } from '@/types';
 
 /** Reminder dates derived from the schedule — no extra state to keep in sync. */
@@ -58,13 +58,14 @@ export default function DocumentDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { documents, archived, removeDocument, setArchived } = useDocuments();
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const [guideOpen, setGuideOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [brief, setBrief] = useState<Brief | null>(null);
   const [readable, setReadable] = useState(false);
   const [stage, setStage] = useState<ReadStage | null>(null);
   const [pointsOpen, setPointsOpen] = useState(false);
+  const outOfReads = !settings.premium && settings.readsUsed >= FREE_READ_LIMIT;
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
   const days = doc ? daysUntil(doc.expiryDate) : 0;
@@ -162,11 +163,18 @@ export default function DocumentDetailScreen() {
      * attempt already running costs nothing, so this is safe to run on arrival.
      */
     const first = doc.files[0];
-    if (!first || !readsOnArrival(doc.typeId)) return;
-    if (loadBrief(doc.id) || isReading(doc.id)) {
-      if (isReading(doc.id)) setStage('transcribing');
-      return;
-    }
+    if (!first || !readsOnArrival(doc.typeId) || loadBrief(doc.id)) return;
+
+    /*
+     * A read already running was started by the screen that saved the document,
+     * and that screen counts it. Join it rather than bailing out, so the brief
+     * arrives here when it finishes instead of leaving this sitting on
+     * "reading it" until the screen is opened again.
+     */
+    const joined = isReading(doc.id);
+    // An already-read document costs nothing to revisit; a new one does.
+    const fresh = !hasReading(doc.id);
+    if (!joined && !settings.premium && fresh && settings.readsUsed >= FREE_READ_LIMIT) return;
 
     let live = true;
     readDocumentFully(doc.id, first, (s) => live && setStage(s))
@@ -174,6 +182,7 @@ export default function DocumentDetailScreen() {
         if (!live) return;
         setReadable(true);
         setBrief(result.brief);
+        if (!settings.premium && fresh && !joined) update({ readsUsed: settings.readsUsed + 1 });
       })
       .catch(() => {
         // Offered as a button instead, rather than an alert nobody asked for.
@@ -216,10 +225,13 @@ export default function DocumentDetailScreen() {
     const first = doc.files[0];
     if (!first) return;
     tapFeedback();
+    // Only a document being read for the first time spends one of the free reads.
+    const fresh = !hasReading(doc.id);
     try {
       const result = await readDocumentFully(doc.id, first, setStage);
       setReadable(true);
       setBrief(result.brief);
+      if (!settings.premium && fresh) update({ readsUsed: settings.readsUsed + 1 });
       successFeedback();
     } catch (error) {
       Alert.alert(
@@ -423,7 +435,30 @@ export default function DocumentDetailScreen() {
          * What this particular piece of paper says, which matters more than the
          * generic renewal guidance below it. Almost nobody reads what they sign.
          */}
-        {doc.files.length > 0 && !brief && (
+        {/*
+         * The allowance is spent and this document has never been read. This is
+         * the moment the feature is worth paying for, so it says what it would
+         * do rather than hiding that anything exists.
+         */}
+        {doc.files.length > 0 && !brief && !readable && outOfReads && (
+          <Pressable onPress={() => router.push('/paywall')} accessibilityRole="button">
+            {({ pressed }) => (
+              <View
+                style={[styles.readPrompt, { borderColor: theme.border }, pressed && styles.dim]}>
+                <MaterialCommunityIcons name="text-search" size={20} color={theme.textTertiary} />
+                <View style={styles.flex}>
+                  <ThemedText type="bodyMedium">Read this document</ThemedText>
+                  <ThemedText type="small" themeColor="textTertiary">
+                    You have read your {FREE_READ_LIMIT} free documents. Unlock Expyr to read the
+                    rest and ask them anything.
+                  </ThemedText>
+                </View>
+              </View>
+            )}
+          </Pressable>
+        )}
+
+        {doc.files.length > 0 && !brief && !(outOfReads && !readable) && (
           <Pressable
             onPress={readable ? retrySummary : readDocument}
             disabled={stage !== null}

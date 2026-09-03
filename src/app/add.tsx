@@ -27,7 +27,7 @@ import { newAttachmentKey } from '@/lib/files';
 import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
 import { readInBackground } from '@/lib/reading';
-import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
+import { FREE_ITEM_LIMIT, FREE_READ_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 import { Attachment, DocumentType, DocumentTypeId, TrackedDocument } from '@/types';
 
 type Step = 'choose' | 'type' | 'form' | 'scansSpent';
@@ -279,7 +279,11 @@ export default function AddDocumentScreen() {
 
     // A contract starts being read the moment it is saved, so the answers are
     // usually waiting by the time anyone goes looking for them.
-    readInBackground(created.id, created.typeId, created.files);
+    if (settings.premium || settings.readsUsed < FREE_READ_LIMIT) {
+      readInBackground(created.id, created.typeId, created.files, () => {
+        if (!settings.premium) update({ readsUsed: settings.readsUsed + 1 });
+      });
+    }
 
     // The first item is the moment to show the promise being kept: the
     // countdown, the reminder dates and what renewing actually involves.

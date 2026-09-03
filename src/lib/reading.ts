@@ -263,17 +263,22 @@ async function runRead(
 export function readInBackground(
   documentId: string,
   typeId: DocumentTypeId,
-  files: Attachment[]
+  files: Attachment[],
+  onRead?: () => void
 ): void {
   if (Platform.OS === 'web') return;
   if (!readsOnArrival(typeId)) return;
   if (files.length === 0) return;
   if (inFlight.has(documentId) || hasReading(documentId)) return;
 
-  readDocumentFully(documentId, files[0]).catch(() => {
-    // Silent on purpose. Nobody asked for this yet, so nobody should be
-    // interrupted when it fails.
-  });
+  readDocumentFully(documentId, files[0])
+    // Only a reading that produced something counts against the allowance. A
+    // failure delivered nothing, so it should not be charged for.
+    .then(() => onRead?.())
+    .catch(() => {
+      // Silent on purpose. Nobody asked for this yet, so nobody should be
+      // interrupted when it fails.
+    });
 }
 
 /** Retries only the summary, for a document already transcribed. */

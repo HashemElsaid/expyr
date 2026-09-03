@@ -58,6 +58,7 @@ export const PLANS: Plan[] = [
  * Revisit if real cross-device sharing is ever built.
  */
 export const PREMIUM_FEATURES = [
+  'Read every contract, and ask it anything',
   'Track as many items as you like',
   'Scan without counting, with no 15-scan ceiling',
   'Everyone in the house, not just you',

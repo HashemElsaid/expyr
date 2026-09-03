@@ -8,7 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PLANS, PREMIUM_FEATURES, purchase, restore } from '@/lib/purchases';
-import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT } from '@/store/settings';
+import { FREE_ITEM_LIMIT, FREE_READ_LIMIT, FREE_SCAN_LIMIT } from '@/store/settings';
 
 export default function PaywallScreen() {
   const theme = useTheme();
@@ -38,8 +38,9 @@ export default function PaywallScreen() {
             Keep everything covered
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-            Expyr is free for {FREE_ITEM_LIMIT} items and {FREE_SCAN_LIMIT} scans. Unlock it to
-            track everything you own, for everyone in the house.
+            Expyr is free for {FREE_ITEM_LIMIT} items, {FREE_SCAN_LIMIT} scans and{' '}
+            {FREE_READ_LIMIT} document readings. Unlock it to track everything you own, for
+            everyone in the house.
           </ThemedText>
         </View>
 

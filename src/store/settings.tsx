@@ -39,6 +39,11 @@ export type Settings = {
    * supply — see FREE_SCAN_LIMIT.
    */
   scansUsed: number;
+  /**
+   * Lifetime count of documents read in full. Reading is the one thing here
+   * with a real cost per document rather than per tap — see FREE_READ_LIMIT.
+   */
+  readsUsed: number;
 };
 
 const DEFAULTS: Settings = {
@@ -50,6 +55,7 @@ const DEFAULTS: Settings = {
   emirate: null,
   premium: false,
   scansUsed: 0,
+  readsUsed: 0,
 };
 
 /**
@@ -66,6 +72,16 @@ export const FREE_ITEM_LIMIT = 10;
  * never breaks the app: typing a date in by hand stays free and unlimited.
  */
 export const FREE_SCAN_LIMIT = 15;
+
+/**
+ * Free documents read in full, for the lifetime of the install.
+ *
+ * Two is enough to feel what it does. Somebody reads the tenancy contract they
+ * signed without reading, finds the clause that renews it for another year on
+ * its own, and the price argues itself. It is also the only per-document cost
+ * in the app, so leaving it open would mean paying for people who never pay.
+ */
+export const FREE_READ_LIMIT = 2;
 
 type SettingsContextValue = {
   settings: Settings;
@@ -103,6 +119,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           emirate: parsed.emirate ?? DEFAULTS.emirate,
           premium: parsed.premium ?? DEFAULTS.premium,
           scansUsed: parsed.scansUsed ?? DEFAULTS.scansUsed,
+          readsUsed: parsed.readsUsed ?? DEFAULTS.readsUsed,
         });
       })
       .catch(() => {})

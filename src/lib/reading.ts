@@ -68,7 +68,9 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     return (await response.json()) as T;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('That took too long. Check your connection and try again.');
+      throw new Error(
+        'That took too long to read. Long or multi-page documents are the usual cause. Try again on a stronger connection, or photograph the pages that matter.'
+      );
     }
     if (error instanceof TypeError) {
       throw new Error('Could not reach the reading service. Check your connection.');
@@ -125,12 +127,14 @@ export function loadBrief(documentId: string): Brief | null {
   }
 }
 
-function save(documentId: string, transcript: string, brief: Brief) {
+function saveTranscript(documentId: string, transcript: string) {
   const t = transcriptFile(documentId);
   if (t.exists) t.delete();
   t.create();
   t.write(transcript);
+}
 
+function saveBrief(documentId: string, brief: Brief) {
   const b = briefFile(documentId);
   if (b.exists) b.delete();
   b.create();
@@ -152,19 +156,31 @@ export function deleteReading(documentId: string) {
 
 /* ----------------------------------------------------------------- reading */
 
+export type ReadStage = 'transcribing' | 'summarising';
+
 /**
- * Transcribes the document and briefs on it, then keeps both. Runs once per
- * document; afterwards questions are answered from what is already on disk.
+ * Deliberately two requests rather than one, and the transcript is written to
+ * disk the moment it exists.
+ *
+ * Transcribing a dense contract takes as long as everything else put together,
+ * and the phone's own network stack gives up on a single request long before
+ * our timeout does. Folding both steps into one call would make that one
+ * request longer and lose everything when it failed. Split, the expensive half
+ * is banked before the second half is attempted, so a failure costs the
+ * summary rather than the whole document — and the transcript is what answers
+ * questions, so the feature still works without it.
  */
-export async function readAndBrief(
+export async function readDocumentFully(
   documentId: string,
-  file: Attachment
-): Promise<{ transcript: string; brief: Brief }> {
+  file: Attachment,
+  onStage?: (stage: ReadStage) => void
+): Promise<{ transcript: string; brief: Brief | null }> {
   if (Platform.OS === 'web') throw new Error('Reading is only available on the phone app.');
 
   const handle = new File(file.uri);
   if (!handle.exists) throw new Error('That attachment is missing from this phone.');
 
+  onStage?.('transcribing');
   const { text } = await post<{ text: string }>('/read', {
     fileBase64: handle.base64Sync(),
     mediaType: file.type === 'pdf' ? 'application/pdf' : 'image/jpeg',
@@ -173,10 +189,26 @@ export async function readAndBrief(
   if (!text || text.trim().length < 40) {
     throw new Error('There was not enough readable text in that document.');
   }
+  saveTranscript(documentId, text);
 
+  onStage?.('summarising');
+  try {
+    const brief = await post<Brief>('/brief', { text });
+    saveBrief(documentId, brief);
+    return { transcript: text, brief };
+  } catch {
+    // The reading survived, which is the part that took the time and the money.
+    return { transcript: text, brief: null };
+  }
+}
+
+/** Retries only the summary, for a document already transcribed. */
+export async function summariseDocument(documentId: string): Promise<Brief> {
+  const text = loadTranscript(documentId);
+  if (!text) throw new Error('This document has not been read yet.');
   const brief = await post<Brief>('/brief', { text });
-  save(documentId, text, brief);
-  return { transcript: text, brief };
+  saveBrief(documentId, brief);
+  return brief;
 }
 
 /** Answers from the stored transcript. The document itself never travels again. */

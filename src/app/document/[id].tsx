@@ -16,7 +16,14 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { loadBrief, readAndBrief, type Brief } from '@/lib/reading';
+import {
+  hasReading,
+  loadBrief,
+  readDocumentFully,
+  summariseDocument,
+  type Brief,
+  type ReadStage,
+} from '@/lib/reading';
 import { shareDocumentCopy } from '@/lib/share-copy';
 import { hasGuidance } from '@/data/countries';
 import { getDocumentType, numberFieldFor } from '@/data/document-types';
@@ -53,7 +60,8 @@ export default function DocumentDetailScreen() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [brief, setBrief] = useState<Brief | null>(null);
-  const [reading, setReading] = useState(false);
+  const [readable, setReadable] = useState(false);
+  const [stage, setStage] = useState<ReadStage | null>(null);
   const [pointsOpen, setPointsOpen] = useState(false);
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
@@ -141,7 +149,9 @@ export default function DocumentDetailScreen() {
    * which React refuses outright.
    */
   useEffect(() => {
-    if (doc) setBrief(loadBrief(doc.id));
+    if (!doc) return;
+    setBrief(loadBrief(doc.id));
+    setReadable(hasReading(doc.id));
   }, [doc?.id]);
 
   if (!doc) return <ThemedView style={styles.container} />;
@@ -171,13 +181,13 @@ export default function DocumentDetailScreen() {
   }
 
   async function readDocument() {
-    if (!doc || reading) return;
+    if (!doc || stage) return;
     const first = doc.files[0];
     if (!first) return;
     tapFeedback();
-    setReading(true);
     try {
-      const result = await readAndBrief(doc.id, first);
+      const result = await readDocumentFully(doc.id, first, setStage);
+      setReadable(true);
       setBrief(result.brief);
       successFeedback();
     } catch (error) {
@@ -186,7 +196,24 @@ export default function DocumentDetailScreen() {
         error instanceof Error ? error.message : 'Something went wrong.'
       );
     } finally {
-      setReading(false);
+      setStage(null);
+    }
+  }
+
+  async function retrySummary() {
+    if (!doc || stage) return;
+    tapFeedback();
+    setStage('summarising');
+    try {
+      setBrief(await summariseDocument(doc.id));
+      successFeedback();
+    } catch (error) {
+      Alert.alert(
+        'Could not summarise it',
+        error instanceof Error ? error.message : 'Something went wrong.'
+      );
+    } finally {
+      setStage(null);
     }
   }
 
@@ -366,32 +393,54 @@ export default function DocumentDetailScreen() {
          * generic renewal guidance below it. Almost nobody reads what they sign.
          */}
         {doc.files.length > 0 && !brief && (
-          <Pressable onPress={readDocument} disabled={reading} accessibilityRole="button">
+          <Pressable
+            onPress={readable ? retrySummary : readDocument}
+            disabled={stage !== null}
+            accessibilityRole="button">
             {({ pressed }) => (
               <View
                 style={[
                   styles.readPrompt,
                   { borderColor: theme.border },
-                  (pressed || reading) && styles.dim,
+                  (pressed || stage !== null) && styles.dim,
                 ]}>
-                <MaterialCommunityIcons
-                  name="text-search"
-                  size={20}
-                  color={theme.accent}
-                />
+                <MaterialCommunityIcons name="text-search" size={20} color={theme.accent} />
                 <View style={styles.flex}>
                   <ThemedText type="bodyMedium">
-                    {reading ? 'Reading it…' : 'Read this document'}
+                    {stage === 'transcribing'
+                      ? 'Reading it…'
+                      : stage === 'summarising'
+                        ? 'Working out what it says…'
+                        : readable
+                          ? 'Summarise this document'
+                          : 'Read this document'}
                   </ThemedText>
                   <ThemedText type="small" themeColor="textTertiary">
-                    {reading
-                      ? 'This takes a few seconds. It only happens once.'
-                      : 'Find out what you agreed to, then ask it anything.'}
+                    {stage === 'transcribing'
+                      ? 'A long contract can take half a minute. It only happens once.'
+                      : stage === 'summarising'
+                        ? 'Almost there.'
+                        : readable
+                          ? 'It has been read, but the summary did not finish. You can already ask it questions.'
+                          : 'Find out what you agreed to, then ask it anything.'}
                   </ThemedText>
                 </View>
               </View>
             )}
           </Pressable>
+        )}
+
+        {/*
+         * Reading survived but summarising did not. The transcript is what
+         * answers questions, so the feature is usable and should say so rather
+         * than hiding behind a missing summary.
+         */}
+        {readable && !brief && stage === null && (
+          <SecondaryAction
+            icon="comment-question-outline"
+            label="Ask about this document"
+            onPress={() => router.push(`/ask?id=${doc.id}`)}
+          />
         )}
 
         {brief && (

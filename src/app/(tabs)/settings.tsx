@@ -146,7 +146,7 @@ export default function SettingsScreen() {
                   : !notificationsOn
                     ? 'Expyr cannot warn you about anything until these are allowed.'
                     : testState === 'sent'
-                      ? 'Sent. Lock your phone to see it arrive properly.'
+                      ? 'Two sent, a few seconds apart: an ordinary one and a subscription. Lock your phone to see them properly, and hold one to see its buttons.'
                       : `${bookedWithIOS} booked with iOS, each at ${reminderAt}.`
               }
               action={

@@ -155,14 +155,19 @@ export async function scheduleReminders(
 }
 
 /**
- * Fires a real reminder a few seconds from now. Waiting weeks to discover that
- * notifications never worked is the worst way to find out.
+ * Two real reminders, a few seconds from now.
+ *
+ * Waiting weeks to discover that notifications never worked is the worst way to
+ * find out. Two rather than one because the pair of buttons differs: a document
+ * is offered "Already done", and a subscription — which renews itself whatever
+ * anybody does — is offered the answer that actually helps, which is that it
+ * has been cancelled. Both carry no document id, so pressing either button on a
+ * test does nothing to anybody's file.
  */
 export async function sendTestReminder(): Promise<'sent' | 'denied' | 'unsupported'> {
   if (Platform.OS === 'web') return 'unsupported';
   if (!(await ensureNotificationPermission())) return 'denied';
 
-  const fireDate = new Date(Date.now() + 5000);
   await Notifications.scheduleNotificationAsync({
     content: {
       // Shaped exactly like a real one, because that is the thing being tested.
@@ -171,8 +176,25 @@ export async function sendTestReminder(): Promise<'sent' | 'denied' | 'unsupport
       body: 'A real one carries the date, and what being late costs.',
       categoryIdentifier: REMINDER_CATEGORY,
     },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: new Date(Date.now() + 5000),
+    },
   });
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Netflix charges you in 3 days',
+      subtitle: 'Test reminder · Subscription',
+      body: 'Standard · AED 39. Hold this one to see what it offers.',
+      categoryIdentifier: SUBSCRIPTION_CATEGORY,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: new Date(Date.now() + 9000),
+    },
+  });
+
   return 'sent';
 }
 

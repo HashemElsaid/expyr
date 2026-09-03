@@ -3,16 +3,18 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useState } from 'react';
 import {
-  ActionSheetIOS,
   Alert,
   Image,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -66,6 +68,9 @@ export default function DocumentDetailScreen() {
   const [readable, setReadable] = useState(false);
   const [stage, setStage] = useState<ReadStage | null>(null);
   const [pointsOpen, setPointsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  // The menu hangs below the navigation bar, whose height starts at the notch.
+  const insets = useSafeAreaInsets();
   const outOfReads = !settings.premium && settings.readsUsed >= FREE_READ_LIMIT;
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
@@ -95,52 +100,63 @@ export default function DocumentDetailScreen() {
     if (!doc.archivedAt) router.back();
   }
 
-  // Secondary actions live behind the ⋯ so the screen stays calm.
-  function openMenu() {
-    if (!doc) return;
-    tapFeedback();
-    const archiveLabel = doc.archivedAt ? 'Move back to my items' : 'Archive';
-    // Sending a copy of a passport or licence is a routine errand here.
-    const first = doc.files[0];
-
-    const actions: { label: string; run: () => void; destructive?: boolean }[] = [
-      ...(first ? [{ label: 'Share a copy', run: () => openAttachment(first.uri, first.type) }] : []),
-      { label: 'Edit details', run: () => router.push(`/add?id=${doc.id}`) },
-      { label: archiveLabel, run: toggleArchive },
-      { label: 'Delete permanently', run: confirmDelete, destructive: true },
-    ];
-
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
+  /*
+   * Secondary actions live behind the ⋯ so the screen stays calm, and the menu
+   * opens under the button that was pressed.
+   *
+   * This used to hand the job to ActionSheetIOS, which iOS now floats in the
+   * middle of the screen rather than sliding up from the bottom — a long way
+   * from the corner the finger is in, and nothing to do with the thing it acts
+   * on. A small card in the corner is the whole of what was wanted.
+   */
+  const menuActions = doc
+    ? [
+        // Sending a copy of a passport or licence is a routine errand here.
+        ...(doc.files[0]
+          ? [
+              {
+                label: 'Share a copy',
+                icon: 'tray-arrow-up',
+                run: () => openAttachment(doc.files[0].uri, doc.files[0].type),
+              },
+            ]
+          : []),
         {
-          options: [...actions.map((a) => a.label), 'Cancel'],
-          destructiveButtonIndex: actions.findIndex((a) => a.destructive),
-          cancelButtonIndex: actions.length,
+          label: 'Edit details',
+          icon: 'pencil-outline',
+          run: () => router.push(`/add?id=${doc.id}`),
         },
-        (index) => actions[index]?.run()
-      );
-      return;
-    }
-    Alert.alert(doc.title, undefined, [
-      ...actions.map((a) => ({
-        text: a.label,
-        style: a.destructive ? ('destructive' as const) : undefined,
-        onPress: a.run,
-      })),
-      { text: 'Cancel', style: 'cancel' as const },
-    ]);
-  }
+        {
+          label: doc.archivedAt ? 'Move back to my items' : 'Archive',
+          icon: doc.archivedAt ? 'tray-full' : 'archive-outline',
+          run: toggleArchive,
+        },
+        {
+          label: 'Delete permanently',
+          icon: 'delete-outline',
+          run: confirmDelete,
+          destructive: true,
+        },
+      ]
+    : [];
 
   useEffect(() => {
     navigation.setOptions({
       title: '',
       headerRight: () => (
         <Pressable
-          onPress={openMenu}
+          onPress={() => {
+            tapFeedback();
+            setMenuOpen(true);
+          }}
           hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel="More actions">
-          <MaterialCommunityIcons name="dots-horizontal" size={24} color={theme.textSecondary} />
+          {/* Boxed and centred, because the glyph alone sat left of the middle
+              of the round button iOS draws around it. */}
+          <View style={styles.menuButton}>
+            <MaterialCommunityIcons name="dots-horizontal" size={22} color={theme.textSecondary} />
+          </View>
         </Pressable>
       ),
     });
@@ -303,6 +319,53 @@ export default function DocumentDetailScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable
+          style={[styles.menuBackdrop, { paddingTop: insets.top + 46 }]}
+          onPress={() => setMenuOpen(false)}>
+          <View
+            style={[
+              styles.menuCard,
+              {
+                backgroundColor: theme.backgroundElement,
+                borderColor: theme.border,
+                shadowColor: theme.text,
+              },
+            ]}>
+            {menuActions.map((action, index) => (
+              <Pressable
+                key={action.label}
+                onPress={() => {
+                  setMenuOpen(false);
+                  // After the sheet is gone, so an alert of its own has room.
+                  setTimeout(action.run, 60);
+                }}
+                accessibilityRole="button">
+                {({ pressed }) => (
+                  <View
+                    style={[
+                      styles.menuItem,
+                      index > 0 && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth },
+                      pressed && styles.dim,
+                    ]}>
+                    <ThemedText
+                      type="body"
+                      style={action.destructive ? { color: theme.urgentStrong } : undefined}>
+                      {action.label}
+                    </ThemedText>
+                    <MaterialCommunityIcons
+                      name={action.icon as never}
+                      size={18}
+                      color={action.destructive ? theme.urgentStrong : theme.textTertiary}
+                    />
+                  </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { borderBottomColor: theme.border }]}>
           <ThemedText type="display" style={[styles.verdict, { color }]}>
@@ -845,6 +908,36 @@ function SecondaryAction({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  menuButton: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
+  /*
+   * Anchored under the button that opened it, in the corner the finger is
+   * already in, over a backdrop dark enough to say the rest of the screen is
+   * waiting.
+   */
+  menuBackdrop: {
+    flex: 1,
+    alignItems: 'flex-end',
+    paddingRight: Spacing.three,
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
+  },
+  menuCard: {
+    minWidth: 224,
+    borderRadius: Radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 14,
+  },
   content: {
     paddingHorizontal: 28,
     paddingBottom: Spacing.six,

@@ -246,7 +246,7 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Registration is not configured.' }));
       return;
     }
-    console.log(`register → issued a token to ${address}`);
+    console.log('register → issued a token');
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ token: issueInstallToken() }));
     return;
@@ -283,7 +283,7 @@ const server = createServer(async (req, res) => {
     if (route === '/extract') {
       const { imageBase64, mediaType, categories } = parseRequest(raw);
       const result = await extractFromImage({ imageBase64, mediaType, categories });
-      console.log(`extract → ${result.typeId} (${result.confidence}) in ${Date.now() - started}ms`);
+      console.log(`extract → ${result.confidence} confidence in ${Date.now() - started}ms`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result));
       return;
@@ -319,7 +319,13 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify(answer));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Request failed';
-    console.error(`${route} failed:`, message);
+    /*
+     * Truncated, and never the error object. Our own failures are short
+     * sentences; an upstream one could carry back a fragment of whatever was
+     * sent, and a log is the last place somebody's tenancy contract should
+     * turn up.
+     */
+    console.error(`${route} failed: ${message.slice(0, 200)}`);
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: message }));
   }

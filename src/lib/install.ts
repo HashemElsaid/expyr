@@ -1,6 +1,7 @@
-import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+
+import { serviceBase } from '@/lib/service';
 
 /**
  * This install's own credential for the reading service.
@@ -21,13 +22,6 @@ const KEY = 'expyr.install.token';
 
 let cached: string | null = null;
 let inFlight: Promise<string | null> | null = null;
-
-function serviceBase(): string {
-  const explicit = process.env.EXPO_PUBLIC_EXTRACT_URL;
-  if (explicit) return explicit.replace(/\/extract\/?$/, '');
-  const host = Constants.expoConfig?.hostUri?.split(':')[0];
-  return `http://${host ?? 'localhost'}:8787`;
-}
 
 async function read(): Promise<string | null> {
   try {

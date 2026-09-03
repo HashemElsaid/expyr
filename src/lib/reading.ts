@@ -1,8 +1,8 @@
-import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 import { forgetInstallToken, installToken } from '@/lib/install';
+import { serviceBase } from '@/lib/service';
 import { Attachment, DocumentTypeId } from '@/types';
 
 /**
@@ -36,14 +36,6 @@ export type Answer = {
 };
 
 export type Turn = { question: string; answer: Answer };
-
-function serviceBase(): string {
-  const explicit = process.env.EXPO_PUBLIC_EXTRACT_URL;
-  // The one configured URL points at /extract; the siblings sit beside it.
-  if (explicit) return explicit.replace(/\/extract\/?$/, '');
-  const host = Constants.expoConfig?.hostUri?.split(':')[0];
-  return `http://${host ?? 'localhost'}:8787`;
-}
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const controller = new AbortController();

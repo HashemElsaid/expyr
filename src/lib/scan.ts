@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
@@ -7,6 +6,7 @@ import type { Country } from '@/data/countries';
 import { DOCUMENT_TYPES, labelFor } from '@/data/document-types';
 import { fileTypeFor, type FileType } from '@/lib/files';
 import { forgetInstallToken, installToken } from '@/lib/install';
+import { serviceBase } from '@/lib/service';
 import { DocumentTypeId } from '@/types';
 
 /** Claude downsamples anything larger, so sending more pixels just costs money. */
@@ -39,10 +39,7 @@ export type ScanResult = {
  * the phone can reach it at Metro's host on the service port — no config needed.
  */
 function extractionEndpoint(): string {
-  const explicit = process.env.EXPO_PUBLIC_EXTRACT_URL;
-  if (explicit) return explicit;
-  const host = Constants.expoConfig?.hostUri?.split(':')[0];
-  return `http://${host ?? 'localhost'}:8787/extract`;
+  return `${serviceBase()}/extract`;
 }
 
 export async function pickImage(source: 'camera' | 'library'): Promise<PickedFile | null> {

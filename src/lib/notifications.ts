@@ -17,8 +17,16 @@ Notifications.setNotificationHandler({
 
 /** Actions offered on the reminder itself, so a nudge can be dealt with in place. */
 export const REMINDER_CATEGORY = 'expyr.reminder';
+/**
+ * Subscriptions get their own pair. "Already done" is a sensible thing to say
+ * about a visa, which waits for you to renew it, and a meaningless thing to say
+ * about Netflix, which renews itself whatever you do. The useful answer to a
+ * charge you did not want is that you have cancelled it.
+ */
+export const SUBSCRIPTION_CATEGORY = 'expyr.subscription';
 export const ACTION_SNOOZE = 'expyr.snooze';
 export const ACTION_RENEWED = 'expyr.renewed';
+export const ACTION_CANCELLED = 'expyr.cancelled';
 
 /**
  * Registered once at startup. Two actions is the practical maximum before a
@@ -29,6 +37,11 @@ export async function registerNotificationActions() {
   await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY, [
     { identifier: ACTION_SNOOZE, buttonTitle: 'Remind me in a week' },
     { identifier: ACTION_RENEWED, buttonTitle: 'Already done' },
+  ]).catch(() => {});
+
+  await Notifications.setNotificationCategoryAsync(SUBSCRIPTION_CATEGORY, [
+    { identifier: ACTION_SNOOZE, buttonTitle: 'Remind me in a week' },
+    { identifier: ACTION_CANCELLED, buttonTitle: 'I cancelled this' },
   ]).catch(() => {});
 }
 
@@ -131,7 +144,8 @@ export async function scheduleReminders(
           ? `${longDate(doc.expiryDate)}. Late: ${lateFee}.`
           : longDate(doc.expiryDate),
         data: { documentId: doc.id },
-        categoryIdentifier: REMINDER_CATEGORY,
+        // A subscription is offered the answer that applies to a subscription.
+        categoryIdentifier: doc.renewsEvery ? SUBSCRIPTION_CATEGORY : REMINDER_CATEGORY,
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
     });

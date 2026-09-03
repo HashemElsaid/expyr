@@ -16,6 +16,7 @@ import { Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import {
+  ACTION_CANCELLED,
   ACTION_RENEWED,
   ACTION_SNOOZE,
   registerNotificationActions,
@@ -130,7 +131,7 @@ function AppShell() {
   const scheme = useColorScheme();
   const router = useRouter();
   const { settings, loaded } = useSettings();
-  const { snoozeDocument } = useDocuments();
+  const { setArchived, snoozeDocument } = useDocuments();
 
   // Send first-time users through onboarding before they see an empty list.
   useEffect(() => {
@@ -155,9 +156,19 @@ function AppShell() {
         router.push(`/add?id=${documentId}&renew=1`);
         return;
       }
+      /*
+       * Cancelled from the notification itself: archived rather than deleted,
+       * because the record of what it cost and when it ran is worth keeping,
+       * and because undoing an archive is one tap while undoing a delete is
+       * not possible.
+       */
+      if (response.actionIdentifier === ACTION_CANCELLED) {
+        setArchived(documentId, true);
+        return;
+      }
       router.push(`/document/${documentId}`);
     },
-    [router, snoozeDocument]
+    [router, setArchived, snoozeDocument]
   );
 
   useEffect(() => {

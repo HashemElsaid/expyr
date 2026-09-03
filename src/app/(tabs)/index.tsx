@@ -1,13 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DocIcon } from '@/components/doc-icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { ensureBrandIcon, guessDomain } from '@/lib/brand-icons';
 import { useTheme } from '@/hooks/use-theme';
@@ -100,6 +100,7 @@ export default function HomeScreen() {
   const { documents, archived, loaded, rescheduleAll } = useDocuments();
   const { settings } = useSettings();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
+  const [query, setQuery] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -121,7 +122,29 @@ export default function HomeScreen() {
     [documents, settings.country]
   );
 
-  const sections = useMemo(() => buildSections(documents), [documents]);
+  /*
+   * Searching what you own, once owning it means more than a screenful. Five
+   * items need no search and a field over them is clutter; twenty spread across
+   * three years is a scroll, and the thing being looked for is usually one
+   * word — a name, a person, a policy number.
+   */
+  const found = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return documents;
+    return documents.filter((doc) =>
+      [
+        doc.title,
+        doc.owner,
+        doc.notes,
+        doc.documentNumber,
+        labelForId(doc.typeId, settings.country),
+      ]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(needle))
+    );
+  }, [documents, query, settings.country]);
+
+  const sections = useMemo(() => buildSections(found), [found]);
   const expired = documents.filter((d) => daysUntil(d.expiryDate) < 0);
   const soon = documents.filter((d) => {
     const days = daysUntil(d.expiryDate);
@@ -205,6 +228,34 @@ export default function HomeScreen() {
                     </View>
                   )}
                 </Pressable>
+              )}
+
+              {documents.length >= 8 && (
+                <View
+                  style={[
+                    styles.search,
+                    { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+                  ]}>
+                  <MaterialCommunityIcons name="magnify" size={17} color={theme.textTertiary} />
+                  <TextInput
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder="Search your papers"
+                    placeholderTextColor={theme.textTertiary}
+                    autoCorrect={false}
+                    style={[styles.searchInput, { color: theme.text }]}
+                    accessibilityLabel="Search"
+                  />
+                  {query.length > 0 && (
+                    <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Clear">
+                      <MaterialCommunityIcons
+                        name="close-circle"
+                        size={17}
+                        color={theme.textTertiary}
+                      />
+                    </Pressable>
+                  )}
+                </View>
               )}
 
               {notificationsOn === false && documents.length > 0 && (
@@ -311,6 +362,10 @@ export default function HomeScreen() {
           ListEmptyComponent={
             loaded && documents.length === 0 ? (
               <EmptyState onAdd={() => router.push('/add')} />
+            ) : query.trim() ? (
+              <ThemedText type="small" themeColor="textTertiary" style={styles.noResults}>
+                Nothing matches “{query.trim()}”.
+              </ThemedText>
             ) : null
           }
           ListFooterComponent={
@@ -375,6 +430,18 @@ const styles = StyleSheet.create({
   masthead: { paddingTop: Spacing.four },
   verdict: { marginTop: 6 },
   reassurance: { paddingTop: Spacing.three, maxWidth: 340 },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    marginTop: Spacing.four,
+  },
+  searchInput: { flex: 1, fontFamily: Fonts.body, fontSize: 15, paddingVertical: 2 },
+  noResults: { paddingTop: Spacing.five, textAlign: 'center' },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

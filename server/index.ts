@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage } from 'node:http';
 
 import { askDocument, briefDocument, readDocument } from './comprehend.ts';
 import { readSubscriptions } from './subscriptions.ts';
+import { fetchBrandIcon, isDomain } from './brand-icon.ts';
 import { extractFromImage, type Category, type SupportedMediaType } from './extract.ts';
 import { BUCKETS, checkRateLimit, withinDailyBudget, withinInstallBudget } from './rate-limit.ts';
 import { canIssueTokens, issueInstallToken, verifyInstallToken } from './install-token.ts';
@@ -203,6 +204,33 @@ const server = createServer(async (req, res) => {
     const configured = Boolean(process.env.ANTHROPIC_API_KEY);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, apiKeyConfigured: configured }));
+    return;
+  }
+
+  /*
+   * The one GET that does real work. Fetched on the phone's behalf so the icon
+   * providers never see the person asking, and cached hard because a service's
+   * logo does not change on a Tuesday.
+   */
+  if (req.method === 'GET' && (req.url ?? '').startsWith('/icon')) {
+    const domain = new URL(req.url ?? '', 'http://localhost').searchParams.get('domain');
+    if (!isDomain(domain)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'domain is required' }));
+      return;
+    }
+    const icon = await fetchBrandIcon(domain);
+    if (!icon) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'No icon found' }));
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': icon.type,
+      'Cache-Control': 'public, max-age=2592000',
+      'Content-Length': String(icon.body.length),
+    });
+    res.end(icon.body);
     return;
   }
 

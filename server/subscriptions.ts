@@ -36,6 +36,12 @@ export const SubscriptionsSchema = z.object({
       period: z.enum(['weekly', 'monthly', 'quarterly', 'yearly', 'unknown']),
       /** The next charge, as YYYY-MM-DD. Empty when the screen does not say. */
       renewsOn: z.string(),
+      /**
+       * The service's own website, so its icon can be found: "spotify.com",
+       * "anghami.com", "claude.ai". Empty when the service is not one you
+       * recognise — a guessed domain fetches a stranger's logo.
+       */
+      domain: z.string(),
       status: z.enum(['active', 'expired', 'cancelled', 'unknown']),
     })
   ),
@@ -55,6 +61,7 @@ The screen is usually the iOS Subscriptions list, and may also be Google Play's,
 - Copy prices exactly as printed, with the currency. Leave price empty rather than converting or guessing one.
 - period comes from what is printed anywhere in the row, and the plan name usually carries it: "Claude Pro - Monthly" is monthly, "200 GB - 1 Year" is yearly, "billed annually" is yearly. Use unknown only when nothing on the row says, and never infer it from the price.
 - Read only what is on the screen. Never add a subscription because it is popular, and never complete a half-visible row from what it probably is.
+- domain is the service's main website, lowercase and without www: spotify.com, netflix.com, anghami.com, claude.ai, icloud.com. It is used to find the service's icon, so leave it empty rather than guessing at one you do not recognise — a wrong domain shows somebody a stranger's logo.
 - If the image is not a list of subscriptions, return an empty array and say what it appears to be in "note".
 
 Today's date is provided with the image; use it to resolve years.`;

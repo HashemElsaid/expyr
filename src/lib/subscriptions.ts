@@ -24,6 +24,8 @@ export type FoundSubscription = {
   period: Recurrence | 'unknown';
   /** YYYY-MM-DD, or empty when the screen did not say. */
   renewsOn: string;
+  /** The service's website, used only to find its icon. */
+  domain: string;
   status: 'active' | 'expired' | 'cancelled' | 'unknown';
 };
 

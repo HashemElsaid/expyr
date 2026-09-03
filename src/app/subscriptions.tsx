@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { ensureBrandIcon } from '@/lib/brand-icons';
 import { longDate } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { pickImage } from '@/lib/scan';
@@ -96,7 +97,14 @@ export default function SubscriptionsScreen() {
           files: [],
           leadDays: leadDaysFor(sub.period),
           renewsEvery: period,
+          iconDomain: sub.domain || undefined,
         });
+        /*
+         * Pulled down now rather than when the row is first drawn, so the list
+         * is already wearing the right faces when it appears. Failing is fine:
+         * the row falls back to the same tile everything else uses.
+         */
+        void ensureBrandIcon(sub.domain);
       }
       successFeedback();
       router.back();

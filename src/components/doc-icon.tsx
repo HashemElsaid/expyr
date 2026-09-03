@@ -3,12 +3,15 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { Radius } from '@/constants/theme';
 import { iconFor } from '@/data/document-icons';
+import { brandIconUri } from '@/lib/brand-icons';
 import { useTheme } from '@/hooks/use-theme';
 import { Attachment, DocumentTypeId } from '@/types';
 
 type Props = {
   typeId: DocumentTypeId;
   attachment?: Attachment;
+  /** A subscription's service, when its icon has been fetched to this phone. */
+  iconDomain?: string;
   size?: number;
   tint?: string;
 };
@@ -17,8 +20,24 @@ type Props = {
  * A photo thumbnail when there is one, a PDF marker when the attachment is a
  * document, and the category icon otherwise.
  */
-export function DocIcon({ typeId, attachment, size = 46, tint }: Props) {
+export function DocIcon({ typeId, attachment, iconDomain, size = 46, tint }: Props) {
   const theme = useTheme();
+
+  /*
+   * Before the photo, because a subscription has no photo and a service's own
+   * mark is the fastest thing on the screen to recognise — you find Spotify by
+   * its green circle long before you have read the word.
+   */
+  const brand = brandIconUri(iconDomain);
+  if (brand) {
+    return (
+      <Image
+        source={{ uri: brand }}
+        style={[styles.image, { width: size, height: size, borderRadius: Radius.small }]}
+        resizeMode="contain"
+      />
+    );
+  }
 
   if (attachment && attachment.type !== 'pdf') {
     return (

@@ -133,6 +133,7 @@ function migrate(raw: unknown): TrackedDocument | null {
     archivedAt: doc.archivedAt,
     history: doc.history,
     renewsEvery: doc.renewsEvery,
+    iconDomain: doc.iconDomain,
     visibility: doc.visibility ?? 'private',
     notificationIds: doc.notificationIds ?? [],
     createdAt: doc.createdAt ?? new Date().toISOString(),

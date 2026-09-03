@@ -91,6 +91,12 @@ export type TrackedDocument = {
    * subscription tracker that needs to be told it renewed is a to-do list.
    */
   renewsEvery?: Recurrence;
+  /**
+   * The service's website, for a subscription. Only ever used to show the
+   * service's own icon instead of a generic one — Spotify's list should look
+   * like Spotify, not like a row of identical tickets.
+   */
+  iconDomain?: string;
   visibility: Visibility;
   /** Ids of scheduled local notifications, so they can be cancelled. */
   notificationIds: string[];

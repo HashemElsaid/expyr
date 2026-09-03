@@ -284,7 +284,12 @@ export default function HomeScreen() {
                       </ThemedText>
                     </View>
 
-                    <DocIcon typeId={item.typeId} attachment={item.files[0]} size={38} />
+                    <DocIcon
+                      typeId={item.typeId}
+                      attachment={item.files[0]}
+                      iconDomain={item.iconDomain}
+                      size={38}
+                    />
                   </View>
                 )}
               </Pressable>

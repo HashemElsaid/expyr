@@ -106,7 +106,14 @@ export async function scheduleReminders(
 
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: `${type.emoji} ${doc.title}: ${countdownLabel(lead)}`,
+        /*
+         * Whose it is comes first when it is not yours. A household's papers
+         * all arrive on the same phone, and "Passport: 30 days left" is a
+         * different message from "Rania's passport: 30 days left".
+         */
+        title: doc.owner
+          ? `${type.emoji} ${doc.owner}: ${doc.title}, ${countdownLabel(lead)}`
+          : `${type.emoji} ${doc.title}: ${countdownLabel(lead)}`,
         // Only promise the renewal advice where we actually have it.
         body: hasGuidance(country)
           ? `${labelFor(type, country)} · open Expyr for what to do and what it costs.`

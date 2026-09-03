@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
+import { findGaps } from '@/data/gaps';
 import { useTheme } from '@/hooks/use-theme';
 import { urgencyColor } from '@/hooks/use-urgency';
 import { countdownShort, daysUntil, shortDate, urgencyFor } from '@/lib/dates';
@@ -67,6 +68,16 @@ export default function HouseholdScreen() {
   const [draftName, setDraftName] = useState('');
 
   const people = useMemo(() => buildPeople(documents), [documents]);
+
+  /*
+   * Shown for everybody, not only for households. One person's own file has
+   * gaps too, and the first thing a new user learns here is which of the
+   * papers they carry Expyr has never been shown.
+   */
+  const gapsFor = useCallback(
+    (person: Person) => findGaps(person.items, settings.country),
+    [settings.country]
+  );
 
   /** Renaming touches every one of that person's items, so it is done in one pass. */
   async function commitRename(person: Person) {
@@ -159,11 +170,40 @@ export default function HouseholdScreen() {
               )}
             </View>
 
+            {/* "All clear" above a red warning is a lie, so it defers to one. */}
             <ThemedText type="small" themeColor="textTertiary">
               {person.urgent > 0
                 ? `${person.urgent} need${person.urgent === 1 ? 's' : ''} attention`
-                : `All clear · next ${countdownShort(daysUntil(person.next!.expiryDate))}`}
+                : gapsFor(person).some((gap) => gap.severity === 'blocked')
+                  ? `Next ${countdownShort(daysUntil(person.next!.expiryDate))} · one thing to sort out first`
+                  : `All clear · next ${countdownShort(daysUntil(person.next!.expiryDate))}`}
             </ThemedText>
+
+            {/*
+             * The half of somebody's file that is not in front of them: what
+             * their papers need from each other, and what is not here at all.
+             */}
+            {gapsFor(person).map((gap) => (
+              <View key={gap.text} style={styles.gap}>
+                <MaterialCommunityIcons
+                  name={
+                    gap.severity === 'blocked'
+                      ? 'alert-outline'
+                      : gap.severity === 'missing'
+                        ? 'link-variant-off'
+                        : 'tray-remove'
+                  }
+                  size={15}
+                  color={gap.severity === 'blocked' ? theme.urgentStrong : theme.textTertiary}
+                />
+                <ThemedText
+                  type="small"
+                  themeColor={gap.severity === 'blocked' ? 'text' : 'textTertiary'}
+                  style={styles.flex}>
+                  {gap.text}
+                </ThemedText>
+              </View>
+            ))}
 
             <View style={styles.items}>
               {person.items.slice(0, 4).map((doc) => {
@@ -238,6 +278,7 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  gap: { flexDirection: 'row', gap: Spacing.two, alignItems: 'flex-start', paddingTop: Spacing.two },
   items: { paddingTop: Spacing.two },
   itemRow: {
     flexDirection: 'row',

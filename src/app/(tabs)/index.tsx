@@ -11,7 +11,6 @@ import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
 import { countdownShort, countWord, daysUntil, mastheadDate } from '@/lib/dates';
-import { tapFeedback } from '@/lib/haptics';
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
@@ -279,53 +278,6 @@ export default function HomeScreen() {
         />
       </SafeAreaView>
 
-      {/*
-       * The way in sits above the tab bar, under the thumb, rather than in the
-       * far top corner where nothing else is. It shows a camera because the
-       * fast way to add something is to photograph it — typing a date in is
-       * still there, one step further on.
-       */}
-      <View style={styles.dockRow} pointerEvents="box-none">
-        <Pressable
-          onPress={() => {
-            tapFeedback();
-            router.push('/add');
-          }}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Add an item by photographing it">
-          {({ pressed }) => (
-            <View
-              style={[
-                styles.dock,
-                {
-                  backgroundColor: theme.accent,
-                  borderColor: theme.background,
-                  shadowColor: theme.text,
-                },
-                pressed && styles.docked,
-              ]}>
-              {/*
-               * Viewfinder corners around the lens: the frame you line a
-               * document up inside, shrunk onto the button that opens it.
-               */}
-              <View style={styles.frame} pointerEvents="none">
-                {(['tl', 'tr', 'bl', 'br'] as const).map((corner) => (
-                  <View
-                    key={corner}
-                    style={[
-                      styles.corner,
-                      styles[corner],
-                      { borderColor: theme.accentContrast },
-                    ]}
-                  />
-                ))}
-              </View>
-              <MaterialCommunityIcons name="camera" size={22} color={theme.accentContrast} />
-            </View>
-          )}
-        </Pressable>
-      </View>
     </ThemedView>
   );
 }
@@ -387,7 +339,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   // Deep enough that the last item clears the camera button rather than
   // finishing underneath it.
-  list: { paddingHorizontal: 28, paddingBottom: 96 },
+  list: { paddingHorizontal: 28, paddingBottom: 64 },
   masthead: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -397,34 +349,6 @@ const styles = StyleSheet.create({
   verdict: { marginTop: 6 },
   reassurance: { paddingTop: Spacing.three, maxWidth: 340 },
   pressed: { opacity: 0.7 },
-  /** Floats over the list, centred above the tab bar, within thumb reach. */
-  dockRow: { position: 'absolute', left: 0, right: 0, bottom: Spacing.three, alignItems: 'center' },
-  dock: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // A ring of the page colour, so scrolling text never touches the button.
-    borderWidth: 4,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  docked: { opacity: 0.85, transform: [{ scale: 0.96 }] },
-  frame: { ...StyleSheet.absoluteFillObject, margin: 11, opacity: 0.5 },
-  corner: { position: 'absolute', width: 9, height: 9 },
-  tl: { top: 0, left: 0, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderTopLeftRadius: 3 },
-  tr: { top: 0, right: 0, borderTopWidth: 1.5, borderRightWidth: 1.5, borderTopRightRadius: 3 },
-  bl: { bottom: 0, left: 0, borderBottomWidth: 1.5, borderLeftWidth: 1.5, borderBottomLeftRadius: 3 },
-  br: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderBottomRightRadius: 3,
-  },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

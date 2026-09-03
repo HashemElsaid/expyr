@@ -19,6 +19,10 @@ const SECTIONS: { title: string; body: string }[] = [
     body: 'To read a date from a photo, the image is sent once to Expyr\'s scanning service and passed to Anthropic\'s Claude API, which returns the extracted details. The image is not written to disk on the server, is not used to train any model, and is discarded as soon as the response is produced. Only the image you choose is ever sent. Expyr never uploads anything in the background.',
   },
   {
+    title: 'What happens when you read a document',
+    body: 'Asking Expyr to read a contract works the same way, with one addition. The document is sent once and transcribed, and that transcription is then kept on your phone alongside the photo. When you ask a question, the question and that stored text are sent to be answered, and neither is written to disk on the server. Keeping the text on your phone is what makes asking a second question cheap, and it means the document itself only ever leaves once. Delete the item and the transcription goes with it.',
+  },
+  {
     title: 'If you would rather not send anything',
     body: 'Scanning is always optional. You can add every item by hand, and attach photos without scanning them. Nothing leaves your phone in that case.',
   },

@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage } from 'node:http';
 
+import { askDocument, briefDocument, readDocument } from './comprehend.ts';
 import { extractFromImage, type Category, type SupportedMediaType } from './extract.ts';
 import { checkRateLimit } from './rate-limit.ts';
 
@@ -77,6 +78,61 @@ function parseRequest(raw: string): {
   return { imageBase64: body.imageBase64, mediaType, categories };
 }
 
+/**
+ * A transcript is long, but not unbounded. This is generous for a multi-page
+ * tenancy contract and still refuses anything that looks like a paste attack.
+ */
+const MAX_TEXT_CHARS = 400_000;
+const MAX_QUESTION_CHARS = 2_000;
+
+function parseReadRequest(raw: string): { fileBase64: string; mediaType: SupportedMediaType } {
+  const body = JSON.parse(raw) as { fileBase64?: unknown; mediaType?: unknown };
+  if (typeof body.fileBase64 !== 'string' || body.fileBase64.length === 0) {
+    throw new Error('fileBase64 is required');
+  }
+  const requested = body.mediaType as SupportedMediaType;
+  return {
+    fileBase64: body.fileBase64,
+    mediaType: SUPPORTED_MEDIA_TYPES.includes(requested) ? requested : 'image/jpeg',
+  };
+}
+
+function parseText(raw: string): string {
+  const body = JSON.parse(raw) as { text?: unknown };
+  if (typeof body.text !== 'string' || body.text.trim().length === 0) {
+    throw new Error('text is required');
+  }
+  if (body.text.length > MAX_TEXT_CHARS) throw new Error('That document is too long to read');
+  return body.text;
+}
+
+function parseAskRequest(raw: string): {
+  text: string;
+  question: string;
+  history: { question: string; answer: string }[];
+} {
+  const body = JSON.parse(raw) as { text?: unknown; question?: unknown; history?: unknown };
+  const text = parseText(raw);
+  if (typeof body.question !== 'string' || body.question.trim().length === 0) {
+    throw new Error('question is required');
+  }
+  if (body.question.length > MAX_QUESTION_CHARS) throw new Error('That question is too long');
+
+  // Only the last few turns travel, so a long conversation cannot grow the
+  // request without limit.
+  const history = Array.isArray(body.history)
+    ? body.history
+        .filter(
+          (t): t is { question: string; answer: string } =>
+            typeof (t as { question?: unknown })?.question === 'string' &&
+            typeof (t as { answer?: unknown })?.answer === 'string'
+        )
+        .slice(-6)
+    : [];
+
+  return { text, question: body.question.trim(), history };
+}
+
 const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-expyr-token, x-renewly-token');
@@ -94,7 +150,9 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.method !== 'POST' || req.url !== '/extract') {
+  const route = (req.url ?? '').split('?')[0];
+  const ROUTES = ['/extract', '/read', '/brief', '/ask'];
+  if (req.method !== 'POST' || !ROUTES.includes(route)) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
     return;
@@ -128,17 +186,48 @@ const server = createServer(async (req, res) => {
   }
 
   try {
-    // Deliberately never logged — these images are people's ID documents.
-    const { imageBase64, mediaType, categories } = parseRequest(await readBody(req));
+    // Deliberately never logged — these are people's ID documents and contracts.
+    const raw = await readBody(req);
     const started = Date.now();
-    const result = await extractFromImage({ imageBase64, mediaType, categories });
-    console.log(`extract → ${result.typeId} (${result.confidence}) in ${Date.now() - started}ms`);
 
+    if (route === '/extract') {
+      const { imageBase64, mediaType, categories } = parseRequest(raw);
+      const result = await extractFromImage({ imageBase64, mediaType, categories });
+      console.log(`extract → ${result.typeId} (${result.confidence}) in ${Date.now() - started}ms`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+      return;
+    }
+
+    if (route === '/read') {
+      const { fileBase64, mediaType } = parseReadRequest(raw);
+      const text = await readDocument({ fileBase64, mediaType });
+      console.log(`read → ${text.length} chars in ${Date.now() - started}ms`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ text }));
+      return;
+    }
+
+    if (route === '/brief') {
+      const text = parseText(raw);
+      const brief = await briefDocument(text);
+      console.log(
+        `brief → ${brief.points.length} points, ${brief.obligations.length} obligations in ${Date.now() - started}ms`
+      );
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(brief));
+      return;
+    }
+
+    const { text, question, history } = parseAskRequest(raw);
+    const answer = await askDocument({ text, question, history });
+    // The question and answer are the user's business, so only the shape is logged.
+    console.log(`ask → answered=${answer.answered} in ${Date.now() - started}ms`);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(result));
+    res.end(JSON.stringify(answer));
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Extraction failed';
-    console.error('extract failed:', message);
+    const message = error instanceof Error ? error.message : 'Request failed';
+    console.error(`${route} failed:`, message);
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: message }));
   }

@@ -16,6 +16,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { loadBrief, readAndBrief, type Brief } from '@/lib/reading';
 import { shareDocumentCopy } from '@/lib/share-copy';
 import { hasGuidance } from '@/data/countries';
 import { getDocumentType, numberFieldFor } from '@/data/document-types';
@@ -51,6 +52,9 @@ export default function DocumentDetailScreen() {
   const { settings } = useSettings();
   const [guideOpen, setGuideOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [brief, setBrief] = useState<Brief | null>(null);
+  const [reading, setReading] = useState(false);
+  const [pointsOpen, setPointsOpen] = useState(false);
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
   const days = doc ? daysUntil(doc.expiryDate) : 0;
@@ -131,6 +135,15 @@ export default function DocumentDetailScreen() {
     // Re-bind when the document or theme changes so the handler stays current.
   }, [navigation, doc, theme.textSecondary]);
 
+  /*
+   * Above the early return below, because documents load a moment after the
+   * screen mounts. A hook placed after it runs on some renders and not others,
+   * which React refuses outright.
+   */
+  useEffect(() => {
+    if (doc) setBrief(loadBrief(doc.id));
+  }, [doc?.id]);
+
   if (!doc) return <ThemedView style={styles.container} />;
 
   const type = getDocumentType(doc.typeId);
@@ -155,6 +168,26 @@ export default function DocumentDetailScreen() {
   function markRenewed() {
     tapFeedback();
     router.push(canRoll ? `/add?id=${doc!.id}&renew=1` : `/add?id=${doc!.id}`);
+  }
+
+  async function readDocument() {
+    if (!doc || reading) return;
+    const first = doc.files[0];
+    if (!first) return;
+    tapFeedback();
+    setReading(true);
+    try {
+      const result = await readAndBrief(doc.id, first);
+      setBrief(result.brief);
+      successFeedback();
+    } catch (error) {
+      Alert.alert(
+        'Could not read that',
+        error instanceof Error ? error.message : 'Something went wrong.'
+      );
+    } finally {
+      setReading(false);
+    }
   }
 
   async function sendCopy() {
@@ -328,6 +361,107 @@ export default function DocumentDetailScreen() {
          * Everything below is a tutorial. Someone renewing their third Mulkiya
          * does not need it, so it stays folded until asked for.
          */}
+        {/*
+         * What this particular piece of paper says, which matters more than the
+         * generic renewal guidance below it. Almost nobody reads what they sign.
+         */}
+        {doc.files.length > 0 && !brief && (
+          <Pressable onPress={readDocument} disabled={reading} accessibilityRole="button">
+            {({ pressed }) => (
+              <View
+                style={[
+                  styles.readPrompt,
+                  { borderColor: theme.border },
+                  (pressed || reading) && styles.dim,
+                ]}>
+                <MaterialCommunityIcons
+                  name="text-search"
+                  size={20}
+                  color={theme.accent}
+                />
+                <View style={styles.flex}>
+                  <ThemedText type="bodyMedium">
+                    {reading ? 'Reading it…' : 'Read this document'}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textTertiary">
+                    {reading
+                      ? 'This takes a few seconds. It only happens once.'
+                      : 'Find out what you agreed to, then ask it anything.'}
+                  </ThemedText>
+                </View>
+              </View>
+            )}
+          </Pressable>
+        )}
+
+        {brief && (
+          <View style={styles.brief}>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="label" themeColor="textTertiary">
+                What this says
+              </ThemedText>
+              <View style={[styles.rule, { backgroundColor: theme.border }]} />
+            </View>
+
+            <ThemedText type="body" themeColor="textSecondary">
+              {brief.summary}
+            </ThemedText>
+
+            {brief.watchOut.map((item) => (
+              <View key={item.quote} style={styles.watchRow}>
+                <MaterialCommunityIcons
+                  name="alert-outline"
+                  size={16}
+                  color={theme.urgentSoft}
+                  style={styles.watchIcon}
+                />
+                <ThemedText type="small" style={styles.flex}>
+                  {item.detail}
+                  {item.where ? (
+                    <ThemedText type="small" themeColor="textTertiary">
+                      {'  '}
+                      {item.where}
+                    </ThemedText>
+                  ) : null}
+                </ThemedText>
+              </View>
+            ))}
+
+            {brief.points.length > 0 && (
+              <Pressable
+                onPress={() => setPointsOpen((open) => !open)}
+                accessibilityRole="button">
+                <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                  {pointsOpen
+                    ? 'Hide the detail'
+                    : `Everything else it says (${brief.points.length})`}
+                </ThemedText>
+              </Pressable>
+            )}
+
+            {pointsOpen &&
+              brief.points.map((point) => (
+                <View key={point.label} style={styles.pointRow}>
+                  <ThemedText type="smallBold">{point.label}</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {point.detail}
+                  </ThemedText>
+                  {point.where ? (
+                    <ThemedText type="small" themeColor="textTertiary">
+                      {point.where}
+                    </ThemedText>
+                  ) : null}
+                </View>
+              ))}
+
+            <SecondaryAction
+              icon="comment-question-outline"
+              label="Ask about this document"
+              onPress={() => router.push(`/ask?id=${doc.id}`)}
+            />
+          </View>
+        )}
+
         {!guided && (
           <View style={styles.lateRow}>
             <ThemedText type="label" themeColor="textTertiary">
@@ -546,6 +680,19 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.6 },
   hero: { gap: 10, paddingBottom: 20, borderBottomWidth: StyleSheet.hairlineWidth },
   verdict: { fontSize: 52, lineHeight: 54 },
+  readPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    borderRadius: Radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.three,
+    marginTop: Spacing.three,
+  },
+  brief: { gap: Spacing.two, paddingTop: Spacing.three },
+  watchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.two },
+  watchIcon: { marginTop: 2 },
+  pointRow: { gap: 2, paddingTop: Spacing.two },
   reminderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' },
   sent: { textDecorationLine: 'line-through' },
   runway: { height: 8, justifyContent: 'center' },

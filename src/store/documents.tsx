@@ -14,6 +14,7 @@ import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
 import { daysUntil } from '@/lib/dates';
 import { deleteAttachment, newAttachmentKey, storeAttachment } from '@/lib/files';
 import { newDocumentId } from '@/lib/ids';
+import { deleteReading } from '@/lib/reading';
 import { cancelReminders, scheduleReminders, snoozeReminder } from '@/lib/notifications';
 import { useSettings } from '@/store/settings';
 import { Attachment, DocumentDraft, TrackedDocument } from '@/types';
@@ -205,6 +206,9 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       if (!target) return;
       await cancelReminders(target.notificationIds);
       target.files.forEach(deleteAttachment);
+      // The transcript is the document's contents in plain text. It must not
+      // outlive the document somebody just deleted.
+      deleteReading(id);
       commit(latest.current.filter((d) => d.id !== id));
     },
     [commit]
@@ -245,6 +249,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     for (const doc of latest.current) {
       await cancelReminders(doc.notificationIds);
       doc.files.forEach(deleteAttachment);
+      deleteReading(doc.id);
     }
     commit([]);
   }, [commit]);

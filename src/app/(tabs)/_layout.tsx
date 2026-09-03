@@ -41,7 +41,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ask"
         options={{
-          title: 'Ask',
+          title: 'Expyr AI',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="chat-question-outline" size={size} color={color} />
           ),

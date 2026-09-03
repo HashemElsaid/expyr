@@ -91,7 +91,7 @@ export default function AskScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}>
           <View style={styles.header}>
-            <ThemedText type="display">Ask</ThemedText>
+            <ThemedText type="display">Expyr AI</ThemedText>
             {scoped ? (
               <Pressable
                 onPress={() => router.setParams({ id: '' })}
@@ -134,7 +134,7 @@ export default function AskScreen() {
                   color={theme.textTertiary}
                 />
                 <ThemedText type="headline" style={styles.centered}>
-                  Nothing to ask yet
+                  Nothing read yet
                 </ThemedText>
                 <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
                   Attach a photo of a contract to any item and Expyr reads it on the spot. After
@@ -256,7 +256,7 @@ export default function AskScreen() {
             {busy && (
               <View style={styles.reply}>
                 <ThemedText type="body" themeColor="textTertiary">
-                  Reading…
+                  Expyr AI is reading…
                 </ThemedText>
               </View>
             )}

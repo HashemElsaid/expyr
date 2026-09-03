@@ -127,7 +127,8 @@ export default function AskScreen() {
 
   async function ask(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || busy || asking.length === 0) return;
+    // A file with no readings in it can still answer when something expires.
+    if (!trimmed || busy || (asking.length === 0 && records.length === 0)) return;
     if (allowance.left === 0) {
       setError(
         `That is ${allowance.limit} questions today. Every one of them reads your documents afresh, so the count starts again tomorrow.`

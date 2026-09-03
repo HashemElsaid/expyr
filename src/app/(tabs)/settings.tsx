@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
@@ -9,7 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { exportBackup, exportCsv, importBackup } from '@/lib/backup';
 import { authenticate, checkBiometricSupport } from '@/lib/biometrics';
 import {
   countScheduled,
@@ -41,10 +39,9 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings, update } = useSettings();
-  const { documents, rescheduleAll, replaceAll, deleteEverything } = useDocuments();
+  const { documents, rescheduleAll } = useDocuments();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
   const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
-  const [busy, setBusy] = useState<string | null>(null);
   const [testState, setTestState] = useState<'idle' | 'sent'>('idle');
   /** What iOS actually holds, rather than what we think we booked. */
   const [bookedWithIOS, setBookedWithIOS] = useState(0);
@@ -73,47 +70,6 @@ export default function SettingsScreen() {
     if (await authenticate('Turn on the app lock')) update({ lockEnabled: true });
   }
 
-  async function run(label: string, action: () => Promise<void>) {
-    setBusy(label);
-    try {
-      await action();
-    } catch (error) {
-      Alert.alert('Something went wrong', error instanceof Error ? error.message : 'Please try again.');
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  function restore() {
-    run('restore', async () => {
-      const result = await importBackup();
-      if (!result) return;
-      Alert.alert(
-        'Replace everything?',
-        `This backup holds ${result.count} item${result.count === 1 ? '' : 's'}. Restoring replaces what is currently in Expyr.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Restore',
-            style: 'destructive',
-            onPress: () => replaceAll(result.documents),
-          },
-        ]
-      );
-    });
-  }
-
-  function wipe() {
-    Alert.alert(
-      'Delete everything?',
-      'Every item, photo and reminder will be removed from this phone. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete all', style: 'destructive', onPress: () => deleteEverything() },
-      ]
-    );
-  }
-
   const refreshPermission = useCallback(() => {
     getNotificationPermission().then(setNotificationsOn).catch(() => setNotificationsOn(false));
   }, []);
@@ -138,9 +94,7 @@ export default function SettingsScreen() {
   }
 
   const reminderAt = formatTime(REMINDER_TIME.hour, REMINDER_TIME.minute);
-  const scheduledCount = documents.reduce((sum, d) => sum + d.notificationIds.length, 0);
   const peopleCount = new Set(documents.map((d) => d.owner ?? '')).size || 1;
-  const renewalsRecorded = documents.reduce((sum, d) => sum + (d.history?.length ?? 0), 0);
 
   return (
     <ThemedView style={styles.container}>
@@ -170,59 +124,30 @@ export default function SettingsScreen() {
           {/* Only worth showing once there is actually more than one person. */}
           {peopleCount > 1 && (
             <Section title="Household">
-              <Pressable onPress={() => router.push('/household')} accessibilityRole="button">
-                {({ pressed }) => (
-                  <View style={[styles.row, pressed && styles.pressed]}>
-                    <MaterialCommunityIcons
-                      name="account-multiple-outline"
-                      size={20}
-                      color={theme.textSecondary}
-                    />
-                    <View style={styles.rowBody}>
-                      <ThemedText type="bodyMedium">
-                        {peopleCount} people in this household
-                      </ThemedText>
-                      <ThemedText type="small" themeColor="textTertiary">
-                        See what everyone needs, and rename anyone.
-                      </ThemedText>
-                    </View>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={20}
-                      color={theme.textTertiary}
-                    />
-                  </View>
-                )}
-              </Pressable>
+              <LinkRow
+                icon="account-multiple-outline"
+                title={`${peopleCount} people in this household`}
+                onPress={() => router.push('/household')}
+              />
             </Section>
           )}
 
           {/*
            * Answered once during onboarding and rarely thought about again, so
-           * it states the answer and keeps the fourteen chips behind it.
+           * it states the answer and keeps the pickers behind it.
            */}
           <Section title="Where you live">
-            <Pressable onPress={() => router.push('/location')} accessibilityRole="button">
-              {({ pressed }) => (
-                <View style={[styles.row, pressed && styles.pressed]}>
-                  <MaterialCommunityIcons
-                    name="map-marker-outline"
-                    size={20}
-                    color={theme.textSecondary}
-                  />
-                  <View style={styles.rowBody}>
-                    <ThemedText type="bodyMedium">{whereYouLive(settings)}</ThemedText>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={theme.textTertiary}
-                  />
-                </View>
-              )}
-            </Pressable>
+            <LinkRow
+              icon="map-marker-outline"
+              title={whereYouLive(settings)}
+              onPress={() => router.push('/location')}
+            />
           </Section>
 
+          {/*
+           * One row, because the answer to "are my reminders working?" is a
+           * single fact, and the way to prove it is a single button.
+           */}
           <Section title="Reminders">
             <Row
               icon={notificationsOn ? 'bell-outline' : 'bell-off-outline'}
@@ -230,38 +155,27 @@ export default function SettingsScreen() {
               subtitle={
                 notificationsOn === null
                   ? 'Checking…'
-                  : notificationsOn
-                    ? `${scheduledCount} reminder${scheduledCount === 1 ? '' : 's'} booked across ${documents.length} item${documents.length === 1 ? '' : 's'}, each at ${reminderAt}.`
-                    : 'Expyr cannot warn you about anything until these are allowed.'
+                  : !notificationsOn
+                    ? 'Expyr cannot warn you about anything until these are allowed.'
+                    : testState === 'sent'
+                      ? 'Sent. Lock your phone to see it arrive properly.'
+                      : `${bookedWithIOS} booked with iOS, each at ${reminderAt}.`
               }
               action={
                 notificationsOn
-                  ? undefined
+                  ? {
+                      label: testState === 'sent' ? 'Sent' : 'Test',
+                      onPress: async () => {
+                        const result = await sendTestReminder();
+                        setTestState(result === 'sent' ? 'sent' : 'idle');
+                        if (result === 'denied') {
+                          Alert.alert('Reminders are off', 'Allow notifications first.');
+                        }
+                      },
+                    }
                   : { label: 'Turn on', onPress: enableNotifications }
               }
             />
-
-            {notificationsOn && (
-              <Row
-                icon="bell-ring-outline"
-                title="Check they arrive"
-                subtitle={
-                  testState === 'sent'
-                    ? 'Sent. It should appear in a few seconds, so lock your phone to see it properly.'
-                    : `${bookedWithIOS} booked with iOS right now. Send one to yourself to be sure.`
-                }
-                action={{
-                  label: testState === 'sent' ? 'Sent' : 'Send one',
-                  onPress: async () => {
-                    const result = await sendTestReminder();
-                    setTestState(result === 'sent' ? 'sent' : 'idle');
-                    if (result === 'denied') {
-                      Alert.alert('Reminders are off', 'Allow notifications first.');
-                    }
-                  },
-                }}
-              />
-            )}
           </Section>
 
           <Section title="Appearance">
@@ -297,11 +211,12 @@ export default function SettingsScreen() {
               <MaterialCommunityIcons name="lock-outline" size={20} color={theme.textSecondary} />
               <View style={styles.rowBody}>
                 <ThemedText type="bodyMedium">Require {biometrics.label}</ThemedText>
-                <ThemedText type="small" themeColor="textTertiary">
-                  {biometrics.available
-                    ? 'Expyr asks for it whenever you open the app after being away.'
-                    : 'Set up Face ID, Touch ID or a passcode on this phone to use this.'}
-                </ThemedText>
+                {/* Only worth explaining when the switch will not move. */}
+                {!biometrics.available && (
+                  <ThemedText type="small" themeColor="textTertiary">
+                    Set up Face ID, Touch ID or a passcode on this phone to use this.
+                  </ThemedText>
+                )}
               </View>
               <Switch
                 value={settings.lockEnabled}
@@ -312,106 +227,21 @@ export default function SettingsScreen() {
             </View>
           </Section>
 
+          {/*
+           * Backing up, exporting and deleting are done once or in a hurry,
+           * never while browsing. The same is true of the version and the
+           * legal pages. Both move behind a row.
+           */}
           <Section title="Your data">
-            <Row
+            <LinkRow
               icon="cellphone-check"
               title="Saved on this iPhone"
-              subtitle="Your items and photos live in Expyr's private storage, and they travel with your iPhone backup. Restore a new phone from iCloud and they come back. Nothing is stored on a server."
+              onPress={() => router.push('/data')}
             />
-            <Row
-              icon="tray-arrow-up"
-              title="Keep your own copy"
-              subtitle="A single file with everything, to store wherever you like."
-              action={{
-                label: busy === 'backup' ? 'Working…' : 'Back up',
-                onPress: () => run('backup', () => exportBackup(documents)),
-              }}
-            />
-            <Row
-              icon="tray-arrow-down"
-              title="Restore from a backup"
-              subtitle="Replaces what is in Expyr with the contents of a backup file."
-              action={{ label: busy === 'restore' ? 'Working…' : 'Restore', onPress: restore }}
-            />
-            <Row
-              icon="file-delimited-outline"
-              title="Export as a spreadsheet"
-              subtitle="A plain CSV of what you track, without photos."
-              action={{
-                label: busy === 'csv' ? 'Working…' : 'Export',
-                onPress: () => run('csv', () => exportCsv(documents, settings.country)),
-              }}
-            />
-            <Row
-              icon="delete-outline"
-              title="Delete everything"
-              subtitle="Removes every item, photo and reminder from this phone."
-              destructive
-              action={{ label: 'Delete', onPress: wipe }}
-            />
-          </Section>
-
-          <Section title="Legal">
-            <Pressable onPress={() => router.push('/terms')} accessibilityRole="button">
-              {({ pressed }) => (
-                <View style={[styles.row, pressed && styles.pressed]}>
-                  <MaterialCommunityIcons
-                    name="script-text-outline"
-                    size={20}
-                    color={theme.textSecondary}
-                  />
-                  <View style={styles.rowBody}>
-                    <ThemedText type="bodyMedium">Terms of use</ThemedText>
-                    <ThemedText type="small" themeColor="textTertiary">
-                      What Expyr promises, and what it does not.
-                    </ThemedText>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={theme.textTertiary}
-                  />
-                </View>
-              )}
-            </Pressable>
-
-            <Pressable onPress={() => router.push('/privacy')}>
-              {({ pressed }) => (
-                <View style={[styles.row, pressed && styles.pressed]}>
-                  <MaterialCommunityIcons
-                    name="cellphone-lock"
-                    size={20}
-                    color={theme.textSecondary}
-                  />
-                  <View style={styles.rowBody}>
-                    <ThemedText type="bodyMedium">Your documents stay on this phone</ThemedText>
-                    <ThemedText type="small" themeColor="textTertiary">
-                      Read exactly what is stored, and what happens when you scan.
-                    </ThemedText>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={theme.textTertiary}
-                  />
-                </View>
-              )}
-            </Pressable>
           </Section>
 
           <Section title="About">
-            <Row
-              icon="information-outline"
-              title="Expyr"
-              subtitle={`Version ${Constants.expoConfig?.version ?? '1.0.0'}`}
-            />
-            {renewalsRecorded > 0 && (
-              <Row
-                icon="history"
-                title={`${renewalsRecorded} renewal${renewalsRecorded === 1 ? '' : 's'} behind you`}
-                subtitle="Expyr remembers each time you have renewed something."
-              />
-            )}
+            <LinkRow icon="information-outline" title="Expyr" onPress={() => router.push('/about')} />
           </Section>
         </ScrollView>
       </SafeAreaView>
@@ -431,6 +261,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </View>
       <View style={styles.sectionBody}>{children}</View>
     </View>
+  );
+}
+
+/** A row that only says where it goes: title, chevron, nothing else. */
+function LinkRow({ icon, title, onPress }: { icon: string; title: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button">
+      {({ pressed }) => (
+        <View style={[styles.row, pressed && styles.pressed]}>
+          <MaterialCommunityIcons name={icon as never} size={20} color={theme.textSecondary} />
+          <ThemedText type="bodyMedium" style={styles.flexRow}>
+            {title}
+          </ThemedText>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textTertiary} />
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -492,13 +340,14 @@ function Row({
 const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: 'row', justifyContent: 'center' },
   safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%' },
-  content: { paddingHorizontal: Spacing.four, paddingBottom: Spacing.six },
-  header: { paddingTop: Spacing.four, paddingBottom: Spacing.two },
-  section: { gap: Spacing.three, paddingTop: Spacing.four },
+  content: { paddingHorizontal: Spacing.four, paddingBottom: Spacing.four },
+  header: { paddingTop: Spacing.three, paddingBottom: 0 },
+  section: { gap: Spacing.two, paddingTop: Spacing.three },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   rule: { flex: 1, height: StyleSheet.hairlineWidth },
-  sectionBody: { gap: Spacing.four },
-  row: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
+  sectionBody: { gap: Spacing.three },
+  row: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
+  flexRow: { flex: 1 },
   rowBody: { flex: 1, gap: 3 },
   rowAction: {
     borderRadius: Radius.pill,

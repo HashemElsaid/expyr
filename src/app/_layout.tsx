@@ -216,6 +216,8 @@ function AppShell() {
         <Stack.Screen name="archive" options={{ title: 'Archive' }} />
         <Stack.Screen name="household" options={{ title: 'Household' }} />
         <Stack.Screen name="location" options={{ title: 'Where you live' }} />
+        <Stack.Screen name="data" options={{ title: 'Your data' }} />
+        <Stack.Screen name="about" options={{ title: 'About Expyr' }} />
         <Stack.Screen
           name="onboarding"
           options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }}

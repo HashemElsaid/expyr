@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { COUNTRIES, countryLabel, hasGuidance, usesEmirates, type Country } from '@/data/countries';
+import { CountrySelect } from '@/components/country-select';
+import { countryLabel, hasGuidance, usesEmirates, type Country } from '@/data/countries';
 import { EMIRATES, type Emirate } from '@/data/regions';
 import { useTheme } from '@/hooks/use-theme';
 import { ensureNotificationPermission } from '@/lib/notifications';
@@ -82,35 +83,14 @@ export default function OnboardingScreen() {
                 renewing.
               </ThemedText>
 
-              <View style={styles.chipRow}>
-                {COUNTRIES.map((option) => {
-                  const on = country === option.value;
-                  return (
-                    <Pressable
-                      key={option.value}
-                      onPress={() => {
-                        setCountry(option.value);
-                        // An emirate means nothing once you have left the UAE.
-                        if (option.value !== 'ae') setEmirate(null);
-                      }}>
-                      <View
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: on ? theme.accent : 'transparent',
-                            borderColor: on ? theme.accent : theme.border,
-                          },
-                        ]}>
-                        <ThemedText
-                          type="smallBold"
-                          style={on ? { color: theme.accentContrast } : undefined}>
-                          {option.label}
-                        </ThemedText>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <CountrySelect
+                value={country}
+                onChange={(next) => {
+                  setCountry(next);
+                  // An emirate means nothing once you have left the UAE.
+                  if (next !== 'ae') setEmirate(null);
+                }}
+              />
 
               {usesEmirates(country) && (
                 <View style={styles.options}>

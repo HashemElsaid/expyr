@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { COUNTRIES, usesEmirates } from '@/data/countries';
+import { CountrySelect } from '@/components/country-select';
+import { usesEmirates } from '@/data/countries';
 import { EMIRATES } from '@/data/regions';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
@@ -24,27 +25,13 @@ export default function LocationScreen() {
         <ThemedText type="label" themeColor="textTertiary">
           Country
         </ThemedText>
-        <View style={styles.chipRow}>
-          {COUNTRIES.map((option) => {
-            const on = settings.country === option.value;
-            return (
-              <Chip
-                key={option.value}
-                label={option.label}
-                on={on}
-                onPress={() => {
-                  tapFeedback();
-                  // Leaving the UAE makes any emirate meaningless, so it goes.
-                  update(
-                    option.value === 'ae'
-                      ? { country: option.value }
-                      : { country: option.value, emirate: null }
-                  );
-                }}
-              />
-            );
-          })}
-        </View>
+        <CountrySelect
+          value={settings.country}
+          onChange={(country) =>
+            // Leaving the UAE makes any emirate meaningless, so it goes.
+            update(country === 'ae' ? { country } : { country, emirate: null })
+          }
+        />
 
         {usesEmirates(settings.country) && (
           <>

@@ -350,8 +350,9 @@ export default function HomeScreen() {
 
                     <DocIcon
                       typeId={item.typeId}
-                      attachment={item.files[0]}
-                      iconDomain={item.iconDomain ?? (item.renewsEvery ? guessDomain(item.title) : undefined)}
+                      iconDomain={
+                        item.iconDomain ?? (item.renewsEvery ? guessDomain(item.title) : undefined)
+                      }
                       size={38}
                     />
                   </View>

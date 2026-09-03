@@ -4,13 +4,12 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { Radius } from '@/constants/theme';
 import { iconFor } from '@/data/document-icons';
-import { brandIconUri } from '@/lib/brand-icons';
 import { useTheme } from '@/hooks/use-theme';
-import { Attachment, DocumentTypeId } from '@/types';
+import { brandIconUri } from '@/lib/brand-icons';
+import { DocumentTypeId } from '@/types';
 
 type Props = {
   typeId: DocumentTypeId;
-  attachment?: Attachment;
   /** A subscription's service, when its icon has been fetched to this phone. */
   iconDomain?: string;
   size?: number;
@@ -18,18 +17,21 @@ type Props = {
 };
 
 /**
- * A photo thumbnail when there is one, a PDF marker when the attachment is a
- * document, and the category icon otherwise.
+ * A mark for a document: the service's own icon for a subscription, and the
+ * category's glyph for everything else.
+ *
+ * It used to show a thumbnail of whatever was attached, which sounded right and
+ * read as noise — a list of documents became a list of tiny crops of a hand
+ * holding a licence, a dark receipt email, a corner of a passport page. None of
+ * them are recognisable at 38 points, and a photograph of a document tells you
+ * less at that size than the word next to it. The glyphs are legible, they line
+ * up, and the photograph is one tap away on the document's own screen, at a
+ * size where it can actually be read.
  */
-export function DocIcon({ typeId, attachment, iconDomain, size = 46, tint }: Props) {
+export function DocIcon({ typeId, iconDomain, size = 46, tint }: Props) {
   const theme = useTheme();
   const [brandFailed, setBrandFailed] = useState(false);
 
-  /*
-   * Before the photo, because a subscription has no photo and a service's own
-   * mark is the fastest thing on the screen to recognise — you find Spotify by
-   * its green circle long before you have read the word.
-   */
   const brand = brandIconUri(iconDomain);
   if (brand && !brandFailed) {
     return (
@@ -42,18 +44,6 @@ export function DocIcon({ typeId, attachment, iconDomain, size = 46, tint }: Pro
       />
     );
   }
-
-  if (attachment && attachment.type !== 'pdf') {
-    return (
-      <Image
-        source={{ uri: attachment.uri }}
-        style={[styles.image, { width: size, height: size, borderRadius: Radius.small }]}
-        resizeMode="cover"
-      />
-    );
-  }
-
-  const isPdf = attachment?.type === 'pdf';
 
   return (
     <View
@@ -68,7 +58,7 @@ export function DocIcon({ typeId, attachment, iconDomain, size = 46, tint }: Pro
       ]}>
       <MaterialCommunityIcons
         // The glyph names are validated against the shipped glyphmap.
-        name={(isPdf ? 'file-pdf-box' : iconFor(typeId)) as never}
+        name={iconFor(typeId) as never}
         size={Math.round(size * 0.5)}
         color={tint ?? theme.textSecondary}
       />

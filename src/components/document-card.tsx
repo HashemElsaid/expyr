@@ -30,7 +30,10 @@ export function DocumentCard({ doc, onPress }: { doc: TrackedDocument; onPress: 
         <ThemedView
           type={pressed ? 'backgroundSelected' : 'backgroundElement'}
           style={[styles.card, { borderColor: theme.border }]}>
-          <DocIcon typeId={doc.typeId} attachment={doc.files[0]} iconDomain={doc.iconDomain ?? (doc.renewsEvery ? guessDomain(doc.title) : undefined)} />
+          <DocIcon
+            typeId={doc.typeId}
+            iconDomain={doc.iconDomain ?? (doc.renewsEvery ? guessDomain(doc.title) : undefined)}
+          />
 
           <View style={styles.info}>
             <ThemedText type="title" numberOfLines={1}>

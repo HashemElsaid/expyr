@@ -1,17 +1,40 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  SectionList,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
-import { COUNTRIES, countryLabel, type Country } from '@/data/countries';
+import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { countryLabel, flagFor, searchCountries, type Country } from '@/data/countries';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
 
+type Row = { value: Country; label: string; aka: string };
+
+/** Alphabetical sections, the way every long list on a phone is grouped. */
+function sectionsFor(query: string): { title: string; data: Row[] }[] {
+  const sections: { title: string; data: Row[] }[] = [];
+  for (const country of searchCountries(query)) {
+    const letter = country.label[0].toUpperCase();
+    const last = sections[sections.length - 1];
+    if (last && last.title === letter) last.data.push(country);
+    else sections.push({ title: letter, data: [country] });
+  }
+  return sections;
+}
+
 /**
- * Twenty-two countries is too many to lay out as chips — it turns whichever
- * screen it lands on into a wall of pills. So the field shows the answer and
- * the list only exists while it is being changed.
+ * Nearly two hundred countries is far past what chips or a wheel can carry, so
+ * this is the shape people already know from every app that asks: a field
+ * holding the answer, and behind it a searchable list grouped by letter.
  */
 export function CountrySelect({
   value,
@@ -22,11 +45,19 @@ export function CountrySelect({
 }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const sections = useMemo(() => sectionsFor(query), [query]);
 
   function choose(country: Country) {
     tapFeedback();
     onChange(country);
+    close();
+  }
+
+  function close() {
     setOpen(false);
+    // A stale search would be the first thing seen on the way back in.
+    setQuery('');
   }
 
   return (
@@ -42,6 +73,7 @@ export function CountrySelect({
               { borderColor: theme.border, backgroundColor: theme.backgroundElement },
               pressed && styles.dim,
             ]}>
+            {value && <ThemedText style={styles.flag}>{flagFor(value)}</ThemedText>}
             <ThemedText
               type="fieldValue"
               themeColor={value ? 'text' : 'textTertiary'}
@@ -53,60 +85,112 @@ export function CountrySelect({
         )}
       </Pressable>
 
-      <Modal
-        visible={open}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setOpen(false)}>
-        {/* Tapping the dimmed part is how a sheet is dismissed on iOS. */}
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)} accessibilityLabel="Close" />
-        <View style={[styles.sheet, { backgroundColor: theme.background }]}>
-          <View style={[styles.sheetHead, { borderBottomColor: theme.border }]}>
-            <ThemedText type="label" themeColor="textTertiary" style={styles.flex}>
-              Country
-            </ThemedText>
-            <Pressable onPress={() => setOpen(false)} hitSlop={12} accessibilityRole="button">
-              <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                Done
-              </ThemedText>
-            </Pressable>
-          </View>
+      <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
+        <KeyboardAvoidingView
+          style={styles.fill}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          {/* Tapping the dimmed part is how a sheet is dismissed on iOS. */}
+          <Pressable style={styles.backdrop} onPress={close} accessibilityLabel="Close" />
 
-          <ScrollView contentContainerStyle={styles.list}>
-            {COUNTRIES.map((option) => {
-              const on = value === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  onPress={() => choose(option.value)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: on }}>
-                  {({ pressed }) => (
-                    <View
-                      style={[
-                        styles.option,
-                        { borderBottomColor: theme.border },
-                        pressed && styles.dim,
-                      ]}>
-                      <ThemedText type={on ? 'bodyMedium' : 'body'} style={styles.flex}>
-                        {option.label}
-                      </ThemedText>
-                      {on && (
-                        <MaterialCommunityIcons name="check" size={20} color={theme.accent} />
-                      )}
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+          <View style={[styles.sheet, { backgroundColor: theme.background }]}>
+            <View style={[styles.head, { borderBottomColor: theme.border }]}>
+              <ThemedText type="label" themeColor="textTertiary" style={styles.flex}>
+                Country
+              </ThemedText>
+              <Pressable onPress={close} hitSlop={12} accessibilityRole="button">
+                <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                  Done
+                </ThemedText>
+              </Pressable>
+            </View>
+
+            <View style={styles.searchWrap}>
+              <View
+                style={[
+                  styles.search,
+                  { backgroundColor: theme.backgroundSelected, borderColor: theme.border },
+                ]}>
+                <MaterialCommunityIcons name="magnify" size={18} color={theme.textTertiary} />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search"
+                  placeholderTextColor={theme.textTertiary}
+                  autoCorrect={false}
+                  autoCapitalize="words"
+                  returnKeyType="search"
+                  clearButtonMode="never"
+                  style={[styles.searchInput, { color: theme.text }]}
+                  accessibilityLabel="Search countries"
+                />
+                {query.length > 0 && (
+                  <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Clear">
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={18}
+                      color={theme.textTertiary}
+                    />
+                  </Pressable>
+                )}
+              </View>
+            </View>
+
+            <SectionList
+              sections={sections}
+              keyExtractor={(item) => item.value}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              stickySectionHeadersEnabled
+              initialNumToRender={20}
+              contentContainerStyle={styles.list}
+              ListEmptyComponent={
+                <ThemedText type="body" themeColor="textTertiary" style={styles.empty}>
+                  No country by that name.
+                </ThemedText>
+              }
+              renderSectionHeader={({ section }) => (
+                <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                  <ThemedText type="label" themeColor="textTertiary">
+                    {section.title}
+                  </ThemedText>
+                </View>
+              )}
+              renderItem={({ item }) => {
+                const on = value === item.value;
+                return (
+                  <Pressable
+                    onPress={() => choose(item.value)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}>
+                    {({ pressed }) => (
+                      <View
+                        style={[
+                          styles.option,
+                          { borderBottomColor: theme.border },
+                          pressed && styles.dim,
+                        ]}>
+                        <ThemedText style={styles.flag}>{flagFor(item.value)}</ThemedText>
+                        <ThemedText type={on ? 'bodyMedium' : 'body'} style={styles.flex}>
+                          {item.label}
+                        </ThemedText>
+                        {on && (
+                          <MaterialCommunityIcons name="check" size={20} color={theme.accent} />
+                        )}
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -117,14 +201,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
   },
   flex: { flex: 1 },
+  /** Sized so every flag occupies the same width and the names line up. */
+  flag: { fontSize: 20, lineHeight: 24, width: 28 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.35)' },
   sheet: {
-    maxHeight: '72%',
+    height: '82%',
     borderTopLeftRadius: Radius.large,
     borderTopRightRadius: Radius.large,
-    paddingBottom: Spacing.four,
   },
-  sheetHead: {
+  head: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
@@ -132,7 +217,25 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  list: { paddingHorizontal: Spacing.four },
+  searchWrap: { paddingHorizontal: Spacing.four, paddingVertical: Spacing.three },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: Fonts.body,
+    fontSize: 15,
+    lineHeight: 20,
+    paddingVertical: 2,
+  },
+  list: { paddingHorizontal: Spacing.four, paddingBottom: Spacing.six },
+  sectionHeader: { paddingTop: Spacing.three, paddingBottom: Spacing.two },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -140,5 +243,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  empty: { paddingTop: Spacing.five, textAlign: 'center' },
   dim: { opacity: 0.6 },
 });

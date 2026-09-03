@@ -94,7 +94,6 @@ export default function SettingsScreen() {
   }
 
   const reminderAt = formatTime(REMINDER_TIME.hour, REMINDER_TIME.minute);
-  const peopleCount = new Set(documents.map((d) => d.owner ?? '')).size || 1;
 
   return (
     <ThemedView style={styles.container}>
@@ -120,17 +119,6 @@ export default function SettingsScreen() {
               }
             />
           </Section>
-
-          {/* Only worth showing once there is actually more than one person. */}
-          {peopleCount > 1 && (
-            <Section title="Household">
-              <LinkRow
-                icon="account-multiple-outline"
-                title={`${peopleCount} people in this household`}
-                onPress={() => router.push('/household')}
-              />
-            </Section>
-          )}
 
           {/*
            * Answered once during onboarding and rarely thought about again, so

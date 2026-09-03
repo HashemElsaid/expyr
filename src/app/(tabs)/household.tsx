@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -92,17 +93,28 @@ export default function HouseholdScreen() {
 
   if (documents.length === 0) {
     return (
-      <ThemedView style={[styles.container, styles.empty]}>
-        <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-          Once you say who a document belongs to, everyone in the house shows up here.
-        </ThemedText>
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.header}>
+            <ThemedText type="display">Household</ThemedText>
+          </View>
+          <View style={styles.empty}>
+            <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
+              Once you say who a document belongs to, everyone in the house shows up here.
+            </ThemedText>
+          </View>
+        </SafeAreaView>
       </ThemedView>
     );
   }
 
   return (
     <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <ThemedText type="display">Household</ThemedText>
+        </View>
         <ThemedText type="body" themeColor="textSecondary" style={styles.intro}>
           {people.length === 1
             ? 'Everything here is yours. Set “Whose is it” on an item to track someone else too.'
@@ -195,15 +207,18 @@ export default function HouseholdScreen() {
           </View>
         ))}
       </ScrollView>
+      </SafeAreaView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center' },
+  header: { paddingTop: Spacing.three, paddingBottom: Spacing.two },
   container: { flex: 1 },
   content: {
     paddingHorizontal: 28,
-    paddingBottom: Spacing.six,
+    paddingBottom: 72,
     maxWidth: MaxContentWidth,
     width: '100%',
     alignSelf: 'center',

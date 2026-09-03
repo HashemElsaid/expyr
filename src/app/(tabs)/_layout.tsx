@@ -32,18 +32,18 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Items',
+          title: 'Timeline',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="format-list-bulleted" size={size} color={color} />
+            <MaterialCommunityIcons name="calendar-blank-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="ask"
+        name="household"
         options={{
-          title: 'Expyr AI',
+          title: 'Household',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="chat-question-outline" size={size} color={color} />
+            <MaterialCommunityIcons name="account-multiple-outline" size={size} color={color} />
           ),
         }}
       />
@@ -61,11 +61,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="timeline"
+        name="ask"
         options={{
-          title: 'Timeline',
+          title: 'Expyr AI',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar-blank-outline" size={size} color={color} />
+            <MaterialCommunityIcons name="chat-question-outline" size={size} color={color} />
           ),
         }}
       />

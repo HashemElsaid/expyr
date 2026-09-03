@@ -1,22 +1,40 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { isDocumentClass, LedgerRow } from '@/components/ledger-row';
+import { DocIcon } from '@/components/doc-icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
-import { countdownShort, countWord, daysUntil, mastheadDate } from '@/lib/dates';
+import { urgencyColor } from '@/hooks/use-urgency';
+import { countdownShort, countWord, daysUntil, mastheadDate, urgencyFor } from '@/lib/dates';
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
 import { DocumentTypeId, TrackedDocument } from '@/types';
 
 type Section = { title: string; data: TrackedDocument[] };
+
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /** The renewals that come round every year, in the order worth suggesting. */
 const ANNUAL_STAPLES: DocumentTypeId[] = [
@@ -26,39 +44,39 @@ const ANNUAL_STAPLES: DocumentTypeId[] = [
   'tenancy-ejari',
 ];
 
-/** Urgent first, then things that renew, then things you simply use up. */
-function buildSections(docs: TrackedDocument[], allClear: boolean): Section[] {
-  const needsYou: TrackedDocument[] = [];
-  const documents: TrackedDocument[] = [];
-  const everyday: TrackedDocument[] = [];
+/** One section per calendar month, in date order, so the year reads as a story. */
+function buildSections(docs: TrackedDocument[]): Section[] {
+  const byMonth = new Map<string, TrackedDocument[]>();
 
-  for (const doc of docs) {
-    if (daysUntil(doc.expiryDate) <= 30) needsYou.push(doc);
-    else if (isDocumentClass(doc)) documents.push(doc);
-    else everyday.push(doc);
+  const sorted = [...docs].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate));
+  for (const doc of sorted) {
+    const date = new Date(`${doc.expiryDate}T00:00:00`);
+    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+    const existing = byMonth.get(key);
+    if (existing) existing.push(doc);
+    else byMonth.set(key, [doc]);
   }
 
-  if (allClear) {
-    // With nothing pressing, one calm list reads better than three headings.
-    const rest = [...documents, ...everyday];
-    // An empty section would still draw its heading and hide the empty state.
-    return rest.length > 0 ? [{ title: 'The year ahead', data: rest }] : [];
-  }
-
-  return [
-    { title: 'Needs you', data: needsYou },
-    { title: 'Documents', data: documents },
-    { title: 'Everyday', data: everyday },
-  ].filter((s) => s.data.length > 0);
+  return [...byMonth.entries()].map(([key, data]) => {
+    const [year, month] = key.split('-');
+    return { title: `${MONTHS[Number(month)]} ${year}`, data };
+  });
 }
 
+/**
+ * Home: whether anything needs you today, and then the year in the order it
+ * arrives.
+ *
+ * This was two tabs — one list sorted by urgency, another sorted by date —
+ * which was the same documents twice over, and the reason neither felt like
+ * the home screen. The verdict answers "do I need to worry"; everything under
+ * it answers "when", which is the only question a tracker has to be good at.
+ */
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { documents, archived, loaded, rescheduleAll } = useDocuments();
   const { settings } = useSettings();
-  const [query, setQuery] = useState('');
-  const [ownerFilter, setOwnerFilter] = useState<string | null>(null);
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
 
   useFocusEffect(
@@ -66,12 +84,6 @@ export default function HomeScreen() {
       getNotificationPermission().then(setNotificationsOn).catch(() => setNotificationsOn(null));
     }, [])
   );
-
-  const owners = useMemo(
-    () => [...new Set(documents.map((d) => d.owner).filter((o): o is string => !!o))],
-    [documents]
-  );
-  const hasOwnItems = useMemo(() => documents.some((d) => !d.owner), [documents]);
 
   /*
    * The documents people reach for first — passport, ID — are the ones that
@@ -87,26 +99,13 @@ export default function HomeScreen() {
     [documents, settings.country]
   );
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return documents.filter((doc) => {
-      // null is "everyone"; '' is the phone's owner, who has no name on file.
-      if (ownerFilter !== null && (doc.owner ?? '') !== ownerFilter) return false;
-      if (!q) return true;
-      return (
-        doc.title.toLowerCase().includes(q) ||
-        labelForId(doc.typeId, settings.country).toLowerCase().includes(q) ||
-        doc.owner?.toLowerCase().includes(q) ||
-        doc.documentNumber?.toLowerCase().includes(q) ||
-        doc.notes?.toLowerCase().includes(q)
-      );
-    });
-  }, [documents, query, ownerFilter]);
-
+  const sections = useMemo(() => buildSections(documents), [documents]);
   const urgent = documents.filter((d) => daysUntil(d.expiryDate) <= 30);
   const allClear = urgent.length === 0;
-  const sections = useMemo(() => buildSections(filtered, allClear), [filtered, allClear]);
-  const next = documents[0];
+  const next = useMemo(
+    () => [...documents].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))[0],
+    [documents]
+  );
 
   async function turnOnNotifications() {
     const granted = await ensureNotificationPermission();
@@ -116,7 +115,7 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
@@ -126,33 +125,28 @@ export default function HomeScreen() {
           ListHeaderComponent={
             <View>
               <View style={styles.masthead}>
-                <View style={styles.flex}>
-                  <ThemedText type="label" themeColor="textTertiary">
-                    {mastheadDate()}
-                  </ThemedText>
-                  {documents.length > 0 && (
-                    <ThemedText type="verdict" style={styles.verdict}>
-                      {allClear ? 'All quiet.' : `${countWord(urgent.length)} need${urgent.length === 1 ? 's' : ''} you.`}
-                    </ThemedText>
-                  )}
-                </View>
-              </View>
-
-              {allClear && next && documents.length > 0 && (
-                <ThemedText type="body" themeColor="textSecondary" style={styles.reassurance}>
-                  Next: {next.title}, {countdownShort(daysUntil(next.expiryDate))}.
+                <ThemedText type="label" themeColor="textTertiary">
+                  {mastheadDate()}
                 </ThemedText>
-              )}
+                {documents.length > 0 && (
+                  <ThemedText type="verdict" style={styles.verdict}>
+                    {allClear
+                      ? 'All quiet.'
+                      : `${countWord(urgent.length)} need${urgent.length === 1 ? 's' : ''} you.`}
+                  </ThemedText>
+                )}
+                {allClear && next && documents.length > 0 && (
+                  <ThemedText type="body" themeColor="textSecondary" style={styles.reassurance}>
+                    Next: {next.title}, {countdownShort(daysUntil(next.expiryDate))}.
+                  </ThemedText>
+                )}
+              </View>
 
               {allClear && next && daysUntil(next.expiryDate) > 120 && missingAnnual.length > 0 && (
                 <Pressable onPress={() => router.push('/add')} accessibilityRole="button">
                   {({ pressed }) => (
                     <View
-                      style={[
-                        styles.banner,
-                        { borderColor: theme.border },
-                        pressed && styles.pressed,
-                      ]}>
+                      style={[styles.banner, { borderColor: theme.border }, pressed && styles.dim]}>
                       <MaterialCommunityIcons
                         name="calendar-sync-outline"
                         size={18}
@@ -181,73 +175,59 @@ export default function HomeScreen() {
                   </View>
                 </Pressable>
               )}
-
-              {documents.length >= 5 && (
-                <View
-                  style={[
-                    styles.searchField,
-                    { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-                  ]}>
-                  <MaterialCommunityIcons name="magnify" size={17} color={theme.textTertiary} />
-                  <TextInput
-                    value={query}
-                    onChangeText={setQuery}
-                    placeholder="Search"
-                    placeholderTextColor={theme.textTertiary}
-                    style={[styles.searchInput, { color: theme.text }]}
-                  />
-                </View>
-              )}
-
-              {owners.length > 0 && documents.length > 1 && (
-                <View style={styles.filterRow}>
-                  <FilterChip
-                    label="Everyone"
-                    active={ownerFilter === null}
-                    onPress={() => setOwnerFilter(null)}
-                  />
-                  {/* Once other people are on the list, you are a person too. */}
-                  {hasOwnItems && (
-                    <FilterChip
-                      label="Mine"
-                      active={ownerFilter === ''}
-                      onPress={() => setOwnerFilter(ownerFilter === '' ? null : '')}
-                    />
-                  )}
-                  {owners.map((name) => (
-                    <FilterChip
-                      key={name}
-                      label={name}
-                      active={ownerFilter === name}
-                      onPress={() => setOwnerFilter(ownerFilter === name ? null : name)}
-                    />
-                  ))}
-                </View>
-              )}
             </View>
           }
           renderSectionHeader={({ section }) => (
-            <View style={styles.sectionHeader}>
+            <View style={styles.monthHeader}>
               <ThemedText type="label" themeColor="textTertiary">
                 {section.title}
               </ThemedText>
               <View style={[styles.rule, { backgroundColor: theme.border }]} />
             </View>
           )}
-          renderItem={({ item }) => (
-            <LedgerRow
-              doc={item}
-              all={documents}
-              onPress={() => router.push(`/document/${item.id}`)}
-            />
-          )}
+          renderItem={({ item }) => {
+            const date = new Date(`${item.expiryDate}T00:00:00`);
+            const days = daysUntil(item.expiryDate);
+            const color = urgencyColor(urgencyFor(days), theme);
+            const label = labelForId(item.typeId, settings.country);
+
+            return (
+              <Pressable onPress={() => router.push(`/document/${item.id}`)}>
+                {({ pressed }) => (
+                  <View style={[styles.row, pressed && styles.dim]}>
+                    <View style={styles.dateColumn}>
+                      <ThemedText type="numeral" style={{ color }}>
+                        {date.getDate()}
+                      </ThemedText>
+                      <ThemedText type="label" themeColor="textTertiary">
+                        {WEEKDAYS[date.getDay()]}
+                      </ThemedText>
+                    </View>
+
+                    <View style={[styles.spine, { backgroundColor: theme.border }]}>
+                      <View style={[styles.node, { backgroundColor: color }]} />
+                    </View>
+
+                    <View style={styles.rowBody}>
+                      <ThemedText type="title" numberOfLines={1}>
+                        {item.title}
+                      </ThemedText>
+                      <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
+                        {[item.owner, item.title.trim() === label ? null : label]
+                          .filter(Boolean)
+                          .join(' · ') || 'Expires this day'}
+                      </ThemedText>
+                    </View>
+
+                    <DocIcon typeId={item.typeId} attachment={item.files[0]} size={38} />
+                  </View>
+                )}
+              </Pressable>
+            );
+          }}
           ListEmptyComponent={
             loaded && documents.length === 0 ? (
               <EmptyState onAdd={() => router.push('/add')} />
-            ) : query.trim() ? (
-              <ThemedText type="small" themeColor="textTertiary" style={styles.noResults}>
-                Nothing matches “{query.trim()}”.
-              </ThemedText>
             ) : null
           }
           ListFooterComponent={
@@ -277,36 +257,7 @@ export default function HomeScreen() {
           }
         />
       </SafeAreaView>
-
     </ThemedView>
-  );
-}
-
-function FilterChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      <View
-        style={[
-          styles.filterChip,
-          {
-            backgroundColor: active ? theme.accent : 'transparent',
-            borderColor: active ? theme.accent : theme.border,
-          },
-        ]}>
-        <ThemedText type="smallBold" style={active ? { color: theme.accentContrast } : undefined}>
-          {label}
-        </ThemedText>
-      </View>
-    </Pressable>
   );
 }
 
@@ -315,14 +266,13 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <View style={styles.empty}>
       <ThemedText type="verdict">Nothing yet.</ThemedText>
-      <ThemedText type="body" themeColor="textSecondary">
-        Photograph a visa, a licence, a tenancy contract. Expyr reads the date and remembers it
-        for you.
+      <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
+        Photograph a visa, a licence, a tenancy contract. Expyr reads the date and remembers it for
+        you.
       </ThemedText>
       <Pressable onPress={onAdd} accessibilityRole="button">
         {({ pressed }) => (
-          <View
-            style={[styles.ctaButton, { backgroundColor: theme.accent }, pressed && styles.pressed]}>
+          <View style={[styles.cta, { backgroundColor: theme.accent }, pressed && styles.dim]}>
             <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
               Add your first item
             </ThemedText>
@@ -337,18 +287,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: 'row', justifyContent: 'center' },
   safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%' },
   flex: { flex: 1 },
-  // Deep enough that the last item clears the camera button rather than
-  // finishing underneath it.
-  list: { paddingHorizontal: 28, paddingBottom: 64 },
-  masthead: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.three,
-    paddingTop: Spacing.four,
-  },
+  // Deep enough that the last row clears the camera button on the tab bar.
+  list: { paddingHorizontal: Spacing.four, paddingBottom: 72 },
+  masthead: { paddingTop: Spacing.four },
   verdict: { marginTop: 6 },
   reassurance: { paddingTop: Spacing.three, maxWidth: 340 },
-  pressed: { opacity: 0.7 },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -358,46 +301,38 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     marginTop: Spacing.four,
   },
-  searchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    borderRadius: Radius.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    marginTop: Spacing.four,
-  },
-  searchInput: { flex: 1, fontSize: 15, paddingVertical: 2 },
-  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, marginTop: Spacing.three },
-  filterChip: {
-    borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  sectionHeader: {
+  monthHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-    paddingTop: 28,
-    paddingBottom: Spacing.one,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.two,
   },
   rule: { flex: 1, height: StyleSheet.hairlineWidth },
-  noResults: { paddingTop: Spacing.five, textAlign: 'center' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  dateColumn: { width: 40, alignItems: 'center', gap: 1 },
+  spine: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', alignItems: 'center' },
+  node: { width: 7, height: 7, borderRadius: 4, marginTop: 22, marginLeft: -3 },
+  rowBody: { flex: 1, gap: 2 },
   archiveLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.one,
-    paddingVertical: Spacing.four,
+    gap: Spacing.two,
+    paddingTop: Spacing.four,
   },
-  assurance: { textAlign: 'center', paddingTop: Spacing.four, paddingBottom: Spacing.two },
-  empty: { paddingTop: 48, gap: Spacing.three, alignItems: 'flex-start', maxWidth: 340 },
-  ctaButton: {
+  assurance: { paddingTop: Spacing.three },
+  empty: { alignItems: 'center', gap: Spacing.three, paddingTop: Spacing.six },
+  centered: { textAlign: 'center' },
+  cta: {
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     marginTop: Spacing.two,
   },
+  dim: { opacity: 0.6 },
 });

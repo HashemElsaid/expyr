@@ -58,10 +58,11 @@ export default function SubscriptionsScreen() {
       if (!settings.premium) update({ scansUsed: settings.scansUsed + 1 });
 
       if (scan.subscriptions.length === 0) {
+        // The reader's own sentence about what it saw, which is more use than
+        // a generic refusal — it says why, so the next attempt can be better.
         setError(
-          scan.note
-            ? `Nothing to add from that. ${scan.note}`
-            : 'No subscriptions on that screen. Try the Subscriptions page in Settings.'
+          scan.note ||
+            'Nothing to add from that. Try the Subscriptions page in Settings, or a receipt from the service.'
         );
         return;
       }
@@ -139,7 +140,8 @@ export default function SubscriptionsScreen() {
             <ThemedText type="headline">Every subscription, in one go</ThemedText>
             <ThemedText type="body" themeColor="textSecondary">
               iPhone already keeps the list. Screenshot it and Expyr will read the names, the
-              prices and the dates they charge you, then remind you before each one does.
+              prices and the dates they charge you, then remind you before each one does. A
+              receipt or an invoice for a single service works just as well.
             </ThemedText>
 
             <View style={[styles.steps, { borderColor: theme.border }]}>

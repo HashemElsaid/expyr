@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage } from 'node:http';
 
 import { askDocument, briefDocument, readDocument } from './comprehend.ts';
 import { extractFromImage, type Category, type SupportedMediaType } from './extract.ts';
-import { checkRateLimit } from './rate-limit.ts';
+import { BUCKETS, checkRateLimit, withinDailyBudget } from './rate-limit.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 /**
@@ -108,6 +108,12 @@ function parseText(raw: string): string {
 
 /** At most this many documents in one question, so a large file cannot stall. */
 const MAX_ASK_DOCUMENTS = 12;
+/*
+ * A question carries every document at once, so its ceiling is lower than the
+ * one for reading a single file. Roughly forty thousand tokens: several long
+ * contracts, and nowhere near enough room to use this as a general chatbot.
+ */
+const MAX_ASK_CHARS = 150_000;
 
 function parseAskRequest(raw: string): {
   documents: { title: string; text: string }[];
@@ -138,7 +144,7 @@ function parseAskRequest(raw: string): {
       .slice(0, MAX_ASK_DOCUMENTS);
     if (documents.length === 0) throw new Error('documents is required');
     const total = documents.reduce((sum, d) => sum + d.text.length, 0);
-    if (total > MAX_TEXT_CHARS) throw new Error('That is more text than we can read at once');
+    if (total > MAX_ASK_CHARS) throw new Error('That is more text than we can read at once');
   } else {
     documents = [{ title: '', text: parseText(raw) }];
   }
@@ -203,14 +209,29 @@ const server = createServer(async (req, res) => {
     req.socket.remoteAddress ??
     'unknown';
 
-  const limit = checkRateLimit(clientKey);
+  const limit = checkRateLimit(clientKey, route);
   if (!limit.allowed) {
+    const what = BUCKETS[route]?.label ?? 'requests';
     res.writeHead(429, {
       'Content-Type': 'application/json',
       'Retry-After': String(limit.retryAfterSeconds),
     });
+    res.end(JSON.stringify({ error: `Too many ${what} in a short time. Try again shortly.` }));
+    return;
+  }
+
+  /*
+   * The day's ceiling for the whole service. Addresses are free, so a stolen
+   * token driven from many of them would pass the per-address limits above;
+   * this is the line that cannot be walked around, and crossing it is worth
+   * shouting about in the logs because it should never happen in normal use.
+   */
+  const budget = withinDailyBudget();
+  if (!budget.ok) {
+    console.error(`DAILY BUDGET SPENT: ${budget.used}/${budget.max} requests today`);
+    res.writeHead(503, { 'Content-Type': 'application/json', 'Retry-After': '3600' });
     res.end(
-      JSON.stringify({ error: 'Too many scans in a short time. Please try again shortly.' })
+      JSON.stringify({ error: 'Expyr is unusually busy right now. Please try again later.' })
     );
     return;
   }

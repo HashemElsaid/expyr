@@ -19,6 +19,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
 import { askDocuments, readable, type Turn } from '@/lib/reading';
 import { useDocuments } from '@/store/documents';
+import { askAllowance, useSettings } from '@/store/settings';
 
 /**
  * People open a chat box and cannot think of a question. These are the ones
@@ -37,6 +38,8 @@ export default function AskScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { documents, archived } = useDocuments();
+  const { settings, update } = useSettings();
+  const allowance = askAllowance(settings);
   const scroller = useRef<ScrollView>(null);
 
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -65,6 +68,12 @@ export default function AskScreen() {
   async function ask(text: string) {
     const trimmed = text.trim();
     if (!trimmed || busy || asking.length === 0) return;
+    if (allowance.left === 0) {
+      setError(
+        `That is ${allowance.limit} questions today. Every one of them reads your documents afresh, so the count starts again tomorrow.`
+      );
+      return;
+    }
     tapFeedback();
     setQuestion('');
     setError(null);
@@ -73,6 +82,8 @@ export default function AskScreen() {
     try {
       const answer = await askDocuments(asking, trimmed, turns);
       setTurns((current) => [...current, { question: trimmed, answer }]);
+      // Only an answer is counted: a failure delivered nothing.
+      update(allowance.spend());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That did not work. Try again.');
     } finally {
@@ -114,7 +125,9 @@ export default function AskScreen() {
             ) : (
               !nothingRead && (
                 <ThemedText type="label" themeColor="textTertiary">
-                  {pool.length} document{pool.length === 1 ? '' : 's'} read
+                  {allowance.left <= 5
+                    ? `${allowance.left} question${allowance.left === 1 ? '' : 's'} left today`
+                    : `${pool.length} document${pool.length === 1 ? '' : 's'} read`}
                 </ThemedText>
               )
             )}

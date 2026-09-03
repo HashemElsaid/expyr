@@ -42,6 +42,9 @@ export type Settings = {
    * with a real cost per document rather than per tap — see FREE_READ_LIMIT.
    */
   readsUsed: number;
+  /** Questions asked today, and the day they were asked — see askAllowance. */
+  questionsAsked: number;
+  questionsOn: string;
 };
 
 const DEFAULTS: Settings = {
@@ -53,6 +56,8 @@ const DEFAULTS: Settings = {
   premium: false,
   scansUsed: 0,
   readsUsed: 0,
+  questionsAsked: 0,
+  questionsOn: '',
 };
 
 /**
@@ -87,6 +92,39 @@ export const FREE_SCAN_LIMIT = 10;
  */
 export const FREE_READ_LIMIT = 2;
 
+/**
+ * Questions a day, free and paid.
+ *
+ * Unlike reading, asking is not something anyone needs a ration of: nobody
+ * interrogates their own tenancy contract forty times before lunch. These are
+ * high enough that a real person will never see them and low enough that a
+ * loop, a stuck retry or somebody being clever cannot run up a bill overnight.
+ * Every question costs a model call, and the transcripts go with it.
+ */
+export const DAILY_QUESTION_LIMIT = { free: 20, premium: 100 };
+
+/** Today's date as the app counts it — local, because the user's day is local. */
+export function today(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+}
+
+/** How many questions are left today, and the patch that records asking one. */
+export function askAllowance(settings: Settings): {
+  left: number;
+  limit: number;
+  spend: () => Partial<Settings>;
+} {
+  const limit = settings.premium ? DAILY_QUESTION_LIMIT.premium : DAILY_QUESTION_LIMIT.free;
+  // A new day starts the count again, so nothing has to be swept or cleaned up.
+  const asked = settings.questionsOn === today() ? settings.questionsAsked : 0;
+  return {
+    left: Math.max(0, limit - asked),
+    limit,
+    spend: () => ({ questionsAsked: asked + 1, questionsOn: today() }),
+  };
+}
+
 type SettingsContextValue = {
   settings: Settings;
   loaded: boolean;
@@ -118,6 +156,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           premium: parsed.premium ?? DEFAULTS.premium,
           scansUsed: parsed.scansUsed ?? DEFAULTS.scansUsed,
           readsUsed: parsed.readsUsed ?? DEFAULTS.readsUsed,
+          questionsAsked: parsed.questionsAsked ?? DEFAULTS.questionsAsked,
+          questionsOn: parsed.questionsOn ?? DEFAULTS.questionsOn,
         });
       })
       .catch(() => {})

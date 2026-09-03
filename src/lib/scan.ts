@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import type { Country } from '@/data/countries';
 import { DOCUMENT_TYPES, labelFor } from '@/data/document-types';
 import { fileTypeFor, type FileType } from '@/lib/files';
+import { forgetInstallToken, installToken } from '@/lib/install';
 import { DocumentTypeId } from '@/types';
 
 /** Claude downsamples anything larger, so sending more pixels just costs money. */
@@ -140,11 +141,13 @@ export async function scanFile(
 
   try {
     const token = process.env.EXPO_PUBLIC_SCAN_TOKEN;
+    const install = await installToken();
     const response = await fetch(extractionEndpoint(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { 'x-expyr-token': token } : {}),
+        ...(install ? { 'x-expyr-install': install } : {}),
       },
       signal: controller.signal,
       body: JSON.stringify({
@@ -160,6 +163,7 @@ export async function scanFile(
       throw new Error('You have scanned a lot in a short time. Try again in a few minutes.');
     }
     if (response.status === 401) {
+      await forgetInstallToken();
       throw new Error('This copy of Expyr is not authorised to scan.');
     }
     if (response.status === 413) {

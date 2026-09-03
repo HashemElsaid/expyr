@@ -2,7 +2,8 @@ import { createServer, type IncomingMessage } from 'node:http';
 
 import { askDocument, briefDocument, readDocument } from './comprehend.ts';
 import { extractFromImage, type Category, type SupportedMediaType } from './extract.ts';
-import { BUCKETS, checkRateLimit, withinDailyBudget } from './rate-limit.ts';
+import { BUCKETS, checkRateLimit, withinDailyBudget, withinInstallBudget } from './rate-limit.ts';
+import { canIssueTokens, issueInstallToken, verifyInstallToken } from './install-token.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 /**
@@ -187,7 +188,7 @@ const server = createServer(async (req, res) => {
   }
 
   const route = (req.url ?? '').split('?')[0];
-  const ROUTES = ['/extract', '/read', '/brief', '/ask'];
+  const ROUTES = ['/extract', '/read', '/brief', '/ask', '/register'];
   if (req.method !== 'POST' || !ROUTES.includes(route)) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
@@ -204,10 +205,19 @@ const server = createServer(async (req, res) => {
 
   // Behind a proxy the real client address arrives in x-forwarded-for.
   const forwarded = req.headers['x-forwarded-for'];
-  const clientKey =
+  const address =
     (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]?.trim()) ??
     req.socket.remoteAddress ??
     'unknown';
+
+  /*
+   * Every limit is counted against the install when there is one, and against
+   * the address when there is not. Older builds have no install token and keep
+   * working on the address alone, which is exactly the weaker footing this is
+   * meant to move phones off.
+   */
+  const install = verifyInstallToken(req.headers['x-expyr-install']);
+  const clientKey = install ? `install:${install.id}` : `ip:${address}`;
 
   const limit = checkRateLimit(clientKey, route);
   if (!limit.allowed) {
@@ -226,6 +236,35 @@ const server = createServer(async (req, res) => {
    * this is the line that cannot be walked around, and crossing it is worth
    * shouting about in the logs because it should never happen in normal use.
    */
+  /*
+   * Handing out a credential costs nothing but the signature, so it answers
+   * here, before the daily model budget is touched.
+   */
+  if (route === '/register') {
+    if (!canIssueTokens) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Registration is not configured.' }));
+      return;
+    }
+    console.log(`register → issued a token to ${address}`);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ token: issueInstallToken() }));
+    return;
+  }
+
+  if (install) {
+    const perInstall = withinInstallBudget(install.id, route);
+    if (!perInstall.ok) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '3600' });
+      res.end(
+        JSON.stringify({
+          error: `That is as much as Expyr can do today. It starts again tomorrow.`,
+        })
+      );
+      return;
+    }
+  }
+
   const budget = withinDailyBudget();
   if (!budget.ok) {
     console.error(`DAILY BUDGET SPENT: ${budget.used}/${budget.max} requests today`);

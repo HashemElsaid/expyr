@@ -30,6 +30,24 @@ export const BUCKETS: Record<string, Bucket> = {
   '/read': { windowMs: HOUR, max: 12, label: 'documents read' },
   '/brief': { windowMs: HOUR, max: 12, label: 'summaries' },
   '/ask': { windowMs: HOUR, max: 30, label: 'questions' },
+  /*
+   * Handing out install tokens is the one thing the bundled app token can do,
+   * so this is the ceiling on how fast a leaked one can mint credentials. A
+   * real phone asks for exactly one, once, and then never again.
+   */
+  '/register': { windowMs: 24 * HOUR, max: 5, label: 'registrations' },
+};
+
+/**
+ * What one install may do in a day, whatever address it arrives from. The
+ * per-address buckets above stop a burst; this stops a slow drip, and it is
+ * the reason a stolen credential is worth so much less than a stolen bundle.
+ */
+export const DAILY_PER_INSTALL: Record<string, number> = {
+  '/extract': 60,
+  '/read': 30,
+  '/brief': 30,
+  '/ask': 80,
 };
 
 /**
@@ -78,6 +96,37 @@ export function checkRateLimit(address: string, route: string, now = Date.now())
   recent.push(now);
   hits.set(key, recent);
   return { allowed: true };
+}
+
+const installDays = new Map<string, { day: string; counts: Record<string, number> }>();
+
+/**
+ * A day's work for one install. Kept in memory like everything else here, so a
+ * restart forgives everyone — which is the right way round for a limit whose
+ * job is to stop abuse rather than to meter honest use.
+ */
+export function withinInstallBudget(
+  installId: string,
+  route: string,
+  now = Date.now()
+): { ok: boolean; used: number; max: number } {
+  const max = DAILY_PER_INSTALL[route];
+  if (max === undefined) return { ok: true, used: 0, max: 0 };
+
+  const day = new Date(now).toISOString().slice(0, 10);
+  const record = installDays.get(installId);
+  const counts = record && record.day === day ? record.counts : {};
+  const used = counts[route] ?? 0;
+
+  if (used >= max) return { ok: false, used, max };
+
+  counts[route] = used + 1;
+  installDays.set(installId, { day, counts });
+  // Yesterday's installs are not worth remembering once a new day is counting.
+  if (installDays.size > 5000) {
+    for (const [key, value] of installDays) if (value.day !== day) installDays.delete(key);
+  }
+  return { ok: true, used: used + 1, max };
 }
 
 /**

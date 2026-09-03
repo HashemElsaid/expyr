@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
+import { forgetInstallToken, installToken } from '@/lib/install';
 import { Attachment, DocumentTypeId } from '@/types';
 
 /**
@@ -49,11 +50,15 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const token = process.env.EXPO_PUBLIC_SCAN_TOKEN;
+    // This phone's own credential, so the service can count what this phone
+    // does rather than what every copy of Expyr does together.
+    const install = await installToken();
     const response = await fetch(`${serviceBase()}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { 'x-expyr-token': token } : {}),
+        ...(install ? { 'x-expyr-install': install } : {}),
       },
       signal: controller.signal,
       body: JSON.stringify(body),
@@ -62,7 +67,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     if (response.status === 429) {
       throw new Error('You have asked a lot in a short time. Try again in a few minutes.');
     }
-    if (response.status === 401) throw new Error('This copy of Expyr is not authorised.');
+    if (response.status === 401) {
+      // A credential the service no longer accepts is dropped, so the next
+      // attempt registers again rather than failing forever.
+      await forgetInstallToken();
+      throw new Error('This copy of Expyr is not authorised.');
+    }
     if (!response.ok) {
       const detail = (await response.json().catch(() => null)) as { error?: string } | null;
       throw new Error(detail?.error ?? 'The reading service could not be reached.');

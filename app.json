@@ -54,7 +54,8 @@
           "faceIDPermission": "Expyr uses Face ID to unlock the app, so the passport, visa and Emirates ID you keep in it are not open to anyone who picks up your phone."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

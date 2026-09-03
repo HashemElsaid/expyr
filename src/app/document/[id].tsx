@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { useEffect, useState } from 'react';
 import {
   ActionSheetIOS,
@@ -207,6 +208,23 @@ export default function DocumentDetailScreen() {
   // The right authority depends on which emirate the user actually lives in.
   const portal = guided ? portalFor(doc.typeId, settings.emirate) : undefined;
   const where = whereFor(doc.typeId, settings.emirate) ?? type.guide.where;
+  /*
+   * What the delay has cost, for the documents whose fine is a daily rate the
+   * app has verified. Grace first, then the rate, then the cap — and nothing at
+   * all until the grace has actually run out, because a fine that has not
+   * started is not a debt.
+   */
+  const rate = guided ? type.guide.lateFeeRate : undefined;
+  const lateDays = Math.max(0, -days - (rate?.graceDays ?? 0));
+  const running =
+    rate && lateDays > 0
+      ? {
+          owed: Math.min(lateDays * rate.perDay, rate.cap),
+          capped: lateDays * rate.perDay >= rate.cap,
+          currency: rate.currency,
+        }
+      : null;
+
   const canRoll = RENEWAL_PERIOD_DAYS[doc.typeId] !== undefined;
   const period = RENEWAL_PERIOD_DAYS[doc.typeId];
   const reminders = reminderDates(doc);
@@ -291,7 +309,8 @@ export default function DocumentDetailScreen() {
             {verdictPhrase(days)}
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary">
-            {doc.title} expires {longDate(doc.expiryDate)}.
+            {/* It did not expire in the future. */}
+            {doc.title} {days < 0 ? 'expired' : 'expires'} {longDate(doc.expiryDate)}.
           </ThemedText>
 
           {period && (
@@ -393,6 +412,13 @@ export default function DocumentDetailScreen() {
               <DataRow
                 label={numberFieldFor(type, settings.country)?.label ?? 'Number'}
                 value={doc.documentNumber}
+                /*
+                 * Nobody looks up their Emirates ID number to admire it. It is
+                 * being typed into a form on another screen, and reading it off
+                 * one and typing it into the other is where the digits get
+                 * transposed.
+                 */
+                copyable
               />
             )}
             {doc.notes && <DataRow label="Notes" value={doc.notes} />}
@@ -419,8 +445,21 @@ export default function DocumentDetailScreen() {
         {guided && type.guide.lateFee !== '' && (
           <View style={styles.lateRow}>
             <ThemedText type="label" themeColor="textTertiary">
-              If you leave it
+              {running === null ? 'If you leave it' : 'What it has cost so far'}
             </ThemedText>
+            {/*
+             * A rate is a fact about the rules. A running total is a fact about
+             * you, and it is the one that gets somebody to the typing centre on
+             * their way home. Shown only where the app knows the grace period
+             * and the rate, and always with the rate beside it so the number
+             * can be checked rather than believed.
+             */}
+            {running !== null && (
+              <ThemedText type="numeral" style={{ color: theme.urgentStrong }}>
+                {running.currency} {running.owed.toLocaleString()}
+                {running.capped ? ' (the cap)' : ''}
+              </ThemedText>
+            )}
             <ThemedText type="body" style={{ color: theme.urgentSoft }}>
               {type.guide.lateFee}
             </ThemedText>
@@ -715,21 +754,43 @@ function DataRow({
   label,
   value,
   bordered,
+  copyable,
 }: {
   label: string;
   value: string;
   bordered?: boolean;
+  copyable?: boolean;
 }) {
   const theme = useTheme();
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    if (!copyable) return;
+    await Clipboard.setStringAsync(value);
+    successFeedback();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  }
+
   return (
-    <View style={[styles.dataRow, bordered && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
-      <ThemedText type="small" themeColor="textTertiary" style={styles.dataLabel}>
-        {label}
-      </ThemedText>
-      <ThemedText type="body" style={styles.dataValue}>
-        {value}
-      </ThemedText>
-    </View>
+    <Pressable onPress={copy} disabled={!copyable} accessibilityRole={copyable ? 'button' : undefined}>
+      <View style={[styles.dataRow, bordered && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
+        <ThemedText type="small" themeColor="textTertiary" style={styles.dataLabel}>
+          {copied ? 'Copied' : label}
+        </ThemedText>
+        <ThemedText type="body" style={styles.dataValue}>
+          {value}
+        </ThemedText>
+        {copyable && (
+          <MaterialCommunityIcons
+            name={copied ? 'check' : 'content-copy'}
+            size={15}
+            color={copied ? theme.accent : theme.textTertiary}
+            style={styles.copyMark}
+          />
+        )}
+      </View>
+    </Pressable>
   );
 }
 
@@ -855,6 +916,7 @@ const styles = StyleSheet.create({
   steps: { gap: 14, paddingBottom: Spacing.three },
   stepRow: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
   stepNumber: { width: 22, fontSize: 24, lineHeight: 26 },
+  copyMark: { marginLeft: 8 },
   dataRow: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.three, paddingVertical: 12 },
   dataLabel: { flexShrink: 0 },
   dataValue: { flex: 1, textAlign: 'right' },

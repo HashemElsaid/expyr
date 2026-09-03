@@ -18,6 +18,14 @@ export type RenewalGuide = {
   steps: string[];
   typicalCost: string;
   lateFee: string;
+  /**
+   * The same fine as a sum that can be counted, for the documents whose
+   * penalty is a plain daily rate. Only set where the authority states the
+   * grace period and the rate plainly enough to arrive at a figure — a wrong
+   * number about somebody's money is worse than no number, so most types leave
+   * this out and show the sentence alone.
+   */
+  lateFeeRate?: { graceDays: number; perDay: number; cap: number; currency: string };
   processingTime: string;
 };
 

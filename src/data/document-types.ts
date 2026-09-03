@@ -48,6 +48,8 @@ const CATALOGUE: DocumentType[] = [
       ],
       typicalCost: 'AED 100 per year of validity + ~AED 70 service fees',
       lateFee: 'AED 20/day, capped at AED 1,000',
+      // The 30 days come from the step above: apply within them to avoid fines.
+      lateFeeRate: { graceDays: 30, perDay: 20, cap: 1000, currency: 'AED' },
       processingTime: '3–7 working days',
     },
   },

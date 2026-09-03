@@ -27,11 +27,22 @@ function getClient(): Anthropic {
 const READ_MODEL = process.env.EXPYR_READ_MODEL ?? 'claude-haiku-4-5';
 
 /**
- * Comprehension is not. Haiku answers a contract question fluently and wrongly,
- * which is worse than refusing. Sonnet is the floor, and EXPYR_COMPREHEND_MODEL
- * raises it to claude-opus-5 where the stakes justify the cost.
+ * Briefing and answering are different jobs, and measuring them said so.
+ *
+ * Answering is precision on one question, and Haiku does it well: on a dense
+ * tenancy contract it quoted the right clauses, and it refused to invent a pet
+ * deposit that did not exist rather than welding the pets clause to the deposit
+ * clause. Questions are also the thing people do repeatedly, so this is the
+ * cost worth keeping down.
+ *
+ * Briefing is recall: find every trap in the document, including the ones
+ * nobody would think to ask about. Haiku found four and missed the automatic
+ * renewal clause, which is the one that quietly costs a year of rent. Sonnet
+ * found seven, that one included. It runs once per document, so the expensive
+ * model sits where the cost is bounded and the misses are expensive.
  */
-const COMPREHEND_MODEL = process.env.EXPYR_COMPREHEND_MODEL ?? 'claude-sonnet-5';
+const BRIEF_MODEL = process.env.EXPYR_BRIEF_MODEL ?? 'claude-sonnet-5';
+const ASK_MODEL = process.env.EXPYR_ASK_MODEL ?? 'claude-haiku-4-5';
 
 /** Adaptive thinking is rejected outright by the older small models. */
 const THINKING_CAPABLE = [
@@ -148,7 +159,7 @@ Rules:
 You are reading the document back to them. You are not their lawyer, and you never tell them what they are allowed to do.`;
 
 export async function briefDocument(text: string): Promise<Brief> {
-  const model = COMPREHEND_MODEL;
+  const model = BRIEF_MODEL;
   const response = await getClient().messages.parse({
     model,
     max_tokens: 8000,
@@ -202,7 +213,7 @@ export async function askDocument(opts: {
   question: string;
   history?: { question: string; answer: string }[];
 }): Promise<Answer> {
-  const model = COMPREHEND_MODEL;
+  const model = ASK_MODEL;
   const priorTurns = (opts.history ?? []).flatMap((turn) => [
     { role: 'user' as const, content: turn.question },
     { role: 'assistant' as const, content: turn.answer },

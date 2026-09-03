@@ -114,32 +114,45 @@ export function brandIconUri(domain?: string): string | null {
 }
 
 /**
- * Downloads the icon if this phone has never seen it. Silent about failure on
- * purpose: an icon that does not arrive is a tile with a glyph in it, which is
- * what every other row in the app already looks like.
+ * Downloads the icon if this phone has never seen it, and says whether it did.
+ *
+ * Silent about failure on purpose: an icon that does not arrive is a tile with
+ * a glyph in it, which is what every other row in the app already looks like.
  */
-export async function ensureBrandIcon(domain?: string): Promise<void> {
-  if (!domain || Platform.OS === 'web') return;
+export async function ensureBrandIcon(domain?: string): Promise<boolean> {
+  if (!domain || Platform.OS === 'web') return false;
+
+  /*
+   * A controller and a timer rather than AbortSignal.timeout, which the phone's
+   * JavaScript engine does not have — it threw, the catch below swallowed it,
+   * and every icon silently failed to arrive while the browser preview, which
+   * does have it, looked perfect.
+   */
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
 
   try {
     const file = fileFor(domain);
-    if (file.exists) return;
+    if (file.exists) return false;
 
     const response = await fetch(
       `${serviceBase()}/icon?domain=${encodeURIComponent(domain.toLowerCase())}`,
-      { signal: AbortSignal.timeout(10_000) }
+      { signal: controller.signal }
     );
-    if (!response.ok) return;
+    if (!response.ok) return false;
 
     const type = response.headers.get('content-type') ?? '';
-    if (!type.startsWith('image/')) return;
+    if (!type.startsWith('image/')) return false;
 
     const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.length === 0) return;
+    if (bytes.length === 0) return false;
 
     file.create();
     file.write(bytes);
+    return true;
   } catch {
-    // No icon is a cosmetic loss and never worth surfacing.
+    return false;
+  } finally {
+    clearTimeout(timer);
   }
 }

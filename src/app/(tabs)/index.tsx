@@ -101,6 +101,8 @@ export default function HomeScreen() {
   const { settings } = useSettings();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
   const [query, setQuery] = useState('');
+  /** Bumped when an icon lands, so the rows redraw wearing it. */
+  const [, setIconsFetched] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -163,10 +165,26 @@ export default function HomeScreen() {
    * already there, so this costs one request per service, once, ever.
    */
   useEffect(() => {
-    for (const doc of documents) {
-      if (!doc.renewsEvery && doc.typeId !== 'membership') continue;
-      void ensureBrandIcon(doc.iconDomain ?? guessDomain(doc.title));
-    }
+    let live = true;
+    (async () => {
+      let fetched = false;
+      for (const doc of documents) {
+        if (!doc.renewsEvery && doc.typeId !== 'membership') continue;
+        const got = await ensureBrandIcon(
+          doc.iconDomain ?? guessDomain(doc.title)
+        );
+        fetched = fetched || got;
+      }
+      /*
+       * The rows read the icon off the disk while rendering, so an icon that
+       * arrives after the list has drawn is invisible until something else
+       * causes a redraw. This is that something else.
+       */
+      if (fetched && live) setIconsFetched((n) => n + 1);
+    })();
+    return () => {
+      live = false;
+    };
   }, [documents]);
 
   async function turnOnNotifications() {

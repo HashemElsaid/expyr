@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 import { hasGuidance, type Country } from '@/data/countries';
 import { getDocumentType, labelFor } from '@/data/document-types';
-import { countdownLabel, daysUntil, formatDate } from '@/lib/dates';
+import { daysUntil, dueIn, longDate } from '@/lib/dates';
 import { TrackedDocument } from '@/types';
 
 Notifications.setNotificationHandler({
@@ -41,8 +41,10 @@ export async function snoozeReminder(doc: TrackedDocument, days = 7): Promise<st
   try {
     return await Notifications.scheduleNotificationAsync({
       content: {
-        title: `${doc.title}`,
-        body: `Still expiring ${formatDate(doc.expiryDate)}.`,
+        // Counted from the day it will arrive, not from today.
+        title: `${doc.title} expires ${dueIn(daysUntil(doc.expiryDate) - days)}`,
+        subtitle: doc.owner ?? '',
+        body: longDate(doc.expiryDate),
         data: { documentId: doc.id },
         categoryIdentifier: REMINDER_CATEGORY,
       },
@@ -94,6 +96,15 @@ export async function scheduleReminders(
   if (!granted) return [];
 
   const type = getDocumentType(doc.typeId);
+  const typeLabel = labelFor(type, country);
+  /*
+   * What being late costs, but only when it is a figure. Several of these read
+   * as a paragraph — "no fine, but an expired passport invalidates travel and
+   * can complicate visa renewal" — which belongs on the document's screen and
+   * not on a lock screen at nine in the morning.
+   */
+  const fee = hasGuidance(country) ? type.guide.lateFee : '';
+  const lateFee = fee.startsWith('AED') ? fee : '';
   const daysLeft = daysUntil(doc.expiryDate);
   const ids: string[] = [];
 
@@ -107,17 +118,18 @@ export async function scheduleReminders(
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         /*
-         * Whose it is comes first when it is not yours. A household's papers
-         * all arrive on the same phone, and "Passport: 30 days left" is a
-         * different message from "Rania's passport: 30 days left".
+         * Three lines, laid out the way iOS lays them out: what and when, then
+         * whose it is, then the fact. The app's name and icon are already in
+         * the header, so nothing here says Expyr and nothing asks to be opened
+         * — tapping it is what opening it means.
          */
-        title: doc.owner
-          ? `${type.emoji} ${doc.owner}: ${doc.title}, ${countdownLabel(lead)}`
-          : `${type.emoji} ${doc.title}: ${countdownLabel(lead)}`,
-        // Only promise the renewal advice where we actually have it.
-        body: hasGuidance(country)
-          ? `${labelFor(type, country)} · open Expyr for what to do and what it costs.`
-          : `${labelFor(type, country)} · open Expyr to see the details.`,
+        title: `${doc.title} expires ${dueIn(lead)}`,
+        subtitle: [doc.owner, typeLabel === doc.title.trim() ? null : typeLabel]
+          .filter(Boolean)
+          .join(' · '),
+        body: lateFee
+          ? `${longDate(doc.expiryDate)}. Late: ${lateFee}.`
+          : longDate(doc.expiryDate),
         data: { documentId: doc.id },
         categoryIdentifier: REMINDER_CATEGORY,
       },
@@ -139,8 +151,10 @@ export async function sendTestReminder(): Promise<'sent' | 'denied' | 'unsupport
   const fireDate = new Date(Date.now() + 5000);
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: '🪪 This is what a reminder looks like',
-      body: 'Expyr will nudge you like this before anything expires.',
+      // Shaped exactly like a real one, because that is the thing being tested.
+      title: 'Emirates ID expires in 30 days',
+      subtitle: 'Test reminder',
+      body: 'A real one carries the date, and what being late costs.',
       categoryIdentifier: REMINDER_CATEGORY,
     },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },

@@ -118,3 +118,15 @@ export function formatTime(hour: number, minute = 0): string {
     ? `${clock}${suffix}`
     : `${clock}:${String(minute).padStart(2, '0')}${suffix}`;
 }
+
+/**
+ * How far off something is, phrased to sit after "expires". Notifications read
+ * better as a sentence than as a countdown: "expires in 30 days", not "30d".
+ */
+export function dueIn(days: number): string {
+  if (days <= 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days < 45) return `in ${days} days`;
+  const months = Math.round(days / 30);
+  return `in ${months} month${months === 1 ? '' : 's'}`;
+}

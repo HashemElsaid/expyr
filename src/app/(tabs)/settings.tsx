@@ -20,13 +20,7 @@ import {
 import { COUNTRIES, usesEmirates } from '@/data/countries';
 import { EMIRATES } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
-import {
-  FREE_ITEM_LIMIT,
-  FREE_READ_LIMIT,
-  FREE_SCAN_LIMIT,
-  useSettings,
-  type ThemePreference,
-} from '@/store/settings';
+import { useSettings, type ThemePreference } from '@/store/settings';
 
 const REMINDER_HOURS = [7, 8, 9, 12, 18, 20];
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -34,21 +28,6 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
 ];
-
-/**
- * What is left of the free plan, counted the same way three times. Mixing what
- * has been used with what remains in one line makes both halves ambiguous.
- */
-function freeAllowanceLeft(items: number, scansUsed: number, readsUsed: number): string {
-  const left = (used: number, limit: number) => Math.max(0, limit - used);
-  const parts: [number, string][] = [
-    [left(items, FREE_ITEM_LIMIT), 'item'],
-    [left(scansUsed, FREE_SCAN_LIMIT), 'scan'],
-    [left(readsUsed, FREE_READ_LIMIT), 'document reading'],
-  ];
-  const [first, second, third] = parts.map(([n, word]) => `${n} ${word}${n === 1 ? '' : 's'}`);
-  return `${first}, ${second} and ${third} left.`;
-}
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -174,14 +153,14 @@ export default function SettingsScreen() {
           </View>
 
           <Section title="Plan">
+            {/*
+             * No running totals here. Counting items, scans and readings at
+             * someone who is not thinking about any of them is noise, and the
+             * comparison behind Unlock says it better anyway.
+             */}
             <Row
               icon={settings.premium ? 'star-circle-outline' : 'archive-outline'}
-              title={settings.premium ? 'Expyr unlocked' : 'Free plan'}
-              subtitle={
-                settings.premium
-                  ? 'Unlimited items, scans and readings, for everyone in the family.'
-                  : freeAllowanceLeft(documents.length, settings.scansUsed, settings.readsUsed)
-              }
+              title={settings.premium ? 'Expyr Pro' : 'Free plan'}
               action={
                 settings.premium
                   ? undefined
@@ -557,7 +536,8 @@ function Row({
 }: {
   icon: string;
   title: string;
-  subtitle: string;
+  /** Omitted when the title says everything, so the row stays one line. */
+  subtitle?: string;
   action?: { label: string; onPress: () => void };
   destructive?: boolean;
 }) {
@@ -572,9 +552,11 @@ function Row({
       />
       <View style={styles.rowBody}>
         <ThemedText type="bodyMedium">{title}</ThemedText>
-        <ThemedText type="small" themeColor="textTertiary">
-          {subtitle}
-        </ThemedText>
+        {subtitle !== undefined && (
+          <ThemedText type="small" themeColor="textTertiary">
+            {subtitle}
+          </ThemedText>
+        )}
       </View>
       {action && (
         <Pressable onPress={action.onPress}>

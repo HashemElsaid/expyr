@@ -45,26 +45,20 @@ export type Plan = {
 export const PLANS: Plan[] = [
   {
     id: 'lifetime',
-    title: 'Expyr, unlocked',
+    title: 'Expyr Pro',
     price: 'AED 149',
     cadence: 'once',
     footnote: 'Pay once. Nothing renews, nothing to cancel.',
   },
 ];
 
-/**
- * One tier, not two. Tracking the family is a reason to upgrade, not a separate
- * product — today it is a name on an item, with no per-household cost behind it.
- * Revisit if real cross-device sharing is ever built.
+/*
+ * The feature list that used to live here promised things the free plan
+ * already does — household names, backups, family sharing — because it was
+ * written as marketing rather than from the code. What Pro actually lifts is
+ * the three ceilings, so the comparison is built in the paywall screen from
+ * the limits themselves and cannot drift away from them again.
  */
-export const PREMIUM_FEATURES = [
-  'Read every contract, and ask it anything',
-  'Track as many items as you like',
-  'Scan without counting, with no 15-scan ceiling',
-  'Everyone in the house, not just you',
-  'Shared with your Apple family, up to six people',
-  'Back up and restore your whole archive',
-];
 
 export type PurchaseOutcome = { ok: true } | { ok: false; message: string };
 

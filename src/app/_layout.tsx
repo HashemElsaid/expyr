@@ -219,7 +219,15 @@ function AppShell() {
           name="onboarding"
           options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }}
         />
-        <Stack.Screen name="paywall" options={{ presentation: 'modal', title: 'Expyr' }} />
+        {/*
+         * No header: the screen carries its own close button, and a title bar
+         * over a comparison this short only crowds it. The modal still slides
+         * up and still swipes down.
+         */}
+        <Stack.Screen
+          name="paywall"
+          options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+        />
       </Stack>
     </>
   );

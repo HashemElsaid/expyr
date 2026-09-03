@@ -106,13 +106,43 @@ function parseText(raw: string): string {
   return body.text;
 }
 
+/** At most this many documents in one question, so a large file cannot stall. */
+const MAX_ASK_DOCUMENTS = 12;
+
 function parseAskRequest(raw: string): {
-  text: string;
+  documents: { title: string; text: string }[];
   question: string;
   history: { question: string; answer: string }[];
 } {
-  const body = JSON.parse(raw) as { text?: unknown; question?: unknown; history?: unknown };
-  const text = parseText(raw);
+  const body = JSON.parse(raw) as {
+    text?: unknown;
+    documents?: unknown;
+    question?: unknown;
+    history?: unknown;
+  };
+
+  /*
+   * One document arrives as `text`, a whole file of them as `documents`. Both
+   * shapes stay supported: a phone that has not been updated still asks the
+   * only way it knows how.
+   */
+  let documents: { title: string; text: string }[];
+  if (Array.isArray(body.documents)) {
+    documents = body.documents
+      .filter(
+        (d): d is { title: string; text: string } =>
+          typeof (d as { title?: unknown })?.title === 'string' &&
+          typeof (d as { text?: unknown })?.text === 'string' &&
+          (d as { text: string }).text.trim().length > 0
+      )
+      .slice(0, MAX_ASK_DOCUMENTS);
+    if (documents.length === 0) throw new Error('documents is required');
+    const total = documents.reduce((sum, d) => sum + d.text.length, 0);
+    if (total > MAX_TEXT_CHARS) throw new Error('That is more text than we can read at once');
+  } else {
+    documents = [{ title: '', text: parseText(raw) }];
+  }
+
   if (typeof body.question !== 'string' || body.question.trim().length === 0) {
     throw new Error('question is required');
   }
@@ -130,7 +160,7 @@ function parseAskRequest(raw: string): {
         .slice(-6)
     : [];
 
-  return { text, question: body.question.trim(), history };
+  return { documents, question: body.question.trim(), history };
 }
 
 const server = createServer(async (req, res) => {
@@ -219,10 +249,12 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const { text, question, history } = parseAskRequest(raw);
-    const answer = await askDocument({ text, question, history });
+    const { documents, question, history } = parseAskRequest(raw);
+    const answer = await askDocument({ documents, question, history });
     // The question and answer are the user's business, so only the shape is logged.
-    console.log(`ask → answered=${answer.answered} in ${Date.now() - started}ms`);
+    console.log(
+      `ask → ${documents.length} document(s), answered=${answer.answered} in ${Date.now() - started}ms`
+    );
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(answer));
   } catch (error) {

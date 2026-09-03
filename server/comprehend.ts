@@ -194,6 +194,8 @@ export const AnswerSchema = z.object({
   answer: z.string(),
   quote: z.string(),
   where: z.string(),
+  /** Which document answered, when more than one was searched. */
+  source: z.string(),
 });
 
 export type Answer = z.infer<typeof AnswerSchema>;
@@ -206,14 +208,40 @@ You have the full text. Answer only from it.
 - When the document does not address it: set answered false and say so plainly in "answer". Leave quote and where empty. Do not reason from what such documents usually contain, do not infer from silence, and do not offer what is likely. Silence is a real and useful answer, because it tells the person the paper does not restrict them, which is a different thing from the paper permitting them.
 - Never give legal advice and never tell the person what they may or may not do. Report what the document says and let them decide.
 - Keep the answer to a few sentences. Quote the clause rather than paraphrasing it at length.
-- Where the document is ambiguous, say what it says and name the ambiguity rather than resolving it.`;
+- Where the document is ambiguous, say what it says and name the ambiguity rather than resolving it.
+- Leave "source" empty. There is only one document here.`;
+
+/**
+ * The same rules, over somebody's whole file of papers. The difference that
+ * matters is attribution: an answer that does not say which document it came
+ * from cannot be checked, and two contracts can say opposite things without
+ * either being wrong.
+ */
+const ASK_ACROSS_SYSTEM = `You answer questions about the documents somebody has signed, for Expyr. Most users live in the UAE.
+
+You have the full text of several documents, each under a heading with its name. Answer only from them.
+
+- When a document answers the question: set answered true, give the answer in plain language, copy the exact wording into "quote", put the clause or section into "where", and put the document's name into "source".
+- When more than one document is relevant, answer from the one that addresses the question most directly and name it. If two documents genuinely conflict, say so and name both in "answer".
+- When none of them address it: set answered false and say so plainly in "answer". Leave quote, where and source empty. Do not reason from what such documents usually contain, do not infer from silence, and do not offer what is likely. Silence is a real and useful answer, because it tells the person their papers do not restrict them, which is a different thing from their papers permitting them.
+- Never give legal advice and never tell the person what they may or may not do. Report what the documents say and let them decide.
+- Keep the answer to a few sentences. Quote the clause rather than paraphrasing it at length.
+- Where a document is ambiguous, say what it says and name the ambiguity rather than resolving it.`;
 
 export async function askDocument(opts: {
-  text: string;
+  documents: { title: string; text: string }[];
   question: string;
   history?: { question: string; answer: string }[];
 }): Promise<Answer> {
   const model = ASK_MODEL;
+  const across = opts.documents.length > 1;
+  /*
+   * The whole file of papers goes in one cached block, so a conversation of
+   * ten questions pays to read them once rather than ten times.
+   */
+  const corpus = across
+    ? opts.documents.map((doc) => `=== ${doc.title} ===\n\n${doc.text}`).join('\n\n\n')
+    : (opts.documents[0]?.text ?? '');
   const priorTurns = (opts.history ?? []).flatMap((turn) => [
     { role: 'user' as const, content: turn.question },
     { role: 'assistant' as const, content: turn.answer },
@@ -222,7 +250,7 @@ export async function askDocument(opts: {
   const response = await getClient().messages.parse({
     model,
     max_tokens: 4000,
-    system: ASK_SYSTEM,
+    system: across ? ASK_ACROSS_SYSTEM : ASK_SYSTEM,
     ...(THINKING_CAPABLE.includes(model) ? { thinking: { type: 'adaptive' as const } } : {}),
     output_config: { format: zodOutputFormat(AnswerSchema) },
     messages: [
@@ -231,10 +259,17 @@ export async function askDocument(opts: {
         content: [
           {
             type: 'text',
-            text: `Here is the document:\n\n${opts.text}`,
+            text: across
+              ? `Here are the documents:\n\n${corpus}`
+              : `Here is the document:\n\n${corpus}`,
             cache_control: { type: 'ephemeral' },
           },
-          { type: 'text', text: 'I will ask you questions about this document.' },
+          {
+            type: 'text',
+            text: across
+              ? 'I will ask you questions about these documents.'
+              : 'I will ask you questions about this document.',
+          },
         ],
       },
       { role: 'assistant', content: 'Understood. I will answer only from the text.' },

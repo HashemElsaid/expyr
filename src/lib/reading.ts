@@ -30,6 +30,8 @@ export type Answer = {
   answer: string;
   quote: string;
   where: string;
+  /** Which document answered, when the question was put to more than one. */
+  source?: string;
 };
 
 export type Turn = { question: string; answer: Answer };
@@ -290,17 +292,35 @@ export async function summariseDocument(documentId: string): Promise<Brief> {
   return brief;
 }
 
-/** Answers from the stored transcript. The document itself never travels again. */
-export async function askAboutDocument(
-  documentId: string,
+/**
+ * The most documents one question can be put to. Twelve contracts is already
+ * more paperwork than a household has, and the wait grows with every one.
+ */
+const MAX_ASK_DOCUMENTS = 12;
+
+/** Which of these documents have been read, and can therefore be asked. */
+export function readable<T extends { id: string }>(documents: T[]): T[] {
+  return documents.filter((doc) => hasReading(doc.id));
+}
+
+/**
+ * Answers from the stored transcripts. The documents themselves never travel
+ * again: only the text Expyr already holds, and only for what was asked.
+ */
+export async function askDocuments(
+  entries: { id: string; title: string }[],
   question: string,
   history: Turn[]
 ): Promise<Answer> {
-  const text = loadTranscript(documentId);
-  if (!text) throw new Error('This document has not been read yet.');
+  const documents = entries
+    .slice(0, MAX_ASK_DOCUMENTS)
+    .map((entry) => ({ title: entry.title, text: loadTranscript(entry.id) }))
+    .filter((doc): doc is { title: string; text: string } => Boolean(doc.text));
+
+  if (documents.length === 0) throw new Error('Nothing has been read yet.');
 
   return post<Answer>('/ask', {
-    text,
+    documents,
     question,
     // Only the recent exchange is worth carrying, and the server trims further.
     history: history.slice(-6).map((t) => ({ question: t.question, answer: t.answer.answer })),

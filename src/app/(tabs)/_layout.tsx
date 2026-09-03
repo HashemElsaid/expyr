@@ -35,6 +35,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="ask"
+        options={{
+          title: 'Ask',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="chat-question-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="timeline"
         options={{
           title: 'Timeline',

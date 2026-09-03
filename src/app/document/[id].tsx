@@ -505,7 +505,7 @@ export default function DocumentDetailScreen() {
           <SecondaryAction
             icon="comment-question-outline"
             label="Ask about this document"
-            onPress={() => router.push(`/ask?id=${doc.id}`)}
+            onPress={() => router.navigate(`/ask?id=${doc.id}`)}
           />
         )}
 
@@ -572,7 +572,7 @@ export default function DocumentDetailScreen() {
             <SecondaryAction
               icon="comment-question-outline"
               label="Ask about this document"
-              onPress={() => router.push(`/ask?id=${doc.id}`)}
+              onPress={() => router.navigate(`/ask?id=${doc.id}`)}
             />
           </View>
         )}

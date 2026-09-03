@@ -26,6 +26,7 @@ import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { newAttachmentKey } from '@/lib/files';
 import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
+import { readInBackground } from '@/lib/reading';
 import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 import { Attachment, DocumentType, DocumentTypeId, TrackedDocument } from '@/types';
 
@@ -275,6 +276,10 @@ export default function AddDocumentScreen() {
 
     const created = await addDocument(draft);
     successFeedback();
+
+    // A contract starts being read the moment it is saved, so the answers are
+    // usually waiting by the time anyone goes looking for them.
+    readInBackground(created.id, created.typeId, created.files);
 
     // The first item is the moment to show the promise being kept: the
     // countdown, the reminder dates and what renewing actually involves.

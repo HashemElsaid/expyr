@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
-import { Attachment } from '@/types';
+import { Attachment, DocumentTypeId } from '@/types';
 
 /**
  * Reading a document, so it can be asked questions.
@@ -159,6 +159,42 @@ export function deleteReading(documentId: string) {
 export type ReadStage = 'transcribing' | 'summarising';
 
 /**
+ * Which documents are worth reading unprompted.
+ *
+ * An Emirates ID, a passport, a Mulkiya are cards: a handful of fields the scan
+ * already captured, with no terms to explain and nothing to ask about. Reading
+ * one costs money and answers nothing. The documents nobody reads and everybody
+ * signs are the contracts and policies, so those are read on arrival and the
+ * rest stay available on request.
+ */
+const READ_ON_ARRIVAL: DocumentTypeId[] = [
+  'tenancy-ejari',
+  'car-insurance',
+  'health-insurance',
+  'trade-license',
+  'labor-card',
+  'membership',
+  'warranty',
+  'other',
+];
+
+export function readsOnArrival(typeId: DocumentTypeId): boolean {
+  return READ_ON_ARRIVAL.includes(typeId);
+}
+
+/**
+ * Reading is slow and costs money, and two screens can both decide it is time:
+ * the add screen starts one in the background, then the document screen opens
+ * on the same unread contract. The work in progress is held here so the second
+ * caller joins the first rather than paying for it twice.
+ */
+const inFlight = new Map<string, Promise<{ transcript: string; brief: Brief | null }>>();
+
+export function isReading(documentId: string): boolean {
+  return inFlight.has(documentId);
+}
+
+/**
  * Deliberately two requests rather than one, and the transcript is written to
  * disk the moment it exists.
  *
@@ -170,7 +206,24 @@ export type ReadStage = 'transcribing' | 'summarising';
  * summary rather than the whole document — and the transcript is what answers
  * questions, so the feature still works without it.
  */
-export async function readDocumentFully(
+export function readDocumentFully(
+  documentId: string,
+  file: Attachment,
+  onStage?: (stage: ReadStage) => void
+): Promise<{ transcript: string; brief: Brief | null }> {
+  const existing = inFlight.get(documentId);
+  if (existing) {
+    // Already running. Report the stage it is most likely at and wait on it.
+    onStage?.(hasReading(documentId) ? 'summarising' : 'transcribing');
+    return existing;
+  }
+
+  const work = runRead(documentId, file, onStage).finally(() => inFlight.delete(documentId));
+  inFlight.set(documentId, work);
+  return work;
+}
+
+async function runRead(
   documentId: string,
   file: Attachment,
   onStage?: (stage: ReadStage) => void
@@ -197,9 +250,30 @@ export async function readDocumentFully(
     saveBrief(documentId, brief);
     return { transcript: text, brief };
   } catch {
-    // The reading survived, which is the part that took the time and the money.
+    // The reading survived, which is the slow and costly half.
     return { transcript: text, brief: null };
   }
+}
+
+/**
+ * Reads a newly saved contract without being asked, and without the person
+ * waiting on it. Saving must not hang or fail because a network call did, so
+ * anything that goes wrong here is left for the document screen to offer again.
+ */
+export function readInBackground(
+  documentId: string,
+  typeId: DocumentTypeId,
+  files: Attachment[]
+): void {
+  if (Platform.OS === 'web') return;
+  if (!readsOnArrival(typeId)) return;
+  if (files.length === 0) return;
+  if (inFlight.has(documentId) || hasReading(documentId)) return;
+
+  readDocumentFully(documentId, files[0]).catch(() => {
+    // Silent on purpose. Nobody asked for this yet, so nobody should be
+    // interrupted when it fails.
+  });
 }
 
 /** Retries only the summary, for a document already transcribed. */

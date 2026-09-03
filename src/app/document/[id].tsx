@@ -18,8 +18,10 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import {
   hasReading,
+  isReading,
   loadBrief,
   readDocumentFully,
+  readsOnArrival,
   summariseDocument,
   type Brief,
   type ReadStage,
@@ -152,6 +154,35 @@ export default function DocumentDetailScreen() {
     if (!doc) return;
     setBrief(loadBrief(doc.id));
     setReadable(hasReading(doc.id));
+
+    /*
+     * Reading normally starts the moment a contract is saved. Picking it up
+     * again here covers the times that did not finish: the app was closed too
+     * soon, the network was gone, the phone suspended the work. Joining an
+     * attempt already running costs nothing, so this is safe to run on arrival.
+     */
+    const first = doc.files[0];
+    if (!first || !readsOnArrival(doc.typeId)) return;
+    if (loadBrief(doc.id) || isReading(doc.id)) {
+      if (isReading(doc.id)) setStage('transcribing');
+      return;
+    }
+
+    let live = true;
+    readDocumentFully(doc.id, first, (s) => live && setStage(s))
+      .then((result) => {
+        if (!live) return;
+        setReadable(true);
+        setBrief(result.brief);
+      })
+      .catch(() => {
+        // Offered as a button instead, rather than an alert nobody asked for.
+      })
+      .finally(() => live && setStage(null));
+
+    return () => {
+      live = false;
+    };
   }, [doc?.id]);
 
   if (!doc) return <ThemedView style={styles.container} />;

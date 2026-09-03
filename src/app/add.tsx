@@ -394,7 +394,7 @@ export default function AddDocumentScreen() {
           </Pressable>
 
           {/* Only worth mentioning once the end is actually in sight. */}
-          {!settings.premium && scansLeft <= 5 && (
+          {!settings.premium && scansLeft <= 3 && (
             <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
               {scansLeft === 0
                 ? 'No free scans left. Typing a date in is still free.'

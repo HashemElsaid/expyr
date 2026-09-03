@@ -59,19 +59,26 @@ const DEFAULTS: Settings = {
 };
 
 /**
- * How many items a free account can track. Set high enough that someone can
- * put their whole life in and feel a reminder arrive before meeting the wall —
- * a typical UAE resident has eight or so documents before anything unusual.
+ * How many items a free account can track.
+ *
+ * Ten was a plan nobody ever hit. One person's own papers — Emirates ID,
+ * passport, driving licence, Mulkiya, insurance — come to about five, so the
+ * ceiling sat above the whole audience and the tracker was, in effect, free
+ * forever. Five is the same set: enough to put yourself in, see the countdowns
+ * and get a reminder, and the wall arrives at the sixth — a partner's ID, a
+ * second car, a child's passport, the tenancy. That is a household, and a
+ * household is what this is worth paying for.
  */
-export const FREE_ITEM_LIMIT = 10;
+export const FREE_ITEM_LIMIT = 5;
 
 /**
- * Free scans, for the lifetime of the install. Set to comfortably cover
- * photographing everything you already own — the moment the app earns its
- * place — without leaving an unmetered model bill open forever. Running out
- * never breaks the app: typing a date in by hand stays free and unlimited.
+ * Free scans, for the lifetime of the install. Two per free item, which covers
+ * photographing everything you already own with room for the shots that come
+ * out blurred, and closes an unmetered model bill that would otherwise stay
+ * open forever. Running out never breaks the app: typing a date in by hand
+ * stays free and unlimited.
  */
-export const FREE_SCAN_LIMIT = 15;
+export const FREE_SCAN_LIMIT = 10;
 
 /**
  * Free documents read in full, for the lifetime of the install.

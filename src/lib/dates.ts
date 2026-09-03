@@ -104,3 +104,17 @@ export function toISODate(date: Date): string {
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
+
+/**
+ * A reminder time written the way a person says it: "9am", "9:30am", and the
+ * two hours that have names of their own.
+ */
+export function formatTime(hour: number, minute = 0): string {
+  if (minute === 0 && hour === 0) return 'midnight';
+  if (minute === 0 && hour === 12) return 'noon';
+  const suffix = hour < 12 ? 'am' : 'pm';
+  const clock = hour % 12 === 0 ? 12 : hour % 12;
+  return minute === 0
+    ? `${clock}${suffix}`
+    : `${clock}:${String(minute).padStart(2, '0')}${suffix}`;
+}

@@ -6,6 +6,7 @@ import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Vi
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { TimeSelect } from '@/components/time-select';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -22,7 +23,6 @@ import { emirateLabel, type Emirate } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
 import { useSettings, type ThemePreference } from '@/store/settings';
 
-const REMINDER_HOURS = [7, 8, 9, 12, 18, 20];
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
   { value: 'light', label: 'Light' },
@@ -51,7 +51,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     countScheduled().then(setBookedWithIOS).catch(() => {});
-  }, [notificationsOn, settings.reminderHour, documents.length]);
+  }, [notificationsOn, settings.reminderHour, settings.reminderMinute, documents.length]);
 
   useEffect(() => {
     checkBiometricSupport().then(setBiometrics).catch(() => {});
@@ -137,10 +137,11 @@ export default function SettingsScreen() {
     }
   }
 
-  async function changeHour(hour: number) {
-    update({ reminderHour: hour });
+  async function changeTime({ hour, minute }: { hour: number; minute: number }) {
+    if (hour === settings.reminderHour && minute === settings.reminderMinute) return;
+    update({ reminderHour: hour, reminderMinute: minute });
     setRescheduling(true);
-    // The stored hour is read through a ref, so this picks up the new value.
+    // The stored time is read through a ref, so this picks up the new value.
     setTimeout(async () => {
       await rescheduleAll();
       setRescheduling(false);
@@ -272,39 +273,20 @@ export default function SettingsScreen() {
               />
             )}
 
-            <View style={styles.field}>
+            {/*
+             * The time is on the row itself, so the only thing left to say is
+             * the one thing the row cannot show: that the change is landing.
+             */}
+            <TimeSelect
+              hour={settings.reminderHour}
+              minute={settings.reminderMinute}
+              onChange={changeTime}
+            />
+            {rescheduling && (
               <ThemedText type="small" themeColor="textTertiary">
-                What time of day
+                Rebooking your reminders…
               </ThemedText>
-              <View style={styles.chipRow}>
-                {REMINDER_HOURS.map((hour) => {
-                  const on = settings.reminderHour === hour;
-                  return (
-                    <Pressable key={hour} onPress={() => changeHour(hour)} disabled={rescheduling}>
-                      <View
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: on ? theme.accent : 'transparent',
-                            borderColor: on ? theme.accent : theme.border,
-                          },
-                        ]}>
-                        <ThemedText
-                          type="smallBold"
-                          style={on ? { color: theme.accentContrast } : undefined}>
-                          {formatHour(hour)}
-                        </ThemedText>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <ThemedText type="small" themeColor="textTertiary">
-                {rescheduling
-                  ? 'Rebooking your reminders…'
-                  : `Every reminder arrives at ${formatHour(settings.reminderHour)}.`}
-              </ThemedText>
-            </View>
+            )}
           </Section>
 
           <Section title="Appearance">
@@ -460,12 +442,6 @@ export default function SettingsScreen() {
       </SafeAreaView>
     </ThemedView>
   );
-}
-
-function formatHour(hour: number): string {
-  if (hour === 0) return 'midnight';
-  if (hour === 12) return 'noon';
-  return hour < 12 ? `${hour}am` : `${hour - 12}pm`;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

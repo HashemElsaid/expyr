@@ -21,7 +21,7 @@ import { DOCUMENT_TYPES, getDocumentType, labelFor, numberFieldFor } from '@/dat
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
-import { countWord, dayMonth, longDate, shortDate, toISODate } from '@/lib/dates';
+import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { newAttachmentKey } from '@/lib/files';
 import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
@@ -111,6 +111,8 @@ export default function AddDocumentScreen() {
     [documents]
   );
 
+  const reminderAt = formatTime(settings.reminderHour, settings.reminderMinute);
+
   /** The actual dates the reminders will arrive — more useful than day counts. */
   const nudgeSummary = useMemo(() => {
     if (leadDays.length === 0) return 'No reminders set, so you will not be warned.';
@@ -121,8 +123,9 @@ export default function AddDocumentScreen() {
         d.setDate(d.getDate() - lead);
         return dayMonth(d);
       });
-    return `${countWord(leadDays.length)} nudge${leadDays.length === 1 ? '' : 's'}: ${dates.join(', ')}, each at 9am.`;
-  }, [leadDays, expiry]);
+    return `${countWord(leadDays.length)} nudge${leadDays.length === 1 ? '' : 's'}: ${dates.join(', ')}, each at ${reminderAt}.`;
+    // The hour is the user's, so quoting 9am at everybody was simply wrong.
+  }, [leadDays, expiry, reminderAt]);
 
   function applyScan(result: ScanResult, scannedUri: string, scannedKind: 'image' | 'pdf') {
     const scannedType = getDocumentType(result.typeId);

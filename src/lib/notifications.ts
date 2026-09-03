@@ -67,13 +67,18 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return request.granted;
 }
 
+/** The hour and minute of day the user chose for every reminder. */
+export type ReminderTime = { hour: number; minute: number };
+
+const DEFAULT_TIME: ReminderTime = { hour: 9, minute: 0 };
+
 /**
- * Schedules one reminder per lead day at 09:00 local time, skipping any that
+ * Schedules one reminder per lead day at the chosen time, skipping any that
  * would already be in the past. Returns the scheduled notification ids.
  */
 export async function scheduleReminders(
   doc: TrackedDocument,
-  reminderHour = 9,
+  time: ReminderTime = DEFAULT_TIME,
   country: Country | null = null
 ): Promise<string[]> {
   if (Platform.OS === 'web') return [];
@@ -87,7 +92,7 @@ export async function scheduleReminders(
   for (const lead of doc.leadDays) {
     if (daysLeft < lead) continue;
     const fireDate = new Date(`${doc.expiryDate}T00:00:00`);
-    fireDate.setHours(reminderHour, 0, 0, 0);
+    fireDate.setHours(time.hour, time.minute, 0, 0);
     fireDate.setDate(fireDate.getDate() - lead);
     if (fireDate.getTime() <= Date.now()) continue;
 

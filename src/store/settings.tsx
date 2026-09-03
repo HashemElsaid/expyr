@@ -13,6 +13,8 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 export type Settings = {
   /** Local hour of day (0–23) that reminders fire. */
   reminderHour: number;
+  /** Minutes past that hour (0–59), so "8:30" is sayable. */
+  reminderMinute: number;
   themePreference: ThemePreference;
   /** Require Face ID, Touch ID or the device passcode to open the app. */
   lockEnabled: boolean;
@@ -48,6 +50,7 @@ export type Settings = {
 
 const DEFAULTS: Settings = {
   reminderHour: 9,
+  reminderMinute: 0,
   themePreference: 'system',
   lockEnabled: false,
   onboarded: false,
@@ -117,6 +120,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             parsed.reminderHour <= 23
               ? parsed.reminderHour
               : DEFAULTS.reminderHour,
+          reminderMinute:
+            typeof parsed.reminderMinute === 'number' &&
+            parsed.reminderMinute >= 0 &&
+            parsed.reminderMinute <= 59
+              ? parsed.reminderMinute
+              : DEFAULTS.reminderMinute,
           themePreference: parsed.themePreference ?? DEFAULTS.themePreference,
           lockEnabled: parsed.lockEnabled ?? DEFAULTS.lockEnabled,
           onboarded: parsed.onboarded ?? DEFAULTS.onboarded,

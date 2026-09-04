@@ -4,7 +4,14 @@
     {
       "name": "expyr-web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start", "--web", "--port", "8081"],
+      "runtimeArgs": [
+        "expo",
+        "start",
+        "--web",
+        "--port",
+        "8081",
+        "--offline"
+      ],
       "port": 8081
     }
   ]

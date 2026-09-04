@@ -147,7 +147,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   pressed: { opacity: 0.85, transform: [{ scale: 0.96 }] },
-  frame: { ...StyleSheet.absoluteFillObject, margin: 11, opacity: 0.5 },
+  // Spelled out: absoluteFillObject went away with React Native 0.86.
+  frame: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, margin: 11, opacity: 0.5 },
   corner: { position: 'absolute', width: 9, height: 9 },
   tl: { top: 0, left: 0, borderTopWidth: 1.5, borderLeftWidth: 1.5, borderTopLeftRadius: 3 },
   tr: { top: 0, right: 0, borderTopWidth: 1.5, borderRightWidth: 1.5, borderTopRightRadius: 3 },

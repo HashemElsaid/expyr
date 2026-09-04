@@ -359,7 +359,11 @@ export default function HomeScreen() {
                           item.owner,
                           // A subscription's plan and price beat repeating its type.
                           item.renewsEvery ? item.notes : null,
-                          item.title.trim() === label ? null : label,
+                          // "Claude Pro - Monthly · AED 73.99 · Subscription / Membership" —
+                          // the last part is the only one nobody needed.
+                          item.title.trim() === label || (item.renewsEvery && item.notes)
+                            ? null
+                            : label,
                         ]
                           .filter(Boolean)
                           .join(' · ')}

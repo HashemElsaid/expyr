@@ -2,8 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -43,6 +42,7 @@ export default function AskScreen() {
   const { settings, update } = useSettings();
   const allowance = askAllowance(settings);
   const scroller = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
 
   /*
    * The keyboard covers the tab bar, so lifting the composer by the whole
@@ -50,7 +50,13 @@ export default function AskScreen() {
    * the difference instead. KeyboardAvoidingView cannot know about the bar,
    * which is why it left that gap.
    */
-  const tabBarHeight = useBottomTabBarHeight();
+  /*
+   * The bar's own height plus whatever the home indicator takes. Measured
+   * rather than asked for: expo-router 57 dropped React Navigation, and the
+   * hook that used to answer this now lives inside the package's build folder,
+   * which is not an address worth depending on.
+   */
+  const tabBarHeight = 49 + insets.bottom;
   const [keyboard, setKeyboard] = useState(0);
   useEffect(() => {
     const shown = Keyboard.addListener(

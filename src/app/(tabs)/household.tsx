@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Dimensions,
   Modal,
   Pressable,
   ScrollView,
@@ -18,15 +17,13 @@ import { ActionMenu, type MenuAction } from '@/components/document/actions';
 import { PrimaryButton, SecondaryButton } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { labelForId } from '@/data/document-types';
 import { findGaps } from '@/data/gaps';
 import { buildHousehold, MINE, personSummary, type Person } from '@/domain/household';
 import { useTheme } from '@/hooks/use-theme';
-import { countdownShort, daysUntil, shortDate } from '@/lib/dates';
+import { countdownShort, daysUntil } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
-import type { TrackedDocument } from '@/types';
 
 /**
  * Who you are keeping track of, one card each.
@@ -63,16 +60,33 @@ function personHref(person: Person) {
   };
 }
 
-/** Enough of the next card shows to say there is one. */
-const CARD_WIDTH = Math.min(320, Dimensions.get('window').width * 0.78);
-/** How many of a person's items fit before the card starts scrolling itself. */
-const ITEMS_SHOWN = 4;
+/**
+ * Two to a row, down the page.
+ *
+ * This was one wide card per person, swiped sideways — which meant seeing the
+ * second person cost a gesture, and comparing four of them was impossible. Two
+ * columns puts the whole household on one screen, which is the question this
+ * page exists to answer: who needs me. The tile is a doorway rather than a
+ * summary now; the detail is one tap away on the person's own page.
+ */
+const COLUMNS = 2;
+const PAGE_PADDING = 20;
+const GAP = 12;
+
+/** A tile this narrow shows the next few; the rest are behind the tap. */
+const ITEMS_SHOWN = 3;
 
 export default function HouseholdScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { documents, updateDocument, removeDocument } = useDocuments();
   const { settings, update } = useSettings();
+  const { width } = useWindowDimensions();
+
+  /** Two to a row, whatever the phone is. */
+  const cardWidth = Math.floor(
+    (width - PAGE_PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS
+  );
 
   const [renaming, setRenaming] = useState<Person | null>(null);
   const [adding, setAdding] = useState(false);
@@ -250,21 +264,13 @@ export default function HouseholdScreen() {
           </ThemedText>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          decelerationRate="fast"
-          // Settles on a card rather than anywhere, so a swipe lands somewhere
-          // deliberate instead of halfway between two people.
-          snapToInterval={CARD_WIDTH + GAP}
-          snapToAlignment="start"
-          contentContainerStyle={styles.deck}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.grid}>
           {people.map((person) => (
             <PersonCard
               key={person.label}
               person={person}
               gaps={gapsFor(person)}
-              country={settings.country}
+              width={cardWidth}
               onOpenPerson={() => {
                 tapFeedback();
                 router.push(personHref(person));
@@ -273,8 +279,6 @@ export default function HouseholdScreen() {
                 tapFeedback();
                 setMenu({ person, ...at });
               }}
-              onOpen={(doc) => router.push(`/document/${doc.id}`)}
-              onAddItem={() => router.push('/add')}
             />
           ))}
 
@@ -291,19 +295,16 @@ export default function HouseholdScreen() {
                 style={[
                   styles.card,
                   styles.addCard,
-                  { borderColor: theme.border },
+                  { width: cardWidth, borderColor: theme.border },
                   pressed && styles.dim,
                 ]}>
                 <MaterialCommunityIcons
                   name="account-plus-outline"
-                  size={26}
+                  size={24}
                   color={theme.textTertiary}
                 />
-                <ThemedText type="bodyMedium" style={styles.centred}>
-                  Add a family member
-                </ThemedText>
-                <ThemedText type="small" themeColor="textTertiary" style={styles.centred}>
-                  Track a partner&rsquo;s visa or a child&rsquo;s passport alongside your own.
+                <ThemedText type="small" themeColor="textSecondary" style={styles.centred}>
+                  Add someone
                 </ThemedText>
               </View>
             )}
@@ -336,135 +337,137 @@ export default function HouseholdScreen() {
 function PersonCard({
   person,
   gaps,
-  country,
+  width,
   onOpenPerson,
   onMenu,
-  onOpen,
-  onAddItem,
 }: {
   person: Person;
   gaps: ReturnType<typeof findGaps>;
-  country: Parameters<typeof labelForId>[1];
+  width: number;
   onOpenPerson: () => void;
   onMenu: (at: { top: number; right: number }) => void;
-  onOpen: (doc: TrackedDocument) => void;
-  onAddItem: () => void;
 }) {
   const theme = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const menuButton = useRef<View>(null);
+
   const shown = person.items.slice(0, ITEMS_SHOWN);
   const rest = person.items.length - shown.length;
 
   /*
-   * One line, not the wall of them the old page showed. The most serious thing
-   * is the only thing a card has room for, and the rest are on the item itself
-   * where they can be acted on.
+   * The most serious one, and only as far as a tile this wide can carry it.
+   * Every gap in full is on the person's own page, which is one tap away — a
+   * tile that tried to print three sentences about missing paperwork would be
+   * mostly paperwork.
    */
   const worst = gaps[0];
 
-  return (
-    <View style={[styles.card, { borderColor: theme.border }]}>
-      <View style={styles.nameRow}>
-        {/*
-         * The name and the summary open the person; the ⋯ opens everything you
-         * can do to them. Two targets rather than one, because "rename" was
-         * hiding behind a tap on a name that looked like a heading.
-         */}
-        <Pressable
-          onPress={onOpenPerson}
-          accessibilityRole="button"
-          accessibilityLabel={`Open ${person.label}`}
-          style={styles.flex}>
-          <ThemedText type="headline" numberOfLines={1}>
-            {person.label}
-          </ThemedText>
-          <ThemedText
-            type="small"
-            themeColor={person.urgent > 0 ? 'urgentStrong' : 'textTertiary'}>
-            {personSummary(person)}
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          ref={menuButton}
-          onPress={() => {
-            /*
-             * Measured at the moment it is pressed rather than on layout: these
-             * cards scroll sideways, so where this button was when the screen
-             * drew is not where the finger just touched.
-             */
-            menuButton.current?.measureInWindow((x, y, w) => {
-              onMenu({ top: y + w, right: Math.max(8, screenWidth - (x + w)) });
-            });
-          }}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={`More for ${person.label}`}>
-          <MaterialCommunityIcons
-            name="dots-horizontal"
-            size={20}
-            color={theme.textTertiary}
-          />
-        </Pressable>
-      </View>
+  /*
+   * The tile is not one big button with a smaller button inside it.
+   *
+   * That is what it was, and a nested pressable is invalid on the web and
+   * ambiguous everywhere else — the browser said so out loud. Two siblings
+   * instead: the ⋯ opens the menu, and everything else opens the person. Both
+   * regions do the same thing, so it still behaves like one tile.
+   */
+  const open = (
+    <>
+      <ThemedText
+        type="small"
+        themeColor={person.urgent > 0 ? 'urgentStrong' : 'textTertiary'}
+        numberOfLines={1}>
+        {personSummary(person)}
+      </ThemedText>
 
       {worst && (
         <View style={styles.gap}>
           <MaterialCommunityIcons
             name={worst.severity === 'blocked' ? 'alert-outline' : 'tray-arrow-up'}
-            size={15}
+            size={13}
             color={worst.severity === 'blocked' ? theme.urgentSoft : theme.textTertiary}
           />
-          <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+          <ThemedText type="small" themeColor="textTertiary" numberOfLines={2} style={styles.flex}>
             {worst.text}
           </ThemedText>
         </View>
       )}
 
-      <View style={styles.items}>
-        {shown.map((doc) => {
-          const days = daysUntil(doc.expiryDate);
-          return (
-            <Pressable
-              key={doc.id}
-              onPress={() => onOpen(doc)}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${doc.title}`}>
-              {({ pressed }) => (
-                <View
-                  style={[styles.item, { borderTopColor: theme.border }, pressed && styles.dim]}>
-                  <View style={styles.flex}>
-                    <ThemedText type="bodyMedium" numberOfLines={1}>
-                      {doc.title}
-                    </ThemedText>
-                    <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
-                      {labelForId(doc.typeId, country)} · {shortDate(doc.expiryDate)}
-                    </ThemedText>
-                  </View>
-                  <ThemedText
-                    type="small"
-                    themeColor={days <= 30 ? 'urgentStrong' : 'textTertiary'}>
-                    {countdownShort(days)}
-                  </ThemedText>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
+      {shown.length > 0 && (
+        <View style={[styles.items, { borderTopColor: theme.border }]}>
+          {shown.map((doc) => {
+            const days = daysUntil(doc.expiryDate);
+            return (
+              <View key={doc.id} style={styles.item}>
+                <ThemedText type="small" numberOfLines={1} style={styles.flex}>
+                  {doc.title}
+                </ThemedText>
+                <ThemedText
+                  type="small"
+                  themeColor={days <= 30 ? 'urgentStrong' : 'textTertiary'}>
+                  {countdownShort(days)}
+                </ThemedText>
+              </View>
+            );
+          })}
 
-        {rest > 0 && (
-          <ThemedText type="small" themeColor="textTertiary" style={styles.more}>
-            and {rest} more
-          </ThemedText>
-        )}
+          {rest > 0 && (
+            <ThemedText type="small" themeColor="textTertiary">
+              +{rest} more
+            </ThemedText>
+          )}
+        </View>
+      )}
+    </>
+  );
 
-        {person.empty && (
-          <View style={styles.emptyCard}>
-            <SecondaryButton icon="camera-outline" label="Add something" onPress={onAddItem} />
-          </View>
-        )}
+  return (
+    <View
+      style={[
+        styles.card,
+        { width, borderColor: theme.border, backgroundColor: theme.backgroundElement },
+      ]}>
+      <View style={styles.nameRow}>
+        <Pressable
+          onPress={onOpenPerson}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${person.label}`}
+          style={styles.flex}>
+          {({ pressed }) => (
+            <ThemedText type="title" numberOfLines={1} style={pressed ? styles.dim : undefined}>
+              {person.label}
+            </ThemedText>
+          )}
+        </Pressable>
+
+        {/*
+         * Everything you can do *to* a person; the rest of the tile is the way
+         * *to* them. A sibling of the tap target, never inside it.
+         */}
+        <Pressable
+          ref={menuButton}
+          onPress={() => {
+            /*
+             * Measured when pressed, not on layout — the grid reflows as people
+             * are added, and where this was when the screen drew is not where
+             * the finger just touched.
+             */
+            menuButton.current?.measureInWindow((x, y, w) => {
+              onMenu({ top: y + w, right: Math.max(8, screenWidth - (x + w)) });
+            });
+          }}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={`More for ${person.label}`}>
+          <MaterialCommunityIcons name="dots-horizontal" size={18} color={theme.textTertiary} />
+        </Pressable>
       </View>
+
+      <Pressable
+        onPress={onOpenPerson}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${person.label}`}>
+        {({ pressed }) => <View style={pressed ? styles.dim : undefined}>{open}</View>}
+      </Pressable>
     </View>
   );
 }
@@ -527,50 +530,46 @@ function NamePrompt({
   );
 }
 
-const GAP = 12;
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   flex: { flex: 1 },
   dim: { opacity: 0.6 },
   centred: { textAlign: 'center' },
-  header: { paddingHorizontal: 28, paddingTop: 8, paddingBottom: 20, gap: 6 },
+  header: { paddingHorizontal: PAGE_PADDING, paddingTop: 8, paddingBottom: 18, gap: 6 },
 
   /*
-   * Aligned to the top rather than stretched. A row of cards inside a scroll
-   * view stretches each to the tallest by default, which left the shorter
-   * person as a mostly-empty box — reading as though something had failed to
-   * load rather than as somebody with less to keep track of.
+   * Wrapping rows rather than one long line. Aligned to the top so a person
+   * with less to keep track of is a shorter tile beside a taller one, not a
+   * mostly-empty box stretched to match.
    */
-  deck: { paddingHorizontal: 28, gap: GAP, paddingBottom: 90, alignItems: 'flex-start' },
-  card: {
-    width: CARD_WIDTH,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 18,
-    padding: 18,
-    gap: 8,
-  },
-  /*
-   * Filled rather than outlined. A hairline on warm paper is a suggestion of a
-   * card; these are meant to read as separate things you can pick between, and
-   * that needs the card to sit on the page rather than in it.
-   */
-  addCard: { alignItems: 'center', justifyContent: 'center', gap: 10, borderStyle: 'dashed' },
-
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  gap: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', paddingTop: 4 },
-
-  items: { paddingTop: 8 },
-  item: {
+  grid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    paddingHorizontal: PAGE_PADDING,
+    gap: GAP,
+    paddingBottom: 96,
   },
-  more: { paddingTop: 12 },
-  emptyCard: { paddingTop: 8 },
+  card: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    padding: 14,
+    gap: 4,
+  },
+  addCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderStyle: 'dashed',
+    paddingVertical: 28,
+  },
+
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  gap: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
+
+  items: { paddingTop: 8, marginTop: 2, gap: 6, borderTopWidth: StyleSheet.hairlineWidth },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
   backdrop: {
     flex: 1,

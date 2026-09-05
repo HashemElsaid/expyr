@@ -183,6 +183,52 @@ describe('the layered store', () => {
   });
 });
 
+describe('recognising an authority', () => {
+  /*
+   * Ireland publishes passport renewal on ireland.ie, and the first version of
+   * this called the Department of Foreign Affairs a blog. There is no global
+   * registry of "this domain is a government", so the rule understates on
+   * purpose — a missing mark costs a glance, a wrong one costs the reason to
+   * check at all.
+   */
+  const official = [
+    'https://www.dmv.ca.gov/portal/',
+    'https://www.gov.uk/renew-passport',
+    'https://icp.gov.ae/en/services/',
+    'https://www.ireland.ie/en/dfa/passports/',
+    'https://www.service-public.gouv.fr/',
+    'https://u.ae/en/information-and-services',
+    'https://europa.eu/youreurope/',
+  ];
+
+  const notOfficial = [
+    'https://ie.iasservices.org.uk/irish-passport',
+    'https://blog.example.com/how-to-renew',
+    'https://www.expatica.com/ae/visas/',
+    'https://govtjobs-blog.com/passports',
+  ];
+
+  it('marks the authorities', async () => {
+    const { fetchBrandIcon: _ } = await import('./brand-icon.ts');
+    const { looksOfficialForTests } = await import('./guidance.ts');
+    for (const url of official) {
+      assert.equal(looksOfficialForTests(url), true, url);
+    }
+  });
+
+  it('does not mark the commentary', async () => {
+    const { looksOfficialForTests } = await import('./guidance.ts');
+    for (const url of notOfficial) {
+      assert.equal(looksOfficialForTests(url), false, url);
+    }
+  });
+
+  it('does not throw on something that is not a URL', async () => {
+    const { looksOfficialForTests } = await import('./guidance.ts');
+    assert.equal(looksOfficialForTests('not a url'), false);
+  });
+});
+
 describe('the cache key', () => {
   const read = (body: unknown) => parse(GuidanceRequest, JSON.stringify(body));
 

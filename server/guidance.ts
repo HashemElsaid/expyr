@@ -144,21 +144,53 @@ Rules:
 type FoundSource = { title: string; url: string; official: boolean };
 
 /**
- * Hosts that are the authority rather than a commentator. Deliberately
- * conservative: a domain not on this list is not called official, which
- * understates rather than overstates.
+ * Hosts that are the authority rather than somebody writing about it.
+ *
+ * There is no global registry of "this domain is a government", so this is a
+ * best effort that deliberately **understates**: a domain it does not
+ * recognise is shown without the official mark rather than with a wrong one.
+ * A missing mark costs a person one extra glance; a wrong one costs them the
+ * reason to check at all.
+ *
+ * The awkward cases are the governments that do not sit under a .gov-shaped
+ * domain — Ireland publishes passport renewal on ireland.ie, and the first
+ * version of this called the Department of Foreign Affairs a blog. Those are
+ * listed rather than pattern-matched, because there is no pattern.
  */
-const OFFICIAL_HOST = /(^|\.)(gov|gob|govt|gouv)(\.[a-z]{2})?$|(^|\.)gov\.[a-z]{2}$|\.go\.[a-z]{2}$|(^|\.)(europa\.eu|admin\.ch)$/i;
+const GOVERNMENT_SUFFIX =
+  /(^|\.)(gov|gob|govt|gouv|go)(\.[a-z]{2,3})?(\.[a-z]{2})?$|(^|\.)gov$/i;
+
+/** Governments whose own domain looks like anybody else's. */
+const GOVERNMENT_HOST =
+  /(^|\.)(ireland\.ie|europa\.eu|admin\.ch|bund\.de|belgium\.be|norge\.no|suomi\.fi|works\.gov\.sg|u\.ae|tamm\.abudhabi|dubai\.ae|mohre\.gov\.ae|icp\.gov\.ae|gdrfad\.gov\.ae|rta\.ae|dha\.gov\.ae|moi\.gov\.[a-z]{2}|ejari\.gov\.ae|nhs\.uk|police\.uk)$/i;
+
+/** Exported for the suite; the rule above is easier to get wrong than it looks. */
+export function looksOfficialForTests(url: string): boolean {
+  return looksOfficial(url);
+}
 
 function looksOfficial(url: string): boolean {
   try {
-    const host = new URL(url).hostname.toLowerCase();
-    if (OFFICIAL_HOST.test(host)) return true;
-    // The Gulf authorities that do not sit under a .gov domain.
-    return /(^|\.)(mohre|icp|gdrfa|tamm|rta|dha|moi|ejari|dubai|abudhabi|u\.ae)\./.test(host);
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+    return GOVERNMENT_SUFFIX.test(host) || GOVERNMENT_HOST.test(host);
   } catch {
     return false;
   }
+}
+
+/**
+ * What the model writes when it means "the search did not say".
+ *
+ * The prompt asks for an empty string, and it mostly obliges — but it also
+ * writes "not established", and once that reaches the app it is rendered as a
+ * value: a Cost row reading "not established", which is exactly the row the
+ * empty string existed to suppress. Prompts drift; this does not.
+ */
+const MEANS_NOTHING =
+  /^(not |un)?(established|stated|specified|available|known|found|listed|determined|provided|applicable|disclosed)\.?$|^(n\/?a|unknown|none|tbd|-{1,3})\.?$/i;
+
+function orEmpty(value: string): string {
+  return MEANS_NOTHING.test(value.trim()) ? '' : value.trim();
 }
 
 /**
@@ -332,6 +364,15 @@ export async function generateGuidance(request: GuidanceRequest): Promise<Guidan
 
   return {
     ...structured,
+    /*
+     * An empty field is shown as nothing at all; a field reading "not
+     * established" is shown as a fact. Normalised here so a cached entry —
+     * which lives ninety days — cannot carry the noise for a quarter.
+     */
+    where: orEmpty(structured.where),
+    typicalCost: orEmpty(structured.typicalCost),
+    lateFee: orEmpty(structured.lateFee),
+    processingTime: orEmpty(structured.processingTime),
     sources,
     /*
      * Guidance with no source behind it is a guess with a citation-shaped hole.

@@ -77,6 +77,23 @@ export function fromVerified(type: DocumentType, where: string): DisplayGuidance
   };
 }
 
+/**
+ * What a model writes when it means "the search did not say".
+ *
+ * The service normalises this too, and doing it again here is not belt and
+ * braces for its own sake: guidance is cached for ninety days, so entries
+ * written before the service learned this are still being served. An empty
+ * field is drawn as nothing; a field reading "not established" is drawn as a
+ * fact, which is the opposite of what the empty string is for.
+ */
+const MEANS_NOTHING =
+  /^(not |un)?(established|stated|specified|available|known|found|listed|determined|provided|applicable|disclosed)\.?$|^(n\/?a|unknown|none|tbd|-{1,3})\.?$/i;
+
+export function orEmpty(value: string): string {
+  const trimmed = (value ?? '').trim();
+  return MEANS_NOTHING.test(trimmed) ? '' : trimmed;
+}
+
 /** A generated answer, in the same shape. */
 export function fromGenerated(guidance: Guidance): DisplayGuidance {
   return {
@@ -87,13 +104,13 @@ export function fromGenerated(guidance: Guidance): DisplayGuidance {
      * thing; both ends check, because this is the claim that matters.
      */
     standing: guidance.sources.length === 0 ? 'thin' : guidance.standing,
-    summary: guidance.summary,
-    where: guidance.where,
+    summary: orEmpty(guidance.summary),
+    where: orEmpty(guidance.where),
     steps: guidance.steps,
     needed: guidance.needed,
-    typicalCost: guidance.typicalCost,
-    lateFee: guidance.lateFee,
-    processingTime: guidance.processingTime,
+    typicalCost: orEmpty(guidance.typicalCost),
+    lateFee: orEmpty(guidance.lateFee),
+    processingTime: orEmpty(guidance.processingTime),
     sources: guidance.sources,
     checkedOn: guidance.checkedOn,
   };

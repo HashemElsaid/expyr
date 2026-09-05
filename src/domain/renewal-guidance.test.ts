@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { getDocumentType } from '@/data/document-types';
 import {
   fromGenerated,
+  orEmpty,
   fromVerified,
   primarySource,
   provenanceFor,
@@ -89,6 +90,54 @@ describe('fromGenerated', () => {
     const shown = fromGenerated(generated({ typicalCost: '', lateFee: '' }));
     expect(shown.typicalCost).toBe('');
     expect(shown.lateFee).toBe('');
+  });
+});
+
+describe('orEmpty', () => {
+  /*
+   * The prompt asks for an empty string when the search established nothing,
+   * and mostly gets one — but Ireland came back with typicalCost: "not
+   * established", which the screen then drew as a Cost row reading "not
+   * established". That is precisely the row the empty string exists to
+   * suppress. Prompts drift; this does not.
+   */
+  it('treats every way of saying nothing as nothing', () => {
+    for (const value of [
+      'not established',
+      'Not established.',
+      'not stated',
+      'NOT SPECIFIED',
+      'not available',
+      'unknown',
+      'n/a',
+      'N/A',
+      'none',
+      'TBD',
+      '--',
+      '   ',
+    ]) {
+      expect(orEmpty(value), value).toBe('');
+    }
+  });
+
+  it('leaves a real answer alone, including one that mentions none', () => {
+    expect(orEmpty('AED 300')).toBe('AED 300');
+    expect(orEmpty('No late fee is charged')).toBe('No late fee is charged');
+    expect(orEmpty('  $45  ')).toBe('$45');
+  });
+
+  it('does not blank a fee that happens to contain a listed word', () => {
+    expect(orEmpty('Free, but not available online')).toBe('Free, but not available online');
+  });
+});
+
+describe('a field the search could not establish', () => {
+  it('is emptied on the way in, whatever the model wrote', () => {
+    const shown = fromGenerated(
+      generated({ typicalCost: 'not established', processingTime: 'n/a' })
+    );
+    expect(shown.typicalCost).toBe('');
+    expect(shown.processingTime).toBe('');
   });
 });
 

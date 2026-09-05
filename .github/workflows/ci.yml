@@ -1,0 +1,56 @@
+# Two independent packages live in this repository — the phone app at the root
+# and the reading service in server/ — so they are checked as two jobs. A change
+# to one should not be able to fail the other, and a red run should say which
+# half broke without anyone reading the log.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    name: App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # --legacy-peer-deps: an optional peer of react-native still asks for
+      # react-native-windows, which pins an older React Native than this project
+      # is on. Dropping the flag fails the install rather than the build.
+      - run: npm ci --legacy-peer-deps
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+  server:
+    name: Reading service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Node runs the TypeScript sources directly here, so the tests need no
+      # build step and no test framework beyond the one in the standard library.
+      - name: Test
+        run: npm test

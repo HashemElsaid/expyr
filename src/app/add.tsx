@@ -14,12 +14,13 @@ import {
   View,
 } from 'react-native';
 
+import { Chip, ErrorNote, Field, Note, PrimaryButton, SecondaryButton } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { DOCUMENT_TYPES, getDocumentType, labelFor, numberFieldFor } from '@/data/document-types';
-import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { defaultExpiry, startingExpiry } from '@/domain/expiry';
 import { useTheme } from '@/hooks/use-theme';
 import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
@@ -702,134 +703,6 @@ export default function AddDocumentScreen() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.field}>
-      <ThemedText type="label" themeColor="textTertiary">
-        {label}
-      </ThemedText>
-      {children}
-    </View>
-  );
-}
-
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      <View
-        style={[
-          styles.chip,
-          {
-            backgroundColor: active ? theme.accent : 'transparent',
-            borderColor: active ? theme.accent : theme.border,
-          },
-        ]}>
-        <ThemedText type="smallBold" style={active ? { color: theme.accentContrast } : undefined}>
-          {label}
-        </ThemedText>
-      </View>
-    </Pressable>
-  );
-}
-
-function Note({ text }: { text: string }) {
-  const theme = useTheme();
-  return (
-    <View style={[styles.note, { backgroundColor: theme.backgroundSelected }]}>
-      <ThemedText type="small">{text}</ThemedText>
-    </View>
-  );
-}
-
-function ErrorNote({ message }: { message: string }) {
-  const theme = useTheme();
-  return (
-    <View style={[styles.note, { backgroundColor: theme.backgroundSelected }]}>
-      <ThemedText type="small" style={{ color: theme.urgentStrong }}>
-        {message}
-      </ThemedText>
-    </View>
-  );
-}
-
-function PrimaryButton({
-  label,
-  onPress,
-  disabled,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button">
-      {({ pressed }) => (
-        <View
-          style={[
-            styles.primary,
-            { backgroundColor: theme.accent },
-            (pressed || disabled) && styles.dim,
-          ]}>
-          <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
-            {label}
-          </ThemedText>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-function SecondaryButton({
-  label,
-  onPress,
-  icon,
-}: {
-  label: string;
-  onPress: () => void;
-  icon?: string;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      {({ pressed }) => (
-        <View style={[styles.secondary, { borderColor: theme.border }, pressed && styles.dim]}>
-          {icon && (
-            <MaterialCommunityIcons name={icon as never} size={17} color={theme.textSecondary} />
-          )}
-          <ThemedText type="smallBold">{label}</ThemedText>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-function defaultExpiry(): Date {
-  const d = new Date();
-  d.setMonth(d.getMonth() + 6);
-  return d;
-}
-
-/** The date the form opens on — rolled forward when marking something renewed. */
-function startingExpiry(doc: TrackedDocument, renew: boolean): Date {
-  const current = new Date(`${doc.expiryDate}T00:00:00`);
-  if (!renew) return current;
-  const period = RENEWAL_PERIOD_DAYS[doc.typeId] ?? 365;
-  const base = current.getTime() > Date.now() ? current : new Date();
-  const rolled = new Date(base);
-  rolled.setDate(rolled.getDate() + period);
-  return rolled;
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
@@ -859,8 +732,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  note: { borderRadius: 12, paddingHorizontal: Spacing.three, paddingVertical: 12 },
-  field: { gap: 6 },
   serifInput: {
     fontFamily: 'InstrumentSerif',
     fontSize: 26,
@@ -885,12 +756,6 @@ const styles = StyleSheet.create({
   webDate: { fontFamily: 'DMSans', fontSize: 13, paddingTop: 6 },
   notes: { minHeight: 60, textAlignVertical: 'top' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  chip: {
-    borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 9,
-  },
   thumbRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, alignItems: 'center' },
   thumb: {
     width: 56,
@@ -910,14 +775,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   removeBadge: { position: 'absolute', top: -7, right: -7, borderRadius: 9 },
-  primary: { borderRadius: Radius.pill, paddingVertical: Spacing.three, alignItems: 'center' },
-  secondary: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.two,
-    borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: Spacing.three,
-  },
 });

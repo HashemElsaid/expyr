@@ -16,8 +16,39 @@ import type { TrackedDocument } from '@/types';
  * than an absence.
  */
 
-/** A blank owner means the phone's owner, shown as "Mine". */
+/** A blank owner means the phone's owner. */
 export const MINE = '';
+
+/**
+ * A person's name out of a device name, or nothing.
+ *
+ * iOS offers no way to read the Apple ID name — the only route to it is Sign in
+ * with Apple, which needs the user to tap it, needs a paid developer account,
+ * and lets them withhold the name anyway. What is available without asking
+ * anybody anything is what they called their phone, and on iOS that is very
+ * often "Hashem's iPhone".
+ *
+ * A guess, and treated as one: it seeds a label the person can change, it never
+ * leaves the device, and anything that does not clearly parse falls back rather
+ * than putting half a device model on a card.
+ */
+export function nameFromDevice(deviceName?: string | null): string {
+  const trimmed = (deviceName ?? '').trim();
+  if (!trimmed) return '';
+
+  // "Hashem's iPhone", "Reem’s iPad Pro" — straight and curly apostrophes.
+  const owned = /^(.+?)[’']s\s+(iphone|ipad|ipod)/i.exec(trimmed);
+  const name = owned?.[1]?.trim() ?? '';
+
+  /*
+   * Deliberately narrow. "iPhone", "Hashem's Mac mini" and "iPhone de Hashem"
+   * all fall through to nothing, because a wrong name on somebody's own card is
+   * worse than no name — and the possessive form is the one iOS actually
+   * suggests when a phone is set up.
+   */
+  if (!name || name.length > 30) return '';
+  return /^[\p{L}][\p{L}\p{M}' -]*$/u.test(name) ? name : '';
+}
 
 export type Person = {
   /** The stored owner string. Empty for the phone's owner. */
@@ -40,9 +71,15 @@ function key(name: string): string {
 export function buildHousehold(
   documents: readonly TrackedDocument[],
   /** Names added explicitly, who may not own anything yet. */
-  named: readonly string[] = []
+  named: readonly string[] = [],
+  /**
+   * What the phone's owner is called. Empty until it is known, and then it is
+   * both the label on their card and the name their own documents may carry.
+   */
+  ownName = ''
 ): Person[] {
   const byPerson = new Map<string, { name: string; items: TrackedDocument[] }>();
+  const mine = ownName.trim();
 
   /*
    * The phone's owner is always present, even on an empty file. "Mine" with
@@ -54,11 +91,22 @@ export function buildHousehold(
 
   for (const name of named) {
     if (!name.trim()) continue;
+    // Naming yourself in the list too must not conjure a second you.
+    if (mine && key(name) === key(mine)) continue;
     if (!byPerson.has(key(name))) byPerson.set(key(name), { name: name.trim(), items: [] });
   }
 
   for (const doc of documents) {
-    const owner = doc.owner ?? MINE;
+    /*
+     * Somebody's own name is the same person as no name at all.
+     *
+     * Without this, naming yourself puts you on the page twice: an empty card
+     * for the blank owner and a full one for everything you happened to file
+     * under your name. Which is exactly what happened the moment somebody typed
+     * their own name into "Whose is it".
+     */
+    const raw = doc.owner ?? MINE;
+    const owner = mine && key(raw) === key(mine) ? MINE : raw;
     const existing = byPerson.get(key(owner));
     if (existing) existing.items.push(doc);
     else byPerson.set(key(owner), { name: owner.trim(), items: [doc] });
@@ -69,7 +117,7 @@ export function buildHousehold(
       const sorted = [...items].sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate));
       return {
         name,
-        label: name || 'Mine',
+        label: name || mine || 'Mine',
         items: sorted,
         urgent: sorted.filter((doc) => daysUntil(doc.expiryDate) <= 30).length,
         empty: sorted.length === 0,

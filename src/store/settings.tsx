@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import type { Country } from '@/data/countries';
+import { nameFromDevice } from '@/domain/household';
 import type { Emirate } from '@/data/regions';
 
 const STORAGE_KEY = 'expyr.settings.v1';
@@ -60,6 +62,21 @@ export type Settings = {
    * Names on documents are still the main source; this is the rest.
    */
   people: string[];
+  /**
+   * What the person holding the phone is called.
+   *
+   * Their card said "Mine", which is fine on its own and reads oddly beside
+   * "Reem" and "Laila" — one row in the household written in a different
+   * grammar from the rest. It also made naming yourself in "Whose is it" put
+   * you on the page twice.
+   *
+   * iOS will not tell us this. The Apple ID name is reachable only through Sign
+   * in with Apple, which needs a tap, a paid developer account, and the user's
+   * permission — and they may withhold the name even then. So it is seeded from
+   * what they called their phone, which is usually right and always editable,
+   * and left blank when that does not parse.
+   */
+  ownName: string;
 };
 
 const DEFAULTS: Settings = {
@@ -75,6 +92,7 @@ const DEFAULTS: Settings = {
   questionsOn: '',
   lockOffered: false,
   people: [],
+  ownName: '',
 };
 
 /**
@@ -159,7 +177,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       .then(async (stored) => {
         // Settings saved under the old app name are adopted rather than lost.
         const raw = stored ?? (await AsyncStorage.getItem(LEGACY_STORAGE_KEY));
-        if (!raw) return;
+        if (!raw) {
+          // Nothing saved yet: still worth knowing whose phone this is.
+          const guess = nameFromDevice(Constants.deviceName);
+          if (guess) setSettings((current) => ({ ...current, ownName: guess }));
+          return;
+        }
         const parsed = JSON.parse(raw) as Partial<Settings>;
         if (!stored) AsyncStorage.setItem(STORAGE_KEY, raw).catch(() => {});
         setSettings({
@@ -179,6 +202,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           people: Array.isArray(parsed.people)
             ? parsed.people.filter((name): name is string => typeof name === 'string')
             : DEFAULTS.people,
+          /*
+           * Seeded on first read rather than asked for. An extra onboarding
+           * question to learn something the phone already implies is a question
+           * not worth asking, and the guess is only ever a label they can change.
+           */
+          ownName:
+            typeof parsed.ownName === 'string' && parsed.ownName
+              ? parsed.ownName
+              : nameFromDevice(Constants.deviceName),
         });
       })
       .catch(() => {})

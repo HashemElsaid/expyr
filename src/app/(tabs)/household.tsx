@@ -121,8 +121,8 @@ export default function HouseholdScreen() {
   const [menu, setMenu] = useState<{ person: Person; top: number; right: number } | null>(null);
 
   const people = useMemo(
-    () => buildHousehold(documents, settings.people),
-    [documents, settings.people]
+    () => buildHousehold(documents, settings.people, settings.ownName),
+    [documents, settings.people, settings.ownName]
   );
 
   const gapsFor = useCallback(
@@ -135,7 +135,21 @@ export default function HouseholdScreen() {
     const person = renaming;
     const next = draft.trim();
     setRenaming(null);
-    if (!person || !next || next === person.name) return;
+    if (!person || !next) return;
+
+    /*
+     * Renaming yourself is a different operation from renaming somebody else.
+     * Your documents carry no owner at all — being the default is what makes
+     * them yours — so this changes the label rather than rewriting six records
+     * to say the same thing.
+     */
+    if (person.name === MINE) {
+      update({ ownName: next });
+      successFeedback();
+      return;
+    }
+
+    if (next === person.name) return;
 
     for (const doc of person.items) {
       await updateDocument(doc.id, {
@@ -241,17 +255,17 @@ export default function HouseholdScreen() {
         icon: 'camera-outline',
         run: () => router.push('/add'),
       },
+      {
+        label: person.name === MINE ? 'Change my name' : 'Rename',
+        icon: 'pencil-outline',
+        run: () => {
+          setDraft(person.name === MINE ? settings.ownName : person.name);
+          setRenaming(person);
+        },
+      },
       ...(person.name === MINE
         ? []
         : [
-            {
-              label: 'Rename',
-              icon: 'pencil-outline',
-              run: () => {
-                setDraft(person.name);
-                setRenaming(person);
-              },
-            },
             {
               label: `Remove ${person.label}`,
               icon: 'account-remove-outline',
@@ -342,7 +356,13 @@ export default function HouseholdScreen() {
 
       <NamePrompt
         visible={adding || renaming !== null}
-        title={adding ? 'Add a family member' : 'What should they be called?'}
+        title={
+          adding
+            ? 'Add a family member'
+            : renaming?.name === MINE
+              ? 'What should Expyr call you?'
+              : 'What should they be called?'
+        }
         value={draft}
         onChange={setDraft}
         onCancel={() => {

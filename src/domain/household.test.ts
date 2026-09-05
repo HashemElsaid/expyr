@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildHousehold, MINE, personSummary } from '@/domain/household';
+import { buildHousehold, MINE, nameFromDevice, personSummary } from '@/domain/household';
 import { inDays, makeDocument } from '@/test/factories';
 
 describe('buildHousehold', () => {
@@ -81,6 +81,79 @@ describe('buildHousehold', () => {
 
     // Mine is empty too, but always leads.
     expect(people.map((p) => p.label)).toEqual(['Mine', 'Ali', 'Zara']);
+  });
+});
+
+describe('nameFromDevice', () => {
+  it('takes the name off a phone named the way iOS suggests', () => {
+    expect(nameFromDevice("Hashem's iPhone")).toBe('Hashem');
+    expect(nameFromDevice('Reem’s iPad Pro')).toBe('Reem');
+    expect(nameFromDevice("Abu Bakr's iPhone 15")).toBe('Abu Bakr');
+  });
+
+  /*
+   * A wrong name on somebody's own card is worse than no name, so anything that
+   * does not clearly parse falls through to nothing rather than to a guess.
+   */
+  it('gives up rather than guessing', () => {
+    for (const device of ['iPhone', "Hashem's Mac mini", 'iPhone de Hashem', 'Work Phone 2', '']) {
+      expect(nameFromDevice(device), device).toBe('');
+    }
+  });
+
+  it('copes with the name being missing entirely', () => {
+    expect(nameFromDevice(undefined)).toBe('');
+    expect(nameFromDevice(null)).toBe('');
+  });
+
+  it('refuses something too long to be a first name', () => {
+    expect(nameFromDevice(`${'x'.repeat(60)}'s iPhone`)).toBe('');
+  });
+});
+
+describe('knowing whose phone it is', () => {
+  /*
+   * The bug on the screen: somebody typed their own name into "Whose is it",
+   * and the household showed them twice — an empty card for the blank owner
+   * beside a full one under their name.
+   */
+  it('does not put somebody on the page twice for naming themselves', () => {
+    const people = buildHousehold(
+      [
+        makeDocument('passport', { owner: 'Hashim' }),
+        makeDocument('emirates-id', { owner: '' }),
+      ],
+      [],
+      'Hashim'
+    );
+
+    expect(people).toHaveLength(1);
+    expect(people[0].label).toBe('Hashim');
+    expect(people[0].items).toHaveLength(2);
+  });
+
+  it('matches their own name however it was capitalised', () => {
+    const people = buildHousehold([makeDocument('passport', { owner: 'hashim ' })], [], 'Hashim');
+    expect(people).toHaveLength(1);
+    expect(people[0].name).toBe(MINE);
+  });
+
+  it('labels their card with their name instead of "Mine"', () => {
+    expect(buildHousehold([], [], 'Hashim')[0].label).toBe('Hashim');
+  });
+
+  it('still says "Mine" before the name is known', () => {
+    expect(buildHousehold([], [])[0].label).toBe('Mine');
+  });
+
+  it('does not fold anybody else into them', () => {
+    const people = buildHousehold([makeDocument('passport', { owner: 'Reem' })], [], 'Hashim');
+    expect(people.map((p) => p.label).sort()).toEqual(['Hashim', 'Reem']);
+  });
+
+  it('ignores their own name appearing in the added list too', () => {
+    const people = buildHousehold([], ['Hashim', 'Reem'], 'Hashim');
+    expect(people.map((p) => p.label).sort()).toEqual(['Hashim', 'Reem']);
   });
 });
 

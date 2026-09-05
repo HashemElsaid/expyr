@@ -300,7 +300,11 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              {allClear && next && daysUntil(next.expiryDate) > 120 && missingAnnual.length > 0 && (
+              {notificationsOn !== false &&
+                allClear &&
+                next &&
+                daysUntil(next.expiryDate) > 120 &&
+                missingAnnual.length > 0 && (
                 <Pressable onPress={() => router.push('/add')} accessibilityRole="button">
                   {({ pressed }) => (
                     <View
@@ -347,6 +351,18 @@ export default function HomeScreen() {
                 </View>
               )}
 
+              {/*
+                * At most one of these, ever.
+                *
+                * Two banners could stack — "nothing due for months" and
+                * "reminders are off" — rendered identically, one on top of the
+                * other, above the list they were both interrupting. Two cards
+                * that look the same are two things asking equally to be read,
+                * which means neither gets read.
+                *
+                * Reminders win when both apply. One is a suggestion about what
+                * else to track; the other is the app quietly not working.
+                */}
               {notificationsOn === false && documents.length > 0 && (
                 <Pressable onPress={turnOnNotifications} accessibilityRole="button">
                   <View style={[styles.banner, { borderColor: theme.border }]}>

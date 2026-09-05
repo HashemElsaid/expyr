@@ -77,6 +77,8 @@ export default function AddDocumentScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showAndroidPicker, setShowAndroidPicker] = useState(false);
+  /** The four other ways in, folded away until somebody asks for them. */
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ title: renewing ? 'Renewed' : editing ? 'Edit' : 'New entry' });
@@ -391,32 +393,78 @@ export default function AddDocumentScreen() {
 
           {error && <ErrorNote message={error} />}
 
-          <PrimaryButton label="Take a photo" onPress={() => runScan('camera')} />
-          <SecondaryButton
-            label="Choose a photo"
-            icon="image-outline"
-            onPress={() => runScan('library')}
-          />
-          <SecondaryButton
-            label="Upload a PDF"
-            icon="folder-open-outline"
-            onPress={() => runScan('files')}
-          />
           {/*
-           * A different job from the others: one screenshot stands for every
-           * subscription somebody pays for, rather than one document.
+           * One way in, and four others behind a word.
+           *
+           * This screen used to offer five: photograph, pick from the library,
+           * upload a PDF, import subscriptions, type it in — three of them
+           * rendered identically, one under the next. Every one is worth having
+           * and none of them is the answer. The app's whole pitch is "point the
+           * camera at it", so that is the button, and the rest wait to be
+           * asked for.
+           *
+           * The photo library and the PDF picker are not lesser features; they
+           * are lesser *first moves*. Somebody who wants them knows they want
+           * them and will look.
            */}
-          <SecondaryButton
-            label="Import my subscriptions"
-            icon="repeat-variant"
-            onPress={() => router.replace('/subscriptions')}
-          />
+          <PrimaryButton label="Take a photo" onPress={() => runScan('camera')} />
 
-          <Pressable onPress={() => setStep('type')} style={styles.link}>
-            <ThemedText type="small" themeColor="textTertiary">
-              Enter it myself
-            </ThemedText>
+          <Pressable
+            onPress={() => {
+              tapFeedback();
+              setMoreOpen((open) => !open);
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: moreOpen }}
+            style={styles.link}>
+            <View style={styles.moreRow}>
+              <ThemedText type="small" themeColor="textTertiary">
+                {moreOpen ? 'Fewer ways' : 'Other ways to add'}
+              </ThemedText>
+              <MaterialCommunityIcons
+                name={moreOpen ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={theme.textTertiary}
+              />
+            </View>
           </Pressable>
+
+          {moreOpen && (
+            /*
+             * A plain View, not an entering animation. reanimated's `entering`
+             * left every one of these on the page with visibility: hidden and
+             * never cleared it — four options, correctly rendered, permanently
+             * invisible. A fade is decoration; the options are the feature, and
+             * shipping something invisible on one platform is the thing this
+             * whole change was meant to stop.
+             */
+            <View style={styles.moreWays}>
+              <SecondaryButton
+                label="Choose a photo"
+                icon="image-outline"
+                onPress={() => runScan('library')}
+              />
+              <SecondaryButton
+                label="Upload a PDF"
+                icon="folder-open-outline"
+                onPress={() => runScan('files')}
+              />
+              {/*
+               * A different job from the others: one screenshot stands for every
+               * subscription somebody pays for, rather than one document.
+               */}
+              <SecondaryButton
+                label="Import my subscriptions"
+                icon="repeat-variant"
+                onPress={() => router.replace('/subscriptions')}
+              />
+              <Pressable onPress={() => setStep('type')} style={styles.link}>
+                <ThemedText type="small" themeColor="textTertiary">
+                  Enter it myself
+                </ThemedText>
+              </Pressable>
+            </View>
+          )}
 
           {/* Only worth mentioning once the end is actually in sight. */}
           {!settings.premium && scansLeft <= 3 && (
@@ -720,6 +768,8 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.6 },
   centered: { alignItems: 'center', justifyContent: 'center', gap: Spacing.three, padding: Spacing.five },
   centeredText: { textAlign: 'center' },
+  moreRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  moreWays: { gap: Spacing.two, width: '100%' },
   // An explicit width, so the button fills the column instead of shrinking to
   // its label. Not alignSelf: 'stretch' — that would override the centring.
   wallAction: { width: '100%', maxWidth: MaxContentWidth },

@@ -357,6 +357,50 @@ describe('the cache key', () => {
     assert.throws(() => read({ ...base, typeId: 'a'.repeat(200) }));
   });
 
+  /*
+   * A subscription is keyed on the service, not on the category. The old key
+   * made iCloud+ and Netflix both "membership in the UAE" — one cache entry,
+   * one paragraph about gyms, served to both.
+   */
+  it('keys a subscription on the service rather than the category', () => {
+    assert.equal(
+      guidanceKey(read({ ...base, typeId: 'membership', label: 'iCloud+', service: 'icloud.com' })),
+      'sub.icloud-com.ae'
+    );
+    assert.equal(
+      guidanceKey(
+        read({ ...base, typeId: 'membership', label: 'iCloud+', service: 'icloud.com', region: 'Dubai' })
+      ),
+      'sub.icloud-com.ae.dubai'
+    );
+  });
+
+  it('keeps two services apart that the category could not', () => {
+    const icloud = guidanceKey(
+      read({ ...base, typeId: 'membership', label: 'iCloud+', service: 'icloud.com' })
+    );
+    const netflix = guidanceKey(
+      read({ ...base, typeId: 'membership', label: 'Netflix', service: 'netflix.com' })
+    );
+    assert.notEqual(icloud, netflix);
+  });
+
+  it('keeps the country, because a gym is a subscription with local rules', () => {
+    const uae = guidanceKey(read({ ...base, service: 'fitness-first', region: '' }));
+    const uk = guidanceKey(
+      read({ ...base, country: 'GB', countryName: 'United Kingdom', service: 'fitness-first', region: '' })
+    );
+    assert.notEqual(uae, uk);
+  });
+
+  it('refuses a service long enough to be a cache-busting string', () => {
+    assert.throws(() => read({ ...base, service: 'x'.repeat(200) }));
+  });
+
+  it('refuses a service that is not a slug', () => {
+    assert.throws(() => read({ ...base, service: '../../etc' }));
+  });
+
   it('produces a key safe to use as a filename', () => {
     const key = guidanceKey(read({ ...base, region: "Ras al-Khaimah" }));
     assert.match(key, /^[a-z0-9.-]+$/);

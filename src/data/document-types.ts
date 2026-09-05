@@ -224,16 +224,26 @@ const CATALOGUE: DocumentType[] = [
     numberField: { label: 'Membership number', placeholder: 'If you have one' },
     defaultLeadDays: [14, 3],
     typicalValidity: 'Varies',
+    /*
+     * Deliberately almost empty, and worth explaining rather than looking like
+     * an oversight.
+     *
+     * This used to carry three hand-written steps, one of which was about
+     * giving a UAE gym thirty days' written notice. They were shown for every
+     * subscription — so somebody in Dubai opening iCloud+ read about gyms,
+     * under a line saying it had been checked against the responsible
+     * authority. It had; the authority that renews visas.
+     *
+     * How you cancel a subscription is a fact about the service, not about the
+     * emirate you are in, so it is looked up per service now. Only the late
+     * fee stays, because that one is true of every subscription there is.
+     */
     guide: {
-      where: 'The provider’s app or website',
-      steps: [
-        'Check if it auto-renews, and cancel before the renewal date if unwanted',
-        'For gyms: many UAE gyms need written notice 30 days before renewal',
-        'Compare current promo prices before renewing at the old rate',
-      ],
-      typicalCost: 'Varies',
+      where: '',
+      steps: [],
+      typicalCost: '',
       lateFee: 'Auto-renewal charges if you miss the cancellation window',
-      processingTime: 'Instant',
+      processingTime: '',
     },
   },
   {

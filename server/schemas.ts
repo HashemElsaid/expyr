@@ -147,6 +147,23 @@ export const GuidanceRequest = z.object({
     .optional()
     .transform((value) => (value ?? '').trim())
     .refine((value) => value === '' || /^[a-z][a-z0-9 '-]{1,39}$/i.test(value), 'region'),
+  /**
+   * The service a subscription is with, when this is one.
+   *
+   * Present, this changes the question entirely: not "how is this renewed in
+   * this jurisdiction" but "how does somebody cancel or change this service" —
+   * which is the same answer in Dubai and Dublin, and has nothing to do with
+   * the authority that renews visas.
+   *
+   * Bounded like everything else here, because it becomes part of a cache key
+   * and an unbounded key is an unbounded number of web searches.
+   */
+  service: z
+    .string()
+    .max(40)
+    .optional()
+    .transform((value) => (value ?? '').trim().toLowerCase())
+    .refine((value) => value === '' || /^[a-z0-9][a-z0-9.-]{0,39}$/.test(value), 'service'),
 });
 export type GuidanceRequest = z.infer<typeof GuidanceRequest>;
 
@@ -157,6 +174,22 @@ export type GuidanceRequest = z.infer<typeof GuidanceRequest>;
  */
 export function guidanceKey(request: GuidanceRequest): string {
   const region = request.region.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+  /*
+   * A subscription is keyed on the service rather than on the category, because
+   * that is what the answer is actually about. Every person tracking iCloud+
+   * shares one entry, and it is not the same entry as the one for Netflix — the
+   * old key made both of them "membership in the UAE" and served them the same
+   * paragraph about gyms.
+   *
+   * The country stays in it. Most services answer the same everywhere, but a
+   * gym is also a subscription and its notice period is entirely local.
+   */
+  if (request.service) {
+    const service = request.service.replace(/[^a-z0-9]+/g, '-');
+    return ['sub', service, request.country, region].filter(Boolean).join('.');
+  }
+
   return [request.typeId, request.country, region].filter(Boolean).join('.');
 }
 

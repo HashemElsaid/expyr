@@ -75,12 +75,26 @@ export type GuidanceQuery = {
   countryName: string;
   /** Emirate, state or province. Empty when unknown. */
   region: string;
+  /**
+   * The service, when this is a subscription. Its presence changes the question
+   * from "how is this renewed here" to "how is this cancelled", which is a fact
+   * about the company rather than about the jurisdiction.
+   */
+  service?: string;
 };
 
 /** The same key the service uses, so the two caches agree about what is what. */
 export function guidanceKey(query: GuidanceQuery): string {
   const region = query.region.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  return [query.typeId, query.country.toLowerCase(), region].filter(Boolean).join('.');
+  const country = query.country.toLowerCase();
+
+  // Mirrors the service's own key exactly, so the two caches agree.
+  if (query.service) {
+    const service = query.service.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return ['sub', service, country, region].filter(Boolean).join('.');
+  }
+
+  return [query.typeId, country, region].filter(Boolean).join('.');
 }
 
 /* ---------------------------------------------------------------- storage -- */

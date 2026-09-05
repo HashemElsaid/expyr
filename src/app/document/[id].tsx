@@ -8,6 +8,7 @@ import { DataRow } from '@/components/document/data-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { isSubscription } from '@/domain/documents';
 import { displayFields } from '@/domain/fields';
 import { provenanceNote, worthShowing } from '@/domain/renewal-guidance';
 import { runningLateFee } from '@/domain/late-fee';
@@ -153,6 +154,12 @@ export default function DocumentDetailScreen() {
     region: settings.emirate ?? '',
     verifiedWhere:
       doc && guideType ? (whereFor(doc.typeId, settings.emirate) ?? guideType.guide.where) : '',
+    /*
+     * A subscription asks a different question, so it hands over what the
+     * question is about: the service, not the category it was filed under.
+     */
+    subscription:
+      doc && isSubscription(doc) ? { title: doc.title, iconDomain: doc.iconDomain } : undefined,
     enabled: guideOpen,
   });
 
@@ -574,10 +581,15 @@ export default function DocumentDetailScreen() {
           <Pressable
             onPress={() => setGuideOpen((open) => !open)}
             accessibilityRole="button"
-            accessibilityLabel={guideOpen ? 'Hide how to renew' : 'Show how to renew'}>
+            accessibilityLabel={guideOpen ? 'Hide renewal guidance' : 'Show renewal guidance'}>
             <View style={styles.sectionHeader}>
               <ThemedText type="label" themeColor="textTertiary">
-                How to renew
+                {/*
+                  * A subscription is not renewed, it renews itself. What
+                  * somebody opening this wants is the way out of it, and the
+                  * reminder that brought them here said so too.
+                  */}
+                {isSubscription(doc) ? 'How to cancel or change it' : 'How to renew'}
               </ThemedText>
               <View style={[styles.rule, { backgroundColor: theme.border }]} />
               <MaterialCommunityIcons

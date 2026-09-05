@@ -6,6 +6,7 @@ import {
   fromGenerated,
   fromVerified,
   provenanceFor,
+  serviceKey,
   type DisplayGuidance,
 } from '@/domain/renewal-guidance';
 import { cachedGuidance, fetchGuidance, type GuidanceQuery } from '@/lib/guidance';
@@ -56,11 +57,16 @@ export function useRenewalGuidance(opts: {
   region: string;
   /** Where the verified guide says to go — already resolved by the caller. */
   verifiedWhere: string;
+  /**
+   * The subscription this document is, if it is one: its title and the domain
+   * the scan found. Absent for anything that merely expires.
+   */
+  subscription?: { title: string; iconDomain?: string };
   /** Only ask once somebody has actually opened the section. */
   enabled: boolean;
 }): RenewalGuidance {
-  const { type, country, region, verifiedWhere, enabled } = opts;
-  const provenance = provenanceFor(country);
+  const { type, country, region, verifiedWhere, subscription, enabled } = opts;
+  const provenance = provenanceFor(country, Boolean(subscription));
 
   const [generated, setGenerated] = useState<DisplayGuidance | null>(null);
   const [loading, setLoading] = useState(false);
@@ -72,15 +78,25 @@ export function useRenewalGuidance(opts: {
     type && provenance === 'generated' && country
       ? {
           typeId: type.id,
-          label: labelFor(type, country),
+          /*
+           * The service's own name, not the category's. "Subscription /
+           * Membership" tells a search nothing; "iCloud+" is the whole
+           * question.
+           */
+          label: subscription ? subscription.title : labelFor(type, country),
           country,
           countryName: countryLabel(country),
           region,
+          service: subscription
+            ? serviceKey(subscription.title, subscription.iconDomain)
+            : undefined,
         }
       : null;
 
   // Depended on as a string, so a new object each render does not re-fetch.
-  const key = query ? `${query.typeId}.${query.country}.${query.region}` : '';
+  const key = query
+    ? `${query.service ?? query.typeId}.${query.country}.${query.region}`
+    : '';
 
   useEffect(() => {
     if (!enabled || !query) return;

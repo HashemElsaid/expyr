@@ -51,13 +51,48 @@ export type DisplayGuidance = {
 };
 
 /**
- * Whether this country has hand-checked guides, or needs one generating.
+ * Whether this document has a hand-checked guide, or needs one generating.
  *
- * A country with no guides is not a country the app refuses to help — it is
- * one where the help comes with its sources attached and a note to check.
+ * The country is only half the question, and treating it as the whole of it
+ * was a real bug: somebody in Dubai opening iCloud+ was shown the hand-written
+ * guide for the "Subscription / Membership" category, which talks about giving
+ * a UAE gym thirty days' written notice. Confidently, and with a line saying it
+ * had been checked against the responsible authority.
+ *
+ * It had — but the authority checked was the one that renews visas and Emirates
+ * IDs. Nobody verified how to cancel iCloud+ in the UAE, because there is
+ * nothing jurisdictional to verify: how you cancel a subscription is a fact
+ * about the service, and it is the same in Dubai as in Dublin.
+ *
+ * So a subscription is never "verified", wherever you are. It gets an answer
+ * about the actual service instead.
  */
-export function provenanceFor(country: Country | null): Provenance {
+export function provenanceFor(
+  country: Country | null,
+  /** True for anything that charges you rather than lapsing — see isSubscription. */
+  subscription = false
+): Provenance {
+  if (subscription) return 'generated';
   return hasGuidance(country) ? 'verified' : 'generated';
+}
+
+/**
+ * A stable, bounded name for the service a subscription is with.
+ *
+ * The domain when the scan found one, because it is the least ambiguous thing
+ * available — icloud.com is icloud.com however somebody has titled the row.
+ * Otherwise a slug of the title, which is imperfect but is what a person typed.
+ *
+ * Bounded on purpose: this becomes part of a cache key, and an unbounded key is
+ * an unbounded number of web searches.
+ */
+export function serviceKey(title: string, iconDomain?: string): string {
+  const source = iconDomain?.trim() || title.trim();
+  return source
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
 }
 
 /** The verified guide the app ships, in the shape the screen draws. */

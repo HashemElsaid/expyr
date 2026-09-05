@@ -118,6 +118,8 @@ export type GuidanceRequest = {
   region: string;
   /** The country's name, so the prompt does not have to decode a code. */
   countryName: string;
+  /** The service, when this is a subscription. Empty when it is a document. */
+  service?: string;
 };
 
 const RESEARCH_SYSTEM = `You research how to renew official documents, for Expyr — an app that tracks documents so they get renewed before they lapse.
@@ -138,6 +140,38 @@ What matters more than completeness:
 Search no more than three times. The authority's own page is usually the first result for "<document> renewal <place> official"; go there rather than reading around it.
 
 Write your findings as terse notes, not an essay, in this order: what renewing this involves, who does it, the steps in order, what to bring, the fee, the penalty for lateness, how long it takes. One line each. Name explicitly which of those you could not establish. Do not restate the question, do not explain your search, and do not add a conclusion.`;
+
+/**
+ * The other half of the job, and it is a different job.
+ *
+ * A document is renewed at an authority, in a place, under rules that differ by
+ * jurisdiction. A subscription is cancelled or changed with the company that
+ * charges you, under terms that are the same everywhere they operate. Asking
+ * the first question about the second is how somebody in Dubai opening iCloud+
+ * was told about giving a gym thirty days' written notice.
+ *
+ * The country is still mentioned, because it is not always irrelevant: a gym is
+ * a subscription too, and its notice period is entirely local.
+ */
+const SUBSCRIPTION_SYSTEM = `You research how to cancel or change a subscription, for Expyr — an app that warns people before a subscription charges them again.
+
+Somebody has been told this charges them in a few days and wants to know what they can actually do about it.
+
+How to work:
+- Search for the company's own help pages: their support site, their cancellation page, their billing FAQ. That is the answer. Review sites, "how to cancel anything" listicles and affiliate pages are not.
+- Find the exact route a person takes. For services billed through an app store, that route is the app store's own subscription settings rather than the company's website, and saying so is the useful answer.
+- Find the notice period if there is one, what happens to access when you cancel, and whether a refund is possible.
+- Find the current price if the page states it.
+
+What matters more than completeness:
+- Never state a price, a notice period or a refund rule you did not find. A person will act on it.
+- Where the search does not establish something, say plainly that it did not. Do not fill the gap with what subscriptions usually do.
+- Do not describe a different company's process. If the search did not find this service, say so rather than answering about a similar one.
+- Most of this is the same in every country. Mention the country only where it genuinely changes the answer — a local gym's notice period, or a price stated in that market's currency.
+
+Search no more than three times.
+
+Write your findings as terse notes, not an essay, in this order: what this service is and how it bills, who to cancel with, the steps in order, anything needed, the price, the notice period or deadline, and what happens after cancelling. One line each. Name explicitly which of those you could not establish. Do not restate the question and do not add a conclusion.`;
 
 const SHAPE_SYSTEM = `You turn research notes about renewing a document into the exact structure an app will display.
 
@@ -275,10 +309,16 @@ async function research(request: GuidanceRequest): Promise<{
     ? `${request.region}, ${request.countryName}`
     : request.countryName;
 
+  const subscription = Boolean(request.service);
+
   const messages: Anthropic.MessageParam[] = [
     {
       role: 'user',
-      content: `How does somebody renew a ${request.label} in ${where}?
+      content: subscription
+        ? `How does somebody cancel or change their "${request.label}" subscription? They are in ${where}.
+
+Find the company's own current help pages. Report how it bills, where to cancel, the steps in order, the price, any notice period, and what happens to access afterwards — and say which of those you could not establish.`
+        : `How does somebody renew a ${request.label} in ${where}?
 
 Find the responsible authority's own current pages. Report the steps, what to bring, the fee, the penalty for renewing late, and how long it takes — and say which of those you could not establish.`,
     },
@@ -297,7 +337,7 @@ Find the responsible authority's own current pages. Report the steps, what to br
       .stream({
         model: RESEARCH_MODEL,
         max_tokens: 4000,
-        system: RESEARCH_SYSTEM,
+        system: subscription ? SUBSCRIPTION_SYSTEM : RESEARCH_SYSTEM,
         ...(THINKING_CAPABLE.includes(RESEARCH_MODEL)
           ? { thinking: { type: 'adaptive' as const } }
           : {}),
@@ -360,7 +400,9 @@ async function shape(
       {
         role: 'user',
         content:
-          `Notes on renewing a ${request.label} in ${where}:\n\n${notes}\n\n` +
+          (request.service
+            ? `Notes on cancelling or changing "${request.label}":\n\n${notes}\n\n`
+            : `Notes on renewing a ${request.label} in ${where}:\n\n${notes}\n\n`) +
           `Hosts these notes came from:\n${hosts.map((host) => `- ${host}`).join('\n')}`,
       },
     ],

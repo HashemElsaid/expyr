@@ -4,6 +4,7 @@ import { getDocumentType } from '@/data/document-types';
 import {
   fromGenerated,
   orEmpty,
+  serviceKey,
   fromVerified,
   primarySource,
   provenanceFor,
@@ -36,6 +37,51 @@ const generated = (over: Partial<Guidance> = {}): Guidance => ({
 describe('provenanceFor', () => {
   it('uses the checked guides where there are checked guides', () => {
     expect(provenanceFor('ae')).toBe('verified');
+  });
+
+  /*
+   * The bug this argument exists for. Somebody in Dubai opening iCloud+ was
+   * shown the hand-written guide for the Subscription / Membership category —
+   * which talks about giving a UAE gym thirty days' written notice — under a
+   * line saying it had been checked against the responsible authority.
+   *
+   * It had. The authority that renews visas. Nobody verified how to cancel
+   * iCloud+, because there is nothing jurisdictional to verify.
+   */
+  it('never claims a subscription was verified, wherever you are', () => {
+    expect(provenanceFor('ae', true)).toBe('generated');
+    expect(provenanceFor('us', true)).toBe('generated');
+    expect(provenanceFor(null, true)).toBe('generated');
+  });
+
+  it('still uses the checked guides for documents in the same country', () => {
+    expect(provenanceFor('ae', false)).toBe('verified');
+  });
+});
+
+describe('serviceKey', () => {
+  it('prefers the domain the scan found, since a title can be anything', () => {
+    expect(serviceKey('iCloud+ 200GB', 'icloud.com')).toBe('icloud-com');
+  });
+
+  it('falls back to the title when there is no domain', () => {
+    expect(serviceKey('Anytime Fitness Marina')).toBe('anytime-fitness-marina');
+  });
+
+  it('gives two spellings of one service the same key', () => {
+    expect(serviceKey('Netflix', 'netflix.com')).toBe(serviceKey('netflix  ', 'NETFLIX.COM'));
+  });
+
+  it('keeps two different services apart', () => {
+    expect(serviceKey('Netflix', 'netflix.com')).not.toBe(serviceKey('iCloud+', 'icloud.com'));
+  });
+
+  /* It becomes part of a cache key, and an unbounded key is unbounded searches. */
+  it('stays short and safe whatever it is handed', () => {
+    const key = serviceKey('../../etc/passwd ' + 'x'.repeat(200));
+    expect(key.length).toBeLessThanOrEqual(40);
+    expect(key).toMatch(/^[a-z0-9-]*$/);
+    expect(key).not.toContain('..');
   });
 
   it('generates everywhere else, rather than saying nothing', () => {

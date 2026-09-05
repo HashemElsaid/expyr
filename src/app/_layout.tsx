@@ -229,6 +229,12 @@ function AppShell() {
            */
           headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: theme.background },
+          /*
+           * Pushed screens come in from the right and leave the way they came,
+           * which is the gesture the swipe-back already implies — a screen that
+           * appears without travelling gives the finger nothing to have moved.
+           */
+          animation: 'slide_from_right',
         }}>
         {/* Titled even though its header is hidden — anything that reads a
             route's title, back buttons included, should find a word rather

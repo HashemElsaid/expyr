@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { TabButton } from '@/components/tab-button';
 import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
@@ -16,6 +17,14 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        /*
+         * The page slides in the direction you moved rather than cutting. It
+         * is the difference between a tab bar that swaps screenshots and one
+         * that feels like it has places in it — and iOS has done this for long
+         * enough that its absence is what gets noticed.
+         */
+        animation: 'shift',
+        tabBarButton: (props) => <TabButton {...props} />,
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.textTertiary,
         tabBarStyle: {
@@ -57,6 +66,8 @@ export default function TabsLayout() {
         name="scan"
         options={{
           title: '',
+          // Not a tab and not given the pill: it opens a sheet rather than
+          // going anywhere, so "where am I" has no answer to show here.
           tabBarButton: () => <CameraButton />,
         }}
       />

@@ -217,9 +217,23 @@ function AppShell() {
           headerTitleStyle: { fontFamily: Fonts.bodyMedium, fontSize: 17, color: theme.text },
           headerShadowVisible: false,
           headerTitleAlign: 'center',
+          /*
+           * The chevron alone, with no word beside it.
+           *
+           * iOS labels a back button with the previous screen's title, and the
+           * previous screen here is a route group — so it read "‹ (tabs)",
+           * which is a filename leaking onto a document about somebody's visa.
+           * Naming the group would only trade one wrong word for another: this
+           * button always means back, and the screen behind it is always the
+           * list, so the glyph says everything the word would.
+           */
+          headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: theme.background },
         }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Titled even though its header is hidden — anything that reads a
+            route's title, back buttons included, should find a word rather
+            than the name of a directory. */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Expyr' }} />
         <Stack.Screen
           name="add"
           options={{

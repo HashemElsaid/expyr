@@ -1,34 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Image,
-  Linking,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { ActionMenu, MenuButton, PrimaryAction, SecondaryAction, type MenuAction } from '@/components/document/actions';
+import { DataRow } from '@/components/document/data-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import {
-  hasReading,
-  isReading,
-  loadBrief,
-  readDocumentFully,
-  readsOnArrival,
-  summariseDocument,
-  type Brief,
-  type ReadStage,
-} from '@/lib/reading';
+import { runningLateFee } from '@/domain/late-fee';
+import { useDocumentReading } from '@/hooks/use-document-reading';
 import { shareDocumentCopy } from '@/lib/share-copy';
 import { hasGuidance } from '@/data/countries';
 import { getDocumentType, numberFieldFor } from '@/data/document-types';
@@ -61,19 +42,20 @@ export default function DocumentDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { documents, archived, removeDocument, setArchived } = useDocuments();
-  const { settings, update } = useSettings();
+  const { settings } = useSettings();
   const [guideOpen, setGuideOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [brief, setBrief] = useState<Brief | null>(null);
-  const [readable, setReadable] = useState(false);
-  const [stage, setStage] = useState<ReadStage | null>(null);
   const [pointsOpen, setPointsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  // The menu hangs below the navigation bar, whose height starts at the notch.
-  const insets = useSafeAreaInsets();
   const outOfReads = !settings.premium && settings.readsUsed >= FREE_READ_LIMIT;
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
+  /*
+   * Reading, and the rule about which reads spend one of the free two, live in
+   * their own hook — it was the most intricate thing this screen did and had
+   * nothing to do with drawing it.
+   */
+  const { brief, readable, stage, readNow, retrySummary } = useDocumentReading(doc);
   const days = doc ? daysUntil(doc.expiryDate) : 0;
   const { color } = useUrgency(days);
 
@@ -109,7 +91,7 @@ export default function DocumentDetailScreen() {
    * from the corner the finger is in, and nothing to do with the thing it acts
    * on. A small card in the corner is the whole of what was wanted.
    */
-  const menuActions = doc
+  const menuActions: MenuAction[] = doc
     ? [
         // Sending a copy of a passport or licence is a routine errand here.
         ...(doc.files[0]
@@ -144,72 +126,16 @@ export default function DocumentDetailScreen() {
     navigation.setOptions({
       title: '',
       headerRight: () => (
-        <Pressable
+        <MenuButton
           onPress={() => {
             tapFeedback();
             setMenuOpen(true);
           }}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="More actions">
-          {/* Boxed and centred, because the glyph alone sat left of the middle
-              of the round button iOS draws around it. */}
-          <View style={styles.menuButton}>
-            <MaterialCommunityIcons name="dots-horizontal" size={22} color={theme.textSecondary} />
-          </View>
-        </Pressable>
+        />
       ),
     });
     // Re-bind when the document or theme changes so the handler stays current.
   }, [navigation, doc, theme.textSecondary]);
-
-  /*
-   * Above the early return below, because documents load a moment after the
-   * screen mounts. A hook placed after it runs on some renders and not others,
-   * which React refuses outright.
-   */
-  useEffect(() => {
-    if (!doc) return;
-    setBrief(loadBrief(doc.id));
-    setReadable(hasReading(doc.id));
-
-    /*
-     * Reading normally starts the moment a contract is saved. Picking it up
-     * again here covers the times that did not finish: the app was closed too
-     * soon, the network was gone, the phone suspended the work. Joining an
-     * attempt already running costs nothing, so this is safe to run on arrival.
-     */
-    const first = doc.files[0];
-    if (!first || !readsOnArrival(doc.typeId) || loadBrief(doc.id)) return;
-
-    /*
-     * A read already running was started by the screen that saved the document,
-     * and that screen counts it. Join it rather than bailing out, so the brief
-     * arrives here when it finishes instead of leaving this sitting on
-     * "reading it" until the screen is opened again.
-     */
-    const joined = isReading(doc.id);
-    // An already-read document costs nothing to revisit; a new one does.
-    const fresh = !hasReading(doc.id);
-    if (!joined && !settings.premium && fresh && settings.readsUsed >= FREE_READ_LIMIT) return;
-
-    let live = true;
-    readDocumentFully(doc.id, first, (s) => live && setStage(s))
-      .then((result) => {
-        if (!live) return;
-        setReadable(true);
-        setBrief(result.brief);
-        if (!settings.premium && fresh && !joined) update({ readsUsed: settings.readsUsed + 1 });
-      })
-      .catch(() => {
-        // Offered as a button instead, rather than an alert nobody asked for.
-      })
-      .finally(() => live && setStage(null));
-
-    return () => {
-      live = false;
-    };
-  }, [doc?.id]);
 
   if (!doc) return <ThemedView style={styles.container} />;
 
@@ -225,21 +151,11 @@ export default function DocumentDetailScreen() {
   const portal = guided ? portalFor(doc.typeId, settings.emirate) : undefined;
   const where = whereFor(doc.typeId, settings.emirate) ?? type.guide.where;
   /*
-   * What the delay has cost, for the documents whose fine is a daily rate the
-   * app has verified. Grace first, then the rate, then the cap — and nothing at
-   * all until the grace has actually run out, because a fine that has not
-   * started is not a debt.
+   * What the delay has cost, for the documents whose fine the app has verified
+   * as a daily rate. The rule about grace periods lives in the domain, with
+   * tests — it is the one figure here about somebody's money.
    */
-  const rate = guided ? type.guide.lateFeeRate : undefined;
-  const lateDays = Math.max(0, -days - (rate?.graceDays ?? 0));
-  const running =
-    rate && lateDays > 0
-      ? {
-          owed: Math.min(lateDays * rate.perDay, rate.cap),
-          capped: lateDays * rate.perDay >= rate.cap,
-          currency: rate.currency,
-        }
-      : null;
+  const running = guided ? runningLateFee(days, type.guide) : null;
 
   const canRoll = RENEWAL_PERIOD_DAYS[doc.typeId] !== undefined;
   const period = RENEWAL_PERIOD_DAYS[doc.typeId];
@@ -247,51 +163,10 @@ export default function DocumentDetailScreen() {
   const blockers = guided ? findBlockers(doc, documents) : [];
   const notes = guided ? notesFor(doc.typeId) : [];
   const fired = reminders.filter((r) => r.past);
-  const next = reminders.find((r) => !r.past);
 
   function markRenewed() {
     tapFeedback();
     router.push(canRoll ? `/add?id=${doc!.id}&renew=1` : `/add?id=${doc!.id}`);
-  }
-
-  async function readDocument() {
-    if (!doc || stage) return;
-    const first = doc.files[0];
-    if (!first) return;
-    tapFeedback();
-    // Only a document being read for the first time spends one of the free reads.
-    const fresh = !hasReading(doc.id);
-    try {
-      const result = await readDocumentFully(doc.id, first, setStage);
-      setReadable(true);
-      setBrief(result.brief);
-      if (!settings.premium && fresh) update({ readsUsed: settings.readsUsed + 1 });
-      successFeedback();
-    } catch (error) {
-      Alert.alert(
-        'Could not read that',
-        error instanceof Error ? error.message : 'Something went wrong.'
-      );
-    } finally {
-      setStage(null);
-    }
-  }
-
-  async function retrySummary() {
-    if (!doc || stage) return;
-    tapFeedback();
-    setStage('summarising');
-    try {
-      setBrief(await summariseDocument(doc.id));
-      successFeedback();
-    } catch (error) {
-      Alert.alert(
-        'Could not summarise it',
-        error instanceof Error ? error.message : 'Something went wrong.'
-      );
-    } finally {
-      setStage(null);
-    }
   }
 
   async function sendCopy() {
@@ -319,52 +194,7 @@ export default function DocumentDetailScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-        <Pressable
-          style={[styles.menuBackdrop, { paddingTop: insets.top + 46 }]}
-          onPress={() => setMenuOpen(false)}>
-          <View
-            style={[
-              styles.menuCard,
-              {
-                backgroundColor: theme.backgroundElement,
-                borderColor: theme.border,
-                shadowColor: theme.text,
-              },
-            ]}>
-            {menuActions.map((action, index) => (
-              <Pressable
-                key={action.label}
-                onPress={() => {
-                  setMenuOpen(false);
-                  // After the sheet is gone, so an alert of its own has room.
-                  setTimeout(action.run, 60);
-                }}
-                accessibilityRole="button">
-                {({ pressed }) => (
-                  <View
-                    style={[
-                      styles.menuItem,
-                      index > 0 && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth },
-                      pressed && styles.dim,
-                    ]}>
-                    <ThemedText
-                      type="body"
-                      style={action.destructive ? { color: theme.urgentStrong } : undefined}>
-                      {action.label}
-                    </ThemedText>
-                    <MaterialCommunityIcons
-                      name={action.icon as never}
-                      size={18}
-                      color={action.destructive ? theme.urgentStrong : theme.textTertiary}
-                    />
-                  </View>
-                )}
-              </Pressable>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
+      <ActionMenu open={menuOpen} onClose={() => setMenuOpen(false)} actions={menuActions} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { borderBottomColor: theme.border }]}>
@@ -562,7 +392,7 @@ export default function DocumentDetailScreen() {
 
         {doc.files.length > 0 && !brief && !(outOfReads && !readable) && (
           <Pressable
-            onPress={readable ? retrySummary : readDocument}
+            onPress={readable ? retrySummary : readNow}
             disabled={stage !== null}
             accessibilityRole="button">
             {({ pressed }) => (
@@ -813,131 +643,8 @@ async function openAttachment(uri: string, type?: 'image' | 'pdf') {
   Alert.alert('Cannot open', 'This attachment could not be opened on this device.');
 }
 
-function DataRow({
-  label,
-  value,
-  bordered,
-  copyable,
-}: {
-  label: string;
-  value: string;
-  bordered?: boolean;
-  copyable?: boolean;
-}) {
-  const theme = useTheme();
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    if (!copyable) return;
-    await Clipboard.setStringAsync(value);
-    successFeedback();
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1600);
-  }
-
-  return (
-    <Pressable onPress={copy} disabled={!copyable} accessibilityRole={copyable ? 'button' : undefined}>
-      <View style={[styles.dataRow, bordered && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
-        <ThemedText type="small" themeColor="textTertiary" style={styles.dataLabel}>
-          {copied ? 'Copied' : label}
-        </ThemedText>
-        <ThemedText type="body" style={styles.dataValue}>
-          {value}
-        </ThemedText>
-        {copyable && (
-          <MaterialCommunityIcons
-            name={copied ? 'check' : 'content-copy'}
-            size={15}
-            color={copied ? theme.accent : theme.textTertiary}
-            style={styles.copyMark}
-          />
-        )}
-      </View>
-    </Pressable>
-  );
-}
-
-function PrimaryAction({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      {({ pressed }) => (
-        <View
-          style={[styles.primary, { backgroundColor: theme.accent }, pressed && styles.dim]}>
-          <MaterialCommunityIcons name={icon as never} size={17} color={theme.accentContrast} />
-          <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
-            {label}
-          </ThemedText>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-function SecondaryAction({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      {({ pressed }) => (
-        <View style={[styles.secondary, pressed && styles.dim]}>
-          <MaterialCommunityIcons name={icon as never} size={17} color={theme.textSecondary} />
-          <ThemedText type="smallBold" themeColor="textSecondary">
-            {label}
-          </ThemedText>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  menuButton: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
-  /*
-   * Anchored under the button that opened it, in the corner the finger is
-   * already in, over a backdrop dark enough to say the rest of the screen is
-   * waiting.
-   */
-  menuBackdrop: {
-    flex: 1,
-    alignItems: 'flex-end',
-    paddingRight: Spacing.three,
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
-  },
-  menuCard: {
-    minWidth: 224,
-    borderRadius: Radius.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 14,
-  },
   content: {
     paddingHorizontal: 28,
     paddingBottom: Spacing.six,
@@ -1009,24 +716,5 @@ const styles = StyleSheet.create({
   steps: { gap: 14, paddingBottom: Spacing.three },
   stepRow: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
   stepNumber: { width: 22, fontSize: 24, lineHeight: 26 },
-  copyMark: { marginLeft: 8 },
-  dataRow: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.three, paddingVertical: 12 },
-  dataLabel: { flexShrink: 0 },
-  dataValue: { flex: 1, textAlign: 'right' },
   actions: { gap: Spacing.two, paddingTop: Spacing.four },
-  primary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.two,
-    borderRadius: Radius.pill,
-    paddingVertical: Spacing.three,
-  },
-  secondary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.two,
-    paddingVertical: 14,
-  },
 });

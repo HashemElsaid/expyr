@@ -11,7 +11,8 @@ import {
 } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
-import { migrateDocument, rollForwardAll } from '@/domain/documents';
+import { LocalDocumentRepository, type DocumentRepository } from '@/data/document-repository';
+import { rollForwardAll } from '@/domain/documents';
 import { daysUntil } from '@/lib/dates';
 import { deleteAttachment, storeAttachment } from '@/lib/files';
 import { newDocumentId } from '@/lib/ids';
@@ -21,9 +22,13 @@ import { snoozeDate } from '@/lib/reminder-plan';
 import { useSettings } from '@/store/settings';
 import { Attachment, DocumentDraft, TrackedDocument } from '@/types';
 
-const STORAGE_KEY = 'expyr.documents.v1';
-/** Where documents lived before the app was renamed. Read once, then migrated. */
-const LEGACY_STORAGE_KEY = 'renewly.documents.v1';
+/**
+ * The store owns what the screens see; the repository owns what the phone
+ * keeps. Swapping the second for one that also talks to a server is the whole
+ * of what adding sync would mean here — no screen and nothing in this file
+ * would need to know.
+ */
+const repository: DocumentRepository = new LocalDocumentRepository(AsyncStorage);
 
 /**
  * What went wrong while saving, in a sentence somebody can act on.
@@ -105,33 +110,37 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   country.current = settings.country;
 
   /**
-   * Writes the list to storage and brings the reminders in line with it.
+   * Shows the change, writes it, and brings the reminders in line.
    *
-   * The write is awaited rather than fired and forgotten: it is the only moment
-   * the app can discover that a phone has no room left, and the one thing a
-   * user must not be lied to about. The reminder pass follows, and is allowed
-   * to be slower — the list is already on screen by then.
+   * The screen updates first because the person who just typed something
+   * should see it; the write is then awaited rather than fired and forgotten,
+   * because it is the only moment the app can discover that a phone has no
+   * room left. That used to be swallowed, which meant a document on screen,
+   * nothing said, and nothing there at the next launch.
    */
-  const commit = useCallback(async (next: TrackedDocument[]) => {
-    latest.current = next;
-    setDocuments(next);
+  const commit = useCallback(
+    async (next: TrackedDocument[], write: () => Promise<void>): Promise<void> => {
+      latest.current = next;
+      setDocuments(next);
 
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      setSaveProblem(null);
-    } catch {
-      setSaveProblem({
-        message:
-          'Expyr could not save that to this iPhone. Your other items are safe, but this change will be lost if you close the app. Freeing up storage usually fixes it.',
-        retry: () => commit(latest.current),
-      });
-      // The reminders would describe a list that is not on disk. Leave them.
-      return;
-    }
+      try {
+        await write();
+        setSaveProblem(null);
+      } catch {
+        setSaveProblem({
+          message:
+            'Expyr could not save that to this iPhone. Your other items are safe, but this change will be lost if you close the app. Freeing up storage usually fixes it.',
+          retry: () => commit(latest.current, write),
+        });
+        // The reminders would describe a list that is not on disk. Leave them.
+        return;
+      }
 
-    const status = await applyReminderPlan(next, country.current);
-    setReminders(status);
-  }, []);
+      const status = await applyReminderPlan(next, country.current);
+      setReminders(status);
+    },
+    []
+  );
 
   /**
    * Brings dates and reminders up to date without changing anything the user
@@ -139,12 +148,17 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
    * both subscriptions and reminders go stale by the passage of time alone.
    */
   const refresh = useCallback(async () => {
-    const rolled = rollForwardAll(latest.current);
-    if (rolled !== latest.current) {
-      await commit(rolled);
+    const before = latest.current;
+    const rolled = rollForwardAll(before);
+    if (rolled !== before) {
+      // Only the records that actually moved are written back.
+      const moved = rolled.filter((doc, i) => doc !== before[i]);
+      await commit(rolled, async () => {
+        for (const doc of moved) await repository.upsert(doc);
+      });
       return;
     }
-    const status = await applyReminderPlan(latest.current, country.current);
+    const status = await applyReminderPlan(before, country.current);
     setReminders(status);
   }, [commit]);
 
@@ -153,27 +167,10 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        // Anything saved under the old name is adopted, then written back under
-        // the new one. Renaming the app must not look like losing everything.
-        const source = raw ?? (await AsyncStorage.getItem(LEGACY_STORAGE_KEY));
-        if (!source) return;
-
-        const parsed: unknown = JSON.parse(source);
-        if (!Array.isArray(parsed)) return;
-
-        const loadedDocs = parsed
-          .map(migrateDocument)
-          .filter((d): d is TrackedDocument => d !== null);
-
+        const stored = await repository.load();
         if (!live) return;
-        latest.current = loadedDocs;
-        setDocuments(loadedDocs);
-
-        // Written back under the new key only when it was read from the old one.
-        if (!raw) {
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(loadedDocs)).catch(() => {});
-        }
+        latest.current = stored;
+        setDocuments(stored);
       } catch {
         /*
          * Unreadable storage. The list stays empty rather than the app refusing
@@ -236,7 +233,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         updatedAt: now,
       };
 
-      await commit([...latest.current, doc]);
+      await commit([...latest.current, doc], () => repository.upsert(doc));
       if (failed > 0) reportAttachmentFailure(failed, setSaveProblem);
       return doc;
     },
@@ -260,7 +257,10 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date().toISOString(),
       };
 
-      await commit(latest.current.map((d) => (d.id === id ? updated : d)));
+      await commit(
+        latest.current.map((d) => (d.id === id ? updated : d)),
+        () => repository.upsert(updated)
+      );
       if (failed > 0) reportAttachmentFailure(failed, setSaveProblem);
     },
     [commit]
@@ -274,7 +274,10 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       // The transcript is the document's contents in plain text. It must not
       // outlive the document somebody just deleted.
       deleteReading(id);
-      await commit(latest.current.filter((d) => d.id !== id));
+      await commit(
+        latest.current.filter((d) => d.id !== id),
+        () => repository.remove(id)
+      );
     },
     [commit]
   );
@@ -287,7 +290,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const replaceAll = useCallback(
     async (restored: TrackedDocument[]) => {
       await cancelAllReminders();
-      await commit(restored);
+      await commit(restored, () => repository.replaceAll(restored));
     },
     [commit]
   );
@@ -298,7 +301,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       deleteReading(doc.id);
     }
     await cancelAllReminders();
-    await commit([]);
+    await commit([], () => repository.replaceAll([]));
   }, [commit]);
 
   const setArchived = useCallback(
@@ -313,7 +316,10 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         snoozedUntil: archived ? undefined : target.snoozedUntil,
         updatedAt: new Date().toISOString(),
       };
-      await commit(latest.current.map((d) => (d.id === id ? updated : d)));
+      await commit(
+        latest.current.map((d) => (d.id === id ? updated : d)),
+        () => repository.upsert(updated)
+      );
     },
     [commit]
   );
@@ -328,8 +334,10 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     async (id: string, days = 7) => {
       const target = latest.current.find((d) => d.id === id);
       if (!target) return;
+      const snoozed = { ...target, snoozedUntil: snoozeDate(days) };
       await commit(
-        latest.current.map((d) => (d.id === id ? { ...d, snoozedUntil: snoozeDate(days) } : d))
+        latest.current.map((d) => (d.id === id ? snoozed : d)),
+        () => repository.upsert(snoozed)
       );
     },
     [commit]

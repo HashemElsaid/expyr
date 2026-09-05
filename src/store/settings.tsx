@@ -51,6 +51,15 @@ export type Settings = {
    * permissions it was refused is one people learn to dismiss without reading.
    */
   lockOffered: boolean;
+  /**
+   * People added by name on the Household page, who may not own anything yet.
+   *
+   * A person used to exist only as a side effect of owning a document, which
+   * meant there was no way to add one — and a relative you have not filed
+   * anything for is the largest gap on the page whose job is finding gaps.
+   * Names on documents are still the main source; this is the rest.
+   */
+  people: string[];
 };
 
 const DEFAULTS: Settings = {
@@ -65,6 +74,7 @@ const DEFAULTS: Settings = {
   questionsAsked: 0,
   questionsOn: '',
   lockOffered: false,
+  people: [],
 };
 
 /**
@@ -166,6 +176,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           questionsAsked: parsed.questionsAsked ?? DEFAULTS.questionsAsked,
           questionsOn: parsed.questionsOn ?? DEFAULTS.questionsOn,
           lockOffered: parsed.lockOffered ?? DEFAULTS.lockOffered,
+          people: Array.isArray(parsed.people)
+            ? parsed.people.filter((name): name is string => typeof name === 'string')
+            : DEFAULTS.people,
         });
       })
       .catch(() => {})

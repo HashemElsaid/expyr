@@ -30,7 +30,7 @@ import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '
 import { useDocuments } from '@/store/documents';
 import { readInBackground } from '@/lib/reading';
 import { FREE_ITEM_LIMIT, FREE_READ_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
-import { Attachment, DocumentType, DocumentTypeId, TrackedDocument } from '@/types';
+import { Attachment, DocumentType, DocumentTypeId, ExtractedField, TrackedDocument } from '@/types';
 
 type Step = 'choose' | 'type' | 'form' | 'scansSpent';
 
@@ -67,6 +67,13 @@ export default function AddDocumentScreen() {
   const [busy, setBusy] = useState<'scanning' | 'attaching' | null>(null);
   const [slowScan, setSlowScan] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
+  /*
+   * Everything else the scan read off the document. Not editable here: the form
+   * is for the handful of things the app acts on, and turning a transcription
+   * into eleven text inputs would bury them. It is shown on the document's own
+   * screen, where there is room to read it.
+   */
+  const [fields, setFields] = useState<ExtractedField[]>(editing?.fields ?? []);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showAndroidPicker, setShowAndroidPicker] = useState(false);
@@ -140,6 +147,7 @@ export default function AddDocumentScreen() {
     setDocumentNumber(scannedType.numberField ? result.documentNumber : '');
     setLeadDays(scannedType.defaultLeadDays);
     setFiles([{ uri: scannedUri, type: scannedKind, key: newAttachmentKey() }]);
+    setFields(result.fields ?? []);
     setScanNote(
       result.confidence === 'high' ? result.note : `${result.note} Check the date before saving.`
     );
@@ -263,6 +271,9 @@ export default function AddDocumentScreen() {
       owner: owner.trim() || undefined,
       files,
       leadDays,
+      // Undefined rather than an empty list, so a hand-typed item carries no
+      // trace of a feature it never used.
+      fields: fields.length > 0 ? fields : undefined,
     };
     const isFirstItem = documents.length === 0;
 

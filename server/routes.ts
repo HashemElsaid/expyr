@@ -114,7 +114,8 @@ export const ROUTES: Record<string, Route> = {
     handle: async (ctx) => {
       const request = parse(ExtractRequest, ctx.body);
       const result = await extractFromImage(request);
-      ctx.note({ note: `confidence=${result.confidence}` });
+      // The count, never the fields. They are the document.
+      ctx.note({ note: `confidence=${result.confidence}`, n_fields: result.fields.length });
       return json(result);
     },
   },

@@ -1,4 +1,5 @@
 import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
+import { tidyFields } from '@/domain/fields';
 import { advance } from '@/lib/recurrence';
 import { Attachment, TrackedDocument } from '@/types';
 
@@ -56,6 +57,12 @@ export function migrateDocument(raw: unknown): TrackedDocument | null {
     archivedAt: doc.archivedAt,
     snoozedUntil: doc.snoozedUntil,
     history: doc.history,
+    /*
+     * Tidied on the way in as well as on the way out of a scan. A record
+     * written by a build whose rules differed, or hand-edited in a restored
+     * backup, should not be able to put an empty row on a screen.
+     */
+    fields: doc.fields?.length ? tidyFields(doc.fields) : undefined,
     renewsEvery: doc.renewsEvery,
     iconDomain: doc.iconDomain,
     visibility: doc.visibility ?? 'private',

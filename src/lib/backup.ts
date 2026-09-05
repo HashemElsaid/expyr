@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 
 import type { Country } from '@/data/countries';
 import { getDocumentType, labelForId } from '@/data/document-types';
+import { fieldColumns, valueForColumn } from '@/domain/fields';
 import { formatDate } from '@/lib/dates';
 import { Attachment, TrackedDocument } from '@/types';
 
@@ -84,8 +85,19 @@ export async function exportCsv(
   if (Platform.OS === 'web') throw new Error('Export is only available on the phone app.');
 
   const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+
+  /*
+   * One column per distinct field the scans found, rather than one cell holding
+   * everything. A spreadsheet is worth having because it can be sorted and
+   * filtered, and a column of "Insurer: Salama · Premium: AED 1,200" cannot be.
+   *
+   * Empty when nothing has been scanned, so a hand-typed collection exports
+   * exactly the six columns it always did.
+   */
+  const extra = fieldColumns(documents);
+
   const rows = [
-    ['Name', 'Category', 'Expires', 'Belongs to', 'Number', 'Notes'].join(','),
+    ['Name', 'Category', 'Expires', 'Belongs to', 'Number', 'Notes', ...extra].join(','),
     ...documents.map((doc) =>
       [
         escape(doc.title),
@@ -94,6 +106,7 @@ export async function exportCsv(
         escape(doc.owner ?? ''),
         escape(doc.documentNumber ?? ''),
         escape(doc.notes ?? ''),
+        ...extra.map((label) => escape(valueForColumn(doc, label))),
       ].join(',')
     ),
   ];
@@ -184,6 +197,7 @@ export async function importBackup(): Promise<RestoreResult | null> {
         : getDocumentType(entry.typeId).defaultLeadDays,
       visibility: entry.visibility ?? 'private',
       snoozedUntil: entry.snoozedUntil,
+      fields: entry.fields,
       createdAt: entry.createdAt ?? new Date().toISOString(),
       updatedAt: entry.updatedAt ?? entry.createdAt ?? new Date().toISOString(),
     });

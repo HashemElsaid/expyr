@@ -8,6 +8,7 @@ import { DataRow } from '@/components/document/data-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { displayFields } from '@/domain/fields';
 import { runningLateFee } from '@/domain/late-fee';
 import { useDocumentReading } from '@/hooks/use-document-reading';
 import { shareDocumentCopy } from '@/lib/share-copy';
@@ -156,6 +157,8 @@ export default function DocumentDetailScreen() {
    * tests — it is the one figure here about somebody's money.
    */
   const running = guided ? runningLateFee(days, type.guide) : null;
+  // Everything the scan read that the screen does not already show elsewhere.
+  const scanned = displayFields(doc);
 
   const canRoll = RENEWAL_PERIOD_DAYS[doc.typeId] !== undefined;
   const period = RENEWAL_PERIOD_DAYS[doc.typeId];
@@ -315,6 +318,40 @@ export default function DocumentDetailScreen() {
               />
             )}
             {doc.notes && <DataRow label="Notes" value={doc.notes} />}
+          </View>
+        )}
+
+        {/*
+          * What the scan read, beyond the date.
+          *
+          * This is the half of the app that pays off today rather than in two
+          * years: the name as printed, the policy number, who issued it, what
+          * it costs. Numbers are copyable for the same reason the one above is
+          * — they exist to be pasted into somebody else's form.
+          */}
+        {scanned.length > 0 && (
+          <View>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="label" themeColor="textTertiary">
+                On the document
+              </ThemedText>
+              <View style={[styles.rule, { backgroundColor: theme.border }]} />
+            </View>
+            <View style={styles.plainRows}>
+              {scanned.map((entry, index) => (
+                <DataRow
+                  key={`${entry.label}-${entry.value}`}
+                  label={entry.label}
+                  value={entry.value}
+                  bordered={index > 0}
+                  copyable={entry.kind === 'number' || entry.kind === 'money'}
+                />
+              ))}
+            </View>
+            <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
+              Read from your photo when you scanned it, and kept on this phone. Check anything
+              you are about to rely on.
+            </ThemedText>
           </View>
         )}
 

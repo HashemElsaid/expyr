@@ -5,8 +5,9 @@ import * as ImagePicker from 'expo-image-picker';
 import type { Country } from '@/data/countries';
 import { DOCUMENT_TYPES, labelFor } from '@/data/document-types';
 import { fileTypeFor, type FileType } from '@/lib/files';
+import { tidyFields } from '@/domain/fields';
 import { postJson } from '@/lib/http';
-import { DocumentTypeId } from '@/types';
+import { DocumentTypeId, ExtractedField } from '@/types';
 
 /** Claude downsamples anything larger, so sending more pixels just costs money. */
 const MAX_EDGE = 1568;
@@ -31,6 +32,11 @@ export type ScanResult = {
   documentNumber: string;
   confidence: 'high' | 'medium' | 'low';
   note: string;
+  /**
+   * Everything else the document said about itself. Absent from a service that
+   * has not been deployed yet, so every reader treats it as optional.
+   */
+  fields: ExtractedField[];
 };
 
 export async function pickImage(source: 'camera' | 'library'): Promise<PickedFile | null> {
@@ -148,5 +154,17 @@ export async function scanFile(
   // A category this build does not know about would break every screen that
   // looks one up, so an unfamiliar answer falls back rather than being trusted.
   const known = DOCUMENT_TYPES.some((t) => t.id === result.typeId);
-  return { result: known ? result : { ...result, typeId: 'other' }, fileUri: uri };
+  return {
+    result: {
+      ...result,
+      typeId: known ? result.typeId : 'other',
+      /*
+       * Shaped here, at the edge, so no screen ever sees a raw transcription —
+       * and so an older service that sends no fields at all becomes an empty
+       * list rather than undefined.
+       */
+      fields: tidyFields(result.fields),
+    },
+    fileUri: uri,
+  };
 }

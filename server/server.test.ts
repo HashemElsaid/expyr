@@ -203,6 +203,26 @@ describe('what guidance will be asked about', () => {
     const response = await post('/guidance', good);
     assert.equal(response.status, 401);
   });
+
+  /*
+   * The route must answer immediately for a jurisdiction it has never seen,
+   * rather than holding the connection open for the minute the research takes.
+   * A request that sends no bytes for that long is one a proxy closes — Render's
+   * edge returned 502 at twenty-one seconds, and the answer was produced,
+   * cached, and thrown away down a connection nobody was listening on.
+   *
+   * There is no API key in this suite, so the research fails the moment it
+   * starts. That is exactly the point: the answer below must arrive anyway.
+   */
+  it('says "working on it" at once rather than holding the connection', async () => {
+    const started = Date.now();
+    const response = await post('/guidance', { ...good, region: 'Fujairah' }, authed);
+    const took = Date.now() - started;
+
+    assert.equal(response.status, 202);
+    assert.equal(((await response.json()) as { status: string }).status, 'working');
+    assert.ok(took < 5000, `answered in ${took}ms; it must not wait on the research`);
+  });
 });
 
 describe('the ceilings', () => {

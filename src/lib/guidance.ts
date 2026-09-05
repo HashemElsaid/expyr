@@ -19,7 +19,25 @@ import { postJson } from '@/lib/http';
  */
 
 const FOLDER = 'guidance';
-const TIMEOUT_MS = 90_000;
+
+/**
+ * One ask. Short, because an ask is now a cache lookup or a "working on it" —
+ * never the research itself.
+ */
+const ASK_TIMEOUT_MS = 20_000;
+
+/**
+ * How long to keep asking before giving up on a jurisdiction nobody has looked
+ * up yet. Researching one takes about fifty seconds; this leaves room for a
+ * cold host in front of it without leaving somebody watching a spinner into a
+ * second minute.
+ */
+const PATIENCE_MS = 100_000;
+
+/** Between asks. Long enough not to hammer, short enough to feel prompt. */
+const POLL_EVERY_MS = 4_000;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * How long the phone trusts its copy. Shorter than the service's ninety days,
@@ -135,6 +153,67 @@ export function guidanceIsFresh(query: GuidanceQuery, now = Date.now()): boolean
  */
 const inFlight = new Map<string, Promise<Guidance>>();
 
+/** The service is still researching this jurisdiction and has not finished. */
+type Working = { status: 'working' };
+
+function isWorking(body: Guidance | Working): body is Working {
+  return (body as Working).status === 'working';
+}
+
+/**
+ * Asks until there is an answer.
+ *
+ * The service answers a jurisdiction it has never seen with "working on it"
+ * rather than holding the connection open for the minute it takes to research
+ * one. It has to: a request that sends no bytes for fifty seconds is a request
+ * proxies close, and Render's edge did exactly that — the answer was produced,
+ * cached, and thrown away down a connection nobody was listening on.
+ *
+ * So this asks again. Each ask is a cache lookup and costs the service nothing,
+ * the research carries on regardless of whether anybody is still waiting, and a
+ * phone that gives up entirely has still warmed the cache for its own retry.
+ */
+async function ask(query: GuidanceQuery): Promise<Guidance> {
+  const body = {
+    typeId: query.typeId,
+    label: query.label,
+    country: query.country,
+    countryName: query.countryName,
+    region: query.region,
+  };
+
+  const messages = {
+    rateLimited: 'Expyr has looked up a lot of these recently. Try again shortly.',
+    refused: 'Expyr could not look that up just now.',
+    timedOut: 'Looking that up took too long. Check your connection and try again.',
+    unreachable: 'Could not reach Expyr to look that up. Check your connection.',
+  };
+
+  const until = Date.now() + PATIENCE_MS;
+
+  for (;;) {
+    const answer = await postJson<Guidance | Working>('/guidance', body, {
+      timeoutMs: ASK_TIMEOUT_MS,
+      messages,
+    });
+
+    if (!isWorking(answer)) return answer;
+
+    if (Date.now() >= until) {
+      /*
+       * Not a failure so much as a long queue. The research is still running
+       * and will be cached when it lands, so saying "try again" is honest —
+       * the next attempt is usually instant.
+       */
+      throw new Error(
+        'Expyr is still looking that one up. Nobody has asked about it before. Try again in a minute and it should be there.'
+      );
+    }
+
+    await wait(POLL_EVERY_MS);
+  }
+}
+
 /**
  * The guidance for this document type here, from the phone if it has a fresh
  * copy and from the service otherwise.
@@ -151,26 +230,7 @@ export async function fetchGuidance(query: GuidanceQuery): Promise<Guidance> {
   const running = inFlight.get(key);
   if (running) return running;
 
-  const work = postJson<Guidance>(
-    '/guidance',
-    {
-      typeId: query.typeId,
-      label: query.label,
-      country: query.country,
-      countryName: query.countryName,
-      region: query.region,
-    },
-    {
-      timeoutMs: TIMEOUT_MS,
-      messages: {
-        rateLimited: 'Expyr has looked up a lot of these recently. Try again shortly.',
-        refused: 'Expyr could not look that up just now.',
-        timedOut:
-          'Looking that up took too long. It is usually quicker the second time, once someone else has asked.',
-        unreachable: 'Could not reach Expyr to look that up. Check your connection.',
-      },
-    }
-  )
+  const work = ask(query)
     .then((value) => {
       write(key, value);
       return value;

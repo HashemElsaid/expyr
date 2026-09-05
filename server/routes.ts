@@ -2,7 +2,7 @@ import { fetchBrandIcon, isDomain } from './brand-icon.ts';
 import { askDocument, briefDocument, readDocument } from './comprehend.ts';
 import { invalid, ServiceError, unavailable } from './errors.ts';
 import { extractFromImage } from './extract.ts';
-import { FileGuidanceStore, LayeredGuidanceStore } from './guidance-cache.ts';
+import { FileGuidanceStore, isFresh, LayeredGuidanceStore } from './guidance-cache.ts';
 import { generateGuidance, type Guidance } from './guidance.ts';
 import { canIssueTokens, issueInstallToken } from './install-token.ts';
 import type { LogFields } from './log.ts';
@@ -42,10 +42,12 @@ export type RequestContext = {
 
 /** What a handler gives back: parsed JSON, or bytes with a content type. */
 export type Result =
-  | { kind: 'json'; body: unknown }
+  | { kind: 'json'; body: unknown; status?: number }
   | { kind: 'bytes'; body: Buffer; type: string; cacheSeconds: number };
 
 const json = (body: unknown): Result => ({ kind: 'json', body });
+/** 202: started, not finished. The caller asks again in a moment. */
+const working = (body: unknown): Result => ({ kind: 'json', body, status: 202 });
 
 export type Route = {
   method: 'GET' | 'POST';
@@ -249,26 +251,50 @@ export const ROUTES: Record<string, Route> = {
     handle: async (ctx) => {
       const request = parse(GuidanceRequest, ctx.body);
       const key = guidanceKey(request);
-
       const existing = await guidanceCache.get(key);
+
+      // The key is a jurisdiction, not a person. Safe to log, and useful.
+      if (isFresh(existing)) {
+        ctx.note({
+          note: `key=${key} cached=true standing=${existing.value.standing}`,
+          n_sources: existing.value.sources.length,
+        });
+        return json(existing.value);
+      }
+
       if (!existing && !mayGenerate()) {
         throw unavailable(
           'Expyr has not looked this one up yet, and cannot right now. Please try again tomorrow.'
         );
       }
 
-      const { value, cached } = await guidanceCache.fetch(key, async () => {
-        guidanceGenerated += 1;
-        return generateGuidance(request);
-      });
+      /*
+       * Started, not awaited — and this is the whole shape of the route.
+       *
+       * Researching a jurisdiction takes the better part of a minute, during
+       * which a synchronous handler sends no bytes at all. Proxies close
+       * connections that go quiet: Render's edge returned a 502 at twenty-one
+       * seconds, so the answer was produced, cached, and thrown away with the
+       * connection nobody was listening on any more.
+       *
+       * So the request says "working on it" straight away and the caller asks
+       * again in a moment. The generation carries on regardless of who is still
+       * listening, which means the second ask is served from cache in a
+       * millisecond — and a phone that gave up, backgrounded, or lost signal
+       * costs nothing extra when it comes back.
+       */
+      void guidanceCache
+        .fetch(key, async () => {
+          guidanceGenerated += 1;
+          return generateGuidance(request);
+        })
+        .catch(() => {
+          // Reported to the next caller as a failure to produce, not swallowed
+          // here into a promise nobody is holding.
+        });
 
-      // The key is a jurisdiction, not a person. Safe to log, and useful.
-      ctx.note({
-        note: `key=${key} cached=${cached} standing=${value.standing}`,
-        n_sources: value.sources.length,
-        n_steps: value.steps.length,
-      });
-      return json(value);
+      ctx.note({ note: `key=${key} cached=false started` });
+      return working({ status: 'working' });
     },
   },
 

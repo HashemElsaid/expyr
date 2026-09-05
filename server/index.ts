@@ -189,8 +189,9 @@ const server = createServer(async (req, res) => {
     const ctx: RequestContext = { body, query: url.searchParams, note };
 
     const result = await route.handle(ctx);
-    send(res, 200, result, requestId);
-    log('info', { ...fields, status: 200, ms: Date.now() - started });
+    const status = result.kind === 'json' ? (result.status ?? 200) : 200;
+    send(res, status, result, requestId);
+    log('info', { ...fields, status, ms: Date.now() - started });
   } catch (raw) {
     const error = toServiceError(raw);
     sendError(res, error, requestId);

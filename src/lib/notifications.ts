@@ -1,10 +1,25 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { hasGuidance, type Country } from '@/data/countries';
-import { getDocumentType, labelFor } from '@/data/document-types';
-import { daysUntil, dueIn, longDate } from '@/lib/dates';
+import type { Country } from '@/data/countries';
+import {
+  planReminders,
+  REMINDER_CATEGORY,
+  REMINDER_TIME,
+  SUBSCRIPTION_CATEGORY,
+  type PlannedReminder,
+} from '@/lib/reminder-plan';
 import { TrackedDocument } from '@/types';
+
+/**
+ * Booking reminders with iOS.
+ *
+ * Everything about *which* reminders to book lives in `reminder-plan.ts`, which
+ * is pure and tested. This file is the half that cannot be: it talks to
+ * expo-notifications, and its job is to make what iOS holds match the plan
+ * using as few calls as it can get away with.
+ */
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -15,18 +30,59 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/** Actions offered on the reminder itself, so a nudge can be dealt with in place. */
-export const REMINDER_CATEGORY = 'expyr.reminder';
-/**
- * Subscriptions get their own pair. "Already done" is a sensible thing to say
- * about a visa, which waits for you to renew it, and a meaningless thing to say
- * about Netflix, which renews itself whatever you do. The useful answer to a
- * charge you did not want is that you have cancelled it.
+/*
+ * Re-exported so callers have one place to import notification vocabulary from,
+ * even though the categories themselves are decided by the planner.
  */
-export const SUBSCRIPTION_CATEGORY = 'expyr.subscription';
+export { REMINDER_CATEGORY, REMINDER_TIME, SUBSCRIPTION_CATEGORY };
+
 export const ACTION_SNOOZE = 'expyr.snooze';
 export const ACTION_RENEWED = 'expyr.renewed';
 export const ACTION_CANCELLED = 'expyr.cancelled';
+
+/**
+ * What Expyr currently has booked, and the plan it was booked from.
+ *
+ * Kept here rather than on each document because a reminder is no longer a
+ * property of one item — the plan is chosen across all of them at once, so the
+ * bookings belong to the collection.
+ */
+const BOOKED_KEY = 'expyr.reminders.v1';
+
+type Booked = { fingerprint: string; ids: string[] };
+
+/**
+ * True when this phone has never booked reminders under the plan.
+ *
+ * Versions before the planner kept a notification id on each document, and this
+ * file has no way to learn what those were. Booking a plan on top of them would
+ * leave every reminder duplicated until the old copies fired. So the first pass
+ * after an upgrade clears the queue outright and starts from the plan — which
+ * is safe, because the plan is derived from the documents and describes
+ * everything that ought to be booked anyway.
+ */
+async function neverPlanned(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(BOOKED_KEY)) === null;
+  } catch {
+    return false;
+  }
+}
+
+async function readBooked(): Promise<Booked> {
+  try {
+    const raw = await AsyncStorage.getItem(BOOKED_KEY);
+    if (!raw) return { fingerprint: '', ids: [] };
+    const parsed = JSON.parse(raw) as Partial<Booked>;
+    return {
+      fingerprint: typeof parsed.fingerprint === 'string' ? parsed.fingerprint : '',
+      ids: Array.isArray(parsed.ids) ? parsed.ids.filter((id) => typeof id === 'string') : [],
+    };
+  } catch {
+    // An unreadable record means rebooking from scratch, which is always safe.
+    return { fingerprint: '', ids: [] };
+  }
+}
 
 /**
  * Registered once at startup. Two actions is the practical maximum before a
@@ -45,29 +101,6 @@ export async function registerNotificationActions() {
   ]).catch(() => {});
 }
 
-/** A one-off nudge a week from now, used when someone snoozes a reminder. */
-export async function snoozeReminder(doc: TrackedDocument, days = 7): Promise<string | null> {
-  if (Platform.OS === 'web') return null;
-  const fireDate = new Date();
-  fireDate.setDate(fireDate.getDate() + days);
-
-  try {
-    return await Notifications.scheduleNotificationAsync({
-      content: {
-        // Counted from the day it will arrive, not from today.
-        title: `${doc.title} expires ${dueIn(daysUntil(doc.expiryDate) - days)}`,
-        subtitle: doc.owner ?? '',
-        body: longDate(doc.expiryDate),
-        data: { documentId: doc.id },
-        categoryIdentifier: REMINDER_CATEGORY,
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
-    });
-  } catch {
-    return null;
-  }
-}
-
 export async function getNotificationPermission(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
   const settings = await Notifications.getPermissionsAsync();
@@ -82,76 +115,129 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return request.granted;
 }
 
-/**
- * When every reminder arrives, for everybody.
- *
- * Nine in the morning is the hour this particular message can be acted on: the
- * typing centres and service centres are open, the insurer answers the phone,
- * and it is early enough that the day has not buried it yet. Earlier competes
- * with the alarm and the commute; the evening arrives after everything that
- * could be done about it has closed.
- *
- * If this ever becomes the user's to choose, it becomes a stored setting again
- * and this constant is the default.
- */
-export const REMINDER_TIME = { hour: 9, minute: 0 } as const;
-
-/**
- * Schedules one reminder per lead day at REMINDER_TIME, skipping any that
- * would already be in the past. Returns the scheduled notification ids.
- */
-export async function scheduleReminders(
-  doc: TrackedDocument,
-  country: Country | null = null
-): Promise<string[]> {
-  if (Platform.OS === 'web') return [];
-  const granted = await ensureNotificationPermission();
-  if (!granted) return [];
-
-  const type = getDocumentType(doc.typeId);
-  const typeLabel = labelFor(type, country);
-  /*
-   * What being late costs, but only when it is a figure. Several of these read
-   * as a paragraph — "no fine, but an expired passport invalidates travel and
-   * can complicate visa renewal" — which belongs on the document's screen and
-   * not on a lock screen at nine in the morning.
-   */
-  const fee = hasGuidance(country) ? type.guide.lateFee : '';
-  const lateFee = fee.startsWith('AED') ? fee : '';
-  const daysLeft = daysUntil(doc.expiryDate);
-  const ids: string[] = [];
-
-  for (const lead of doc.leadDays) {
-    if (daysLeft < lead) continue;
-    const fireDate = new Date(`${doc.expiryDate}T00:00:00`);
-    fireDate.setHours(REMINDER_TIME.hour, REMINDER_TIME.minute, 0, 0);
-    fireDate.setDate(fireDate.getDate() - lead);
-    if (fireDate.getTime() <= Date.now()) continue;
-
-    const id = await Notifications.scheduleNotificationAsync({
+async function book(reminder: PlannedReminder): Promise<string | null> {
+  try {
+    return await Notifications.scheduleNotificationAsync({
       content: {
-        /*
-         * Three lines, laid out the way iOS lays them out: what and when, then
-         * whose it is, then the fact. The app's name and icon are already in
-         * the header, so nothing here says Expyr and nothing asks to be opened
-         * — tapping it is what opening it means.
-         */
-        title: `${doc.title} expires ${dueIn(lead)}`,
-        subtitle: [doc.owner, typeLabel === doc.title.trim() ? null : typeLabel]
-          .filter(Boolean)
-          .join(' · '),
-        body: lateFee
-          ? `${longDate(doc.expiryDate)}. Late: ${lateFee}.`
-          : longDate(doc.expiryDate),
-        data: { documentId: doc.id },
-        // A subscription is offered the answer that applies to a subscription.
-        categoryIdentifier: doc.renewsEvery ? SUBSCRIPTION_CATEGORY : REMINDER_CATEGORY,
+        title: reminder.title,
+        subtitle: reminder.subtitle,
+        body: reminder.body,
+        data: { documentId: reminder.documentId },
+        categoryIdentifier: reminder.categoryIdentifier,
       },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireDate },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: reminder.fireAt,
+      },
     });
-    ids.push(id);
+  } catch {
+    /*
+     * One reminder that would not book must not cost the other fifty-nine.
+     * The count returned to the caller is of what actually landed, so Settings
+     * shows the truth rather than the intention.
+     */
+    return null;
   }
-  return ids;
+}
+
+export type ReminderStatus = {
+  /** How many are booked with iOS now. */
+  booked: number;
+  /** How many the documents between them asked for. */
+  wanted: number;
+  /** True when nothing needed doing, so no calls were made. */
+  unchanged: boolean;
+};
+
+/**
+ * Makes what iOS holds match the plan for these documents.
+ *
+ * Called after anything that could change the plan — an edit, an import, a
+ * snooze, or simply the app opening on a later day. The fingerprint check is
+ * what makes that affordable: rebooking sixty reminders is a hundred and twenty
+ * round trips to iOS, and on an ordinary launch none of them are needed.
+ */
+export async function applyReminderPlan(
+  documents: TrackedDocument[],
+  country: Country | null
+): Promise<ReminderStatus> {
+  if (Platform.OS === 'web') return { booked: 0, wanted: 0, unchanged: true };
+
+  const plan = planReminders(documents, country);
+  const previous = await readBooked();
+  const upgrading = await neverPlanned();
+  if (upgrading) {
+    await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+  }
+
+  /*
+   * Permission can be taken away in iOS Settings at any time. Asking here would
+   * put a system prompt in front of somebody who was only opening the app, so
+   * this checks rather than asks — the prompt belongs to the screens that offer
+   * reminders, and there is one on the Timeline and one in Settings.
+   */
+  if (!(await getNotificationPermission())) {
+    if (previous.ids.length > 0) await cancelBooked(previous.ids);
+    await AsyncStorage.setItem(
+      BOOKED_KEY,
+      JSON.stringify({ fingerprint: '', ids: [] } satisfies Booked)
+    ).catch(() => {});
+    return { booked: 0, wanted: plan.wanted, unchanged: false };
+  }
+
+  if (!upgrading && previous.fingerprint === plan.fingerprint && previous.fingerprint !== '') {
+    /*
+     * The plan has not moved. Trust it only as far as iOS agrees: a restore
+     * from a backup, or a reminder that has since fired, leaves the record
+     * describing bookings that are no longer there.
+     */
+    const live = await countScheduled();
+    if (live >= previous.ids.length) {
+      return { booked: previous.ids.length, wanted: plan.wanted, unchanged: true };
+    }
+  }
+
+  await cancelBooked(previous.ids);
+
+  const ids: string[] = [];
+  for (const reminder of plan.book) {
+    const id = await book(reminder);
+    if (id) ids.push(id);
+  }
+
+  await AsyncStorage.setItem(
+    BOOKED_KEY,
+    JSON.stringify({ fingerprint: plan.fingerprint, ids } satisfies Booked)
+  ).catch(() => {});
+
+  return { booked: ids.length, wanted: plan.wanted, unchanged: false };
+}
+
+async function cancelBooked(ids: string[]) {
+  await Promise.all(
+    ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => {}))
+  );
+}
+
+/**
+ * Cancels everything Expyr has booked and forgets the record. Used when the
+ * whole collection goes — deleting everything must not leave reminders behind
+ * for documents that no longer exist.
+ */
+export async function cancelAllReminders() {
+  if (Platform.OS === 'web') return;
+  const { ids } = await readBooked();
+  await cancelBooked(ids);
+  /*
+   * Belt and braces. Bookings made by a version of the app that kept ids on
+   * each document are not in the record, and would otherwise fire for a
+   * document that has been deleted.
+   */
+  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+  await AsyncStorage.setItem(
+    BOOKED_KEY,
+    JSON.stringify({ fingerprint: '', ids: [] } satisfies Booked)
+  ).catch(() => {});
 }
 
 /**
@@ -206,11 +292,4 @@ export async function countScheduled(): Promise<number> {
   } catch {
     return 0;
   }
-}
-
-export async function cancelReminders(notificationIds: string[]) {
-  if (Platform.OS === 'web') return;
-  await Promise.all(
-    notificationIds.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => {}))
-  );
 }

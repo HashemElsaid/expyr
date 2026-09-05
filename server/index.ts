@@ -1,34 +1,44 @@
-import { createServer, type IncomingMessage } from 'node:http';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 
-import { askDocument, briefDocument, readDocument } from './comprehend.ts';
-import { readSubscriptions } from './subscriptions.ts';
-import { fetchBrandIcon, isDomain } from './brand-icon.ts';
-import { extractFromImage, type Category, type SupportedMediaType } from './extract.ts';
-import { BUCKETS, checkRateLimit, withinDailyBudget, withinInstallBudget } from './rate-limit.ts';
-import { canIssueTokens, issueInstallToken, verifyInstallToken } from './install-token.ts';
+import { describe, rateLimited, ServiceError, toServiceError, tooLarge, unauthorised } from './errors.ts';
+import { verifyInstallToken } from './install-token.ts';
+import { log, newRequestId, type LogFields } from './log.ts';
+import { BUCKETS, limiter } from './rate-limit.ts';
+import { ROUTES, type RequestContext, type Result } from './routes.ts';
+
+/**
+ * The reading service.
+ *
+ * It exists for one reason: the Anthropic API key must never ship inside the
+ * phone app, where anyone could extract it and spend the credits. Everything
+ * else here follows from that — the routes are thin, nothing is stored, and the
+ * layers below are all about making sure a leaked app token costs a day's
+ * quota rather than a bill.
+ *
+ * This file is now only the wiring: read the body, work out who is asking,
+ * apply the ceilings, dispatch, and answer. What each route does lives in
+ * routes.ts; what it will accept lives in schemas.ts.
+ */
 
 const PORT = Number(process.env.PORT ?? 8787);
+
 /**
- * Shared secret the app sends. It ships inside the app bundle, so a determined
- * person can extract it — it raises the bar, and the rate limiter does the rest.
- */
-/*
+ * The shared secret the app sends. It ships inside the bundle, so a determined
+ * person can extract it — it raises the bar, and buys exactly one thing: the
+ * right to ask for an install credential, which is what everything else is
+ * counted against.
+ *
  * The old name is still read because it is what is set in Render's dashboard
- * today. Dropping it here would not fail loudly — APP_TOKEN would simply be
+ * today. Dropping it would not fail loudly — the constant would simply be
  * undefined and the check below would wave every request through.
  */
 const APP_TOKEN = process.env.EXPYR_APP_TOKEN ?? process.env.RENEWLY_APP_TOKEN;
+
 /**
  * Base64 inflates by about a third, and PDFs are far larger than photos.
  * Claude accepts a 32 MB request, so this leaves room while staying below it.
  */
 const MAX_BODY_BYTES = 24 * 1024 * 1024;
-
-type ExtractRequest = {
-  imageBase64?: unknown;
-  mediaType?: unknown;
-  categories?: unknown;
-};
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -37,7 +47,7 @@ function readBody(req: IncomingMessage): Promise<string> {
     req.on('data', (chunk: Buffer) => {
       size += chunk.length;
       if (size > MAX_BODY_BYTES) {
-        reject(new Error('Image too large'));
+        reject(tooLarge('That file is too large to read. Try a smaller one.'));
         req.destroy();
         return;
       }
@@ -48,347 +58,156 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
-const SUPPORTED_MEDIA_TYPES: SupportedMediaType[] = [
-  'image/jpeg',
-  'image/png',
-  'application/pdf',
-];
-
-function parseRequest(raw: string): {
-  imageBase64: string;
-  mediaType: SupportedMediaType;
-  categories: Category[];
-} {
-  const body = JSON.parse(raw) as ExtractRequest;
-
-  if (typeof body.imageBase64 !== 'string' || body.imageBase64.length === 0) {
-    throw new Error('imageBase64 is required');
-  }
-  const requested = body.mediaType as SupportedMediaType;
-  const mediaType = SUPPORTED_MEDIA_TYPES.includes(requested) ? requested : 'image/jpeg';
-
-  if (!Array.isArray(body.categories) || body.categories.length === 0) {
-    throw new Error('categories is required');
-  }
-  const categories = body.categories.map((entry) => {
-    const c = entry as Category;
-    if (typeof c?.id !== 'string' || typeof c?.label !== 'string') {
-      throw new Error('each category needs an id and a label');
-    }
-    return { id: c.id, label: c.label, hint: typeof c.hint === 'string' ? c.hint : undefined };
-  });
-
-  return { imageBase64: body.imageBase64, mediaType, categories };
+/** Behind a proxy the real client address arrives in x-forwarded-for. */
+function addressOf(req: IncomingMessage): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  const first = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]?.trim();
+  return first ?? req.socket.remoteAddress ?? 'unknown';
 }
 
-/**
- * A transcript is long, but not unbounded. This is generous for a multi-page
- * tenancy contract and still refuses anything that looks like a paste attack.
- */
-const MAX_TEXT_CHARS = 400_000;
-const MAX_QUESTION_CHARS = 2_000;
+function send(res: ServerResponse, status: number, result: Result, requestId: string) {
+  const headers: Record<string, string> = { 'x-request-id': requestId };
 
-function parseReadRequest(raw: string): { fileBase64: string; mediaType: SupportedMediaType } {
-  const body = JSON.parse(raw) as { fileBase64?: unknown; mediaType?: unknown };
-  if (typeof body.fileBase64 !== 'string' || body.fileBase64.length === 0) {
-    throw new Error('fileBase64 is required');
+  if (result.kind === 'bytes') {
+    res.writeHead(status, {
+      ...headers,
+      'Content-Type': result.type,
+      'Content-Length': String(result.body.length),
+      'Cache-Control': `public, max-age=${result.cacheSeconds}`,
+    });
+    res.end(result.body);
+    return;
   }
-  const requested = body.mediaType as SupportedMediaType;
-  return {
-    fileBase64: body.fileBase64,
-    mediaType: SUPPORTED_MEDIA_TYPES.includes(requested) ? requested : 'image/jpeg',
+
+  res.writeHead(status, { ...headers, 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(result.body));
+}
+
+function sendError(res: ServerResponse, error: ServiceError, requestId: string) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-request-id': requestId,
   };
-}
-
-function parseText(raw: string): string {
-  const body = JSON.parse(raw) as { text?: unknown };
-  if (typeof body.text !== 'string' || body.text.trim().length === 0) {
-    throw new Error('text is required');
+  if (error.retryAfterSeconds !== undefined) {
+    headers['Retry-After'] = String(error.retryAfterSeconds);
   }
-  if (body.text.length > MAX_TEXT_CHARS) throw new Error('That document is too long to read');
-  return body.text;
-}
-
-/** At most this many documents in one question, so a large file cannot stall. */
-const MAX_ASK_DOCUMENTS = 12;
-/*
- * A question carries every document at once, so its ceiling is lower than the
- * one for reading a single file. Roughly forty thousand tokens: several long
- * contracts, and nowhere near enough room to use this as a general chatbot.
- */
-const MAX_ASK_CHARS = 150_000;
-
-/** One line per tracked item; enough for a household, capped so it stays small. */
-const MAX_RECORDS = 60;
-const MAX_RECORD_CHARS = 300;
-
-function parseAskRequest(raw: string): {
-  documents: { title: string; text: string }[];
-  records: string[];
-  question: string;
-  history: { question: string; answer: string }[];
-} {
-  const body = JSON.parse(raw) as {
-    text?: unknown;
-    documents?: unknown;
-    records?: unknown;
-    question?: unknown;
-    history?: unknown;
-  };
-
-  const records = Array.isArray(body.records)
-    ? body.records
-        .filter((r): r is string => typeof r === 'string' && r.trim().length > 0)
-        .slice(0, MAX_RECORDS)
-        .map((r) => r.slice(0, MAX_RECORD_CHARS))
-    : [];
-
+  res.writeHead(error.status, headers);
   /*
-   * One document arrives as `text`, a whole file of them as `documents`. Both
-   * shapes stay supported: a phone that has not been updated still asks the
-   * only way it knows how.
+   * `error` is the field the app has always read, so it stays. `code` is the
+   * new part: something to branch on that is not the text of a sentence.
    */
-  let documents: { title: string; text: string }[];
-  if (Array.isArray(body.documents)) {
-    documents = body.documents
-      .filter(
-        (d): d is { title: string; text: string } =>
-          typeof (d as { title?: unknown })?.title === 'string' &&
-          typeof (d as { text?: unknown })?.text === 'string' &&
-          (d as { text: string }).text.trim().length > 0
-      )
-      .slice(0, MAX_ASK_DOCUMENTS);
-    // A question about dates needs no transcript, only Expyr's own file.
-    if (documents.length === 0 && records.length === 0) {
-      throw new Error('documents is required');
-    }
-    const total = documents.reduce((sum, d) => sum + d.text.length, 0);
-    if (total > MAX_ASK_CHARS) throw new Error('That is more text than we can read at once');
-  } else if (records.length > 0 && body.text === undefined) {
-    documents = [];
-  } else {
-    documents = [{ title: '', text: parseText(raw) }];
-  }
-
-  if (typeof body.question !== 'string' || body.question.trim().length === 0) {
-    throw new Error('question is required');
-  }
-  if (body.question.length > MAX_QUESTION_CHARS) throw new Error('That question is too long');
-
-  // Only the last few turns travel, so a long conversation cannot grow the
-  // request without limit.
-  const history = Array.isArray(body.history)
-    ? body.history
-        .filter(
-          (t): t is { question: string; answer: string } =>
-            typeof (t as { question?: unknown })?.question === 'string' &&
-            typeof (t as { answer?: unknown })?.answer === 'string'
-        )
-        .slice(-6)
-    : [];
-
-  return { documents, records, question: body.question.trim(), history };
+  res.end(JSON.stringify({ error: error.message, code: error.code, request: requestId }));
 }
 
 const server = createServer(async (req, res) => {
+  const requestId = newRequestId();
+  const started = Date.now();
+
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-expyr-token, x-renewly-token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-expyr-token, x-renewly-token, x-expyr-install');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Expose-Headers', 'x-request-id, Retry-After');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204).end();
     return;
   }
 
-  if (req.method === 'GET' && req.url === '/health') {
-    const configured = Boolean(process.env.ANTHROPIC_API_KEY);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, apiKeyConfigured: configured }));
-    return;
-  }
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const path = url.pathname;
+  const route = ROUTES[path];
 
-  /*
-   * The one GET that does real work. Fetched on the phone's behalf so the icon
-   * providers never see the person asking, and cached hard because a service's
-   * logo does not change on a Tuesday.
-   */
-  if (req.method === 'GET' && (req.url ?? '').startsWith('/icon')) {
-    const domain = new URL(req.url ?? '', 'http://localhost').searchParams.get('domain');
-    if (!isDomain(domain)) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'domain is required' }));
-      return;
-    }
-    const icon = await fetchBrandIcon(domain);
-    if (!icon) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'No icon found' }));
-      return;
-    }
-    res.writeHead(200, {
-      'Content-Type': icon.type,
-      'Cache-Control': 'public, max-age=2592000',
-      'Content-Length': String(icon.body.length),
-    });
-    res.end(icon.body);
-    return;
-  }
-
-  const route = (req.url ?? '').split('?')[0];
-  const ROUTES = ['/extract', '/read', '/brief', '/ask', '/subscriptions', '/register'];
-  if (req.method !== 'POST' || !ROUTES.includes(route)) {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not found' }));
-    return;
-  }
-
-  // Both header names, so a phone running a cached bundle is not locked out.
-  const sent = req.headers['x-expyr-token'] ?? req.headers['x-renewly-token'];
-  if (APP_TOKEN && sent !== APP_TOKEN) {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not authorised.' }));
-    return;
-  }
-
-  // Behind a proxy the real client address arrives in x-forwarded-for.
-  const forwarded = req.headers['x-forwarded-for'];
-  const address =
-    (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]?.trim()) ??
-    req.socket.remoteAddress ??
-    'unknown';
-
-  /*
-   * Every limit is counted against the install when there is one, and against
-   * the address when there is not. Older builds have no install token and keep
-   * working on the address alone, which is exactly the weaker footing this is
-   * meant to move phones off.
-   */
-  const install = verifyInstallToken(req.headers['x-expyr-install']);
-  const clientKey = install ? `install:${install.id}` : `ip:${address}`;
-
-  const limit = checkRateLimit(clientKey, route);
-  if (!limit.allowed) {
-    const what = BUCKETS[route]?.label ?? 'requests';
-    res.writeHead(429, {
-      'Content-Type': 'application/json',
-      'Retry-After': String(limit.retryAfterSeconds),
-    });
-    res.end(JSON.stringify({ error: `Too many ${what} in a short time. Try again shortly.` }));
-    return;
-  }
-
-  /*
-   * The day's ceiling for the whole service. Addresses are free, so a stolen
-   * token driven from many of them would pass the per-address limits above;
-   * this is the line that cannot be walked around, and crossing it is worth
-   * shouting about in the logs because it should never happen in normal use.
-   */
-  /*
-   * Handing out a credential costs nothing but the signature, so it answers
-   * here, before the daily model budget is touched.
-   */
-  if (route === '/register') {
-    if (!canIssueTokens) {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Registration is not configured.' }));
-      return;
-    }
-    console.log('register → issued a token');
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ token: issueInstallToken() }));
-    return;
-  }
-
-  if (install) {
-    const perInstall = withinInstallBudget(install.id, route);
-    if (!perInstall.ok) {
-      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '3600' });
-      res.end(
-        JSON.stringify({
-          error: `That is as much as Expyr can do today. It starts again tomorrow.`,
-        })
-      );
-      return;
-    }
-  }
-
-  const budget = withinDailyBudget();
-  if (!budget.ok) {
-    console.error(`DAILY BUDGET SPENT: ${budget.used}/${budget.max} requests today`);
-    res.writeHead(503, { 'Content-Type': 'application/json', 'Retry-After': '3600' });
-    res.end(
-      JSON.stringify({ error: 'Expyr is unusually busy right now. Please try again later.' })
-    );
-    return;
-  }
+  /** Fields this request wants in its one log line. */
+  const fields: LogFields = { request: requestId, route: path };
+  const note = (extra: Partial<LogFields>) => Object.assign(fields, extra);
 
   try {
-    // Deliberately never logged — these are people's ID documents and contracts.
-    const raw = await readBody(req);
-    const started = Date.now();
-
-    if (route === '/extract') {
-      const { imageBase64, mediaType, categories } = parseRequest(raw);
-      const result = await extractFromImage({ imageBase64, mediaType, categories });
-      console.log(`extract → ${result.confidence} confidence in ${Date.now() - started}ms`);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
-      return;
+    if (!route || route.method !== req.method) {
+      throw new ServiceError('not_found', 'Not found');
     }
 
-    if (route === '/read') {
-      const { fileBase64, mediaType } = parseReadRequest(raw);
-      const text = await readDocument({ fileBase64, mediaType });
-      console.log(`read → ${text.length} chars in ${Date.now() - started}ms`);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ text }));
-      return;
+    if (route.auth && APP_TOKEN) {
+      // Both header names, so a phone running a cached bundle is not locked out.
+      const sent = req.headers['x-expyr-token'] ?? req.headers['x-renewly-token'];
+      if (sent !== APP_TOKEN) throw unauthorised();
     }
 
-    if (route === '/subscriptions') {
-      const { fileBase64, mediaType } = parseReadRequest(raw);
-      if (mediaType === 'application/pdf') throw new Error('Send a screenshot, not a PDF');
-      const today = new Date().toISOString().slice(0, 10);
-      const found = await readSubscriptions({ imageBase64: fileBase64, mediaType, today });
-      // The names and prices are the user's business; only the count is logged.
-      console.log(
-        `subscriptions → ${found.subscriptions.length} found in ${Date.now() - started}ms`
-      );
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(found));
-      return;
-    }
-
-    if (route === '/brief') {
-      const text = parseText(raw);
-      const brief = await briefDocument(text);
-      console.log(
-        `brief → ${brief.points.length} points, ${brief.obligations.length} obligations in ${Date.now() - started}ms`
-      );
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(brief));
-      return;
-    }
-
-    const { documents, records, question, history } = parseAskRequest(raw);
-    const answer = await askDocument({ documents, records, question, history });
-    // The question and answer are the user's business, so only the shape is logged.
-    console.log(
-      `ask → ${documents.length} document(s), answered=${answer.answered} in ${Date.now() - started}ms`
-    );
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(answer));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Request failed';
     /*
-     * Truncated, and never the error object. Our own failures are short
-     * sentences; an upstream one could carry back a fragment of whatever was
-     * sent, and a log is the last place somebody's tenancy contract should
-     * turn up.
+     * Every limit is counted against the install when there is one, and against
+     * the address when there is not. Older builds have no install credential and
+     * keep working on the address alone, which is exactly the weaker footing
+     * this is meant to move phones off.
      */
-    console.error(`${route} failed: ${message.slice(0, 200)}`);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: message }));
+    const install = verifyInstallToken(req.headers['x-expyr-install']);
+    fields.install = install?.id ?? 'anonymous';
+    const client = install ? `install:${install.id}` : `ip:${addressOf(req)}`;
+
+    if (route.metered) {
+      const limit = limiter.check(client, path);
+      if (!limit.allowed) {
+        const what = BUCKETS[path]?.label ?? 'requests';
+        throw rateLimited(
+          `Too many ${what} in a short time. Try again shortly.`,
+          limit.retryAfterSeconds
+        );
+      }
+
+      if (install) {
+        const daily = limiter.installBudget(install.id, path);
+        if (!daily.ok) {
+          throw rateLimited('That is as much as Expyr can do today. It starts again tomorrow.', 3600);
+        }
+      }
+    }
+
+    /*
+     * The day's ceiling for everything that reaches the model. Addresses are
+     * free, so a stolen token driven from a hundred of them would pass every
+     * limit above; this is the line that cannot be walked around, and crossing
+     * it is worth shouting about because it should never happen in normal use.
+     */
+    if (route.costs) {
+      const budget = limiter.dailyBudget();
+      if (!budget.ok) {
+        log('error', {
+          request: requestId,
+          route: path,
+          code: 'budget_spent',
+          n_used: budget.used,
+          n_max: budget.max,
+        });
+        throw new ServiceError(
+          'unavailable',
+          'Expyr is unusually busy right now. Please try again later.',
+          3600
+        );
+      }
+    }
+
+    // Deliberately never logged — these are people's ID documents and contracts.
+    const body = req.method === 'POST' ? await readBody(req) : '';
+    const ctx: RequestContext = { body, query: url.searchParams, note };
+
+    const result = await route.handle(ctx);
+    send(res, 200, result, requestId);
+    log('info', { ...fields, status: 200, ms: Date.now() - started });
+  } catch (raw) {
+    const error = toServiceError(raw);
+    sendError(res, error, requestId);
+
+    /*
+     * The description is for us and never leaves the process. It is truncated
+     * and never the error object, because an upstream failure can carry back a
+     * fragment of whatever was sent, and a log is the last place somebody's
+     * tenancy contract should turn up.
+     */
+    log(error.code === 'internal' ? 'error' : 'warn', {
+      ...fields,
+      status: error.status,
+      ms: Date.now() - started,
+      code: error.code,
+      note: error.code === 'internal' ? describe(raw) : undefined,
+    });
   }
 });
 
@@ -396,5 +215,8 @@ server.listen(PORT, '0.0.0.0', () => {
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn('⚠  ANTHROPIC_API_KEY is not set — scanning will fail until you add it.');
   }
-  console.log(`Expyr extraction service listening on http://0.0.0.0:${PORT}`);
+  if (!process.env.EXPYR_INSTALL_SECRET) {
+    console.warn('⚠  EXPYR_INSTALL_SECRET is not set — every phone falls back to the shared token.');
+  }
+  console.log(`Expyr reading service listening on http://0.0.0.0:${PORT}`);
 });

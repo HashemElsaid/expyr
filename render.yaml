@@ -28,3 +28,18 @@ services:
       # approaches it; it exists so a leak cannot run up a bill overnight.
       - key: EXPYR_DAILY_BUDGET
         value: 2000
+      # Where generated renewal guidance is kept between requests. It is public
+      # information about a jurisdiction, not anything about a person, and one
+      # entry serves everybody who asks the same question — which is what makes
+      # a live web search per document type affordable.
+      #
+      # On the free plan there is no persistent disk, so a deploy or a restart
+      # starts the cache empty and the first person to ask each question pays
+      # for a search. Attach a disk mounted here and that stops being true.
+      - key: EXPYR_GUIDANCE_DIR
+        value: /var/data/guidance
+      # How many *new* jurisdictions may be researched in one day. Cached
+      # answers are free however often they are asked for, so this — not the
+      # request limits — is the ceiling on what this feature can cost.
+      - key: EXPYR_GUIDANCE_DAILY_NEW
+        value: 40

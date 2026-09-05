@@ -49,6 +49,25 @@ export type DocumentType = {
   guide: RenewalGuide;
 };
 
+/**
+ * What kind of thing a field holds, which decides how the app treats it.
+ *
+ * A number gets a copy button, because what people do with an Emirates ID
+ * number is paste it into a government form. Money is worth finding across
+ * every document at once. A date here is a fact, not a reminder — only the
+ * document's own expiry becomes one of those.
+ */
+export type FieldKind = 'name' | 'number' | 'date' | 'money' | 'place' | 'other';
+
+/** One thing a document says about itself, as the scan read it. */
+export type ExtractedField = {
+  /** How it reads on screen: "Issuing authority". */
+  label: string;
+  /** Exactly as printed. Never reformatted — a normalised number is a wrong one. */
+  value: string;
+  kind: FieldKind;
+};
+
 export type Attachment = {
   uri: string;
   type: 'image' | 'pdf';
@@ -91,6 +110,15 @@ export type TrackedDocument = {
   leadDays: number[];
   /** Set once dealt with — hidden from the main list, reminders cancelled. */
   archivedAt?: string;
+  /**
+   * An extra nudge the user asked for from a notification, as an ISO date.
+   *
+   * Stored rather than booked straight with iOS, because reminders are planned
+   * as a whole and a plan that rebooked everything would cancel a bare
+   * scheduled notification it knew nothing about. This is the one reminder
+   * somebody explicitly asked for, so it is the last that should vanish.
+   */
+  snoozedUntil?: string;
   /** Expiry dates this item has had before, oldest first. */
   history?: string[];
   /**
@@ -100,14 +128,24 @@ export type TrackedDocument = {
    */
   renewsEvery?: Recurrence;
   /**
+   * Everything else the document said about itself when it was scanned.
+   *
+   * Expyr was built around one date, which meant a scan gave a person nothing
+   * they could use until the day it mattered — sometimes years later. These are
+   * what make the scan worth something the moment it happens: the name as
+   * printed, the number to paste into a form, who issued it, what it costs.
+   *
+   * Absent on anything typed in by hand and on everything scanned before this
+   * existed, so every reader must cope with it being missing.
+   */
+  fields?: ExtractedField[];
+  /**
    * The service's website, for a subscription. Only ever used to show the
    * service's own icon instead of a generic one — Spotify's list should look
    * like Spotify, not like a row of identical tickets.
    */
   iconDomain?: string;
   visibility: Visibility;
-  /** Ids of scheduled local notifications, so they can be cancelled. */
-  notificationIds: string[];
   createdAt: string;
   /**
    * Last change made on this device. Nothing reads it yet; it is what decides
@@ -123,5 +161,5 @@ export type TrackedDocument = {
  */
 export type DocumentDraft = Omit<
   TrackedDocument,
-  'id' | 'notificationIds' | 'createdAt' | 'updatedAt' | 'visibility'
+  'id' | 'createdAt' | 'updatedAt' | 'visibility'
 > & { visibility?: Visibility };

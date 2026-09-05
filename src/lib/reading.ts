@@ -1,8 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
-import { forgetInstallToken, installToken } from '@/lib/install';
-import { serviceBase } from '@/lib/service';
+import { postJson } from '@/lib/http';
 import { Attachment, DocumentTypeId } from '@/types';
 
 /**
@@ -37,64 +36,22 @@ export type Answer = {
 
 export type Turn = { question: string; answer: Answer };
 
-async function post<T>(path: string, body: unknown): Promise<T> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    const token = process.env.EXPO_PUBLIC_SCAN_TOKEN;
-    // This phone's own credential, so the service can count what this phone
-    // does rather than what every copy of Expyr does together.
-    const install = await installToken();
-    const response = await fetch(`${serviceBase()}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'x-expyr-token': token } : {}),
-        ...(install ? { 'x-expyr-install': install } : {}),
-      },
-      signal: controller.signal,
-      body: JSON.stringify(body),
-    });
-
-    if (response.status === 429) {
-      throw new Error('You have asked a lot in a short time. Try again in a few minutes.');
-    }
-    if (response.status === 401) {
-      // A credential the service no longer accepts is dropped, so the next
-      // attempt registers again rather than failing forever.
-      await forgetInstallToken();
-      throw new Error('This copy of Expyr is not authorised.');
-    }
-    if (!response.ok) {
-      const detail = (await response.json().catch(() => null)) as { error?: string } | null;
-      const message = detail?.error ?? '';
-      /*
-       * The service's own validation errors are written for whoever is calling
-       * it, not for the person holding the phone. "text is required" tells them
-       * nothing they can act on, and it means the app and the service disagree
-       * about the request — which is a deployment, not a mistake they made.
-       */
-      const internal = /is required|too long|more text than/i.test(message);
-      throw new Error(
-        internal || !message
-          ? 'Expyr could not ask that just now. The reading service may need updating.'
-          : message
-      );
-    }
-    return (await response.json()) as T;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(
-        'That took too long to read. Long or multi-page documents are the usual cause. Try again on a stronger connection, or photograph the pages that matter.'
-      );
-    }
-    if (error instanceof TypeError) {
-      throw new Error('Could not reach the reading service. Check your connection.');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
+/**
+ * Every request this module makes, with the deadline and the words that suit
+ * reading a whole document. Transcribing a dense contract takes far longer
+ * than anything else the app asks for, and the phone's own network stack gives
+ * up on a single request sooner than we would like.
+ */
+function post<T>(path: string, body: unknown): Promise<T> {
+  return postJson<T>(path, body, {
+    timeoutMs: TIMEOUT_MS,
+    messages: {
+      unauthorised: 'This copy of Expyr is not authorised.',
+      refused: 'Expyr could not ask that just now. The reading service may need updating.',
+      timedOut:
+        'That took too long to read. Long or multi-page documents are the usual cause. Try again on a stronger connection, or photograph the pages that matter.',
+    },
+  });
 }
 
 /* --------------------------------------------------------------- storage -- */

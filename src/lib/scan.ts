@@ -5,9 +5,9 @@ import * as ImagePicker from 'expo-image-picker';
 import type { Country } from '@/data/countries';
 import { DOCUMENT_TYPES, labelFor } from '@/data/document-types';
 import { fileTypeFor, type FileType } from '@/lib/files';
-import { forgetInstallToken, installToken } from '@/lib/install';
-import { serviceBase } from '@/lib/service';
-import { DocumentTypeId } from '@/types';
+import { tidyFields } from '@/domain/fields';
+import { postJson } from '@/lib/http';
+import { DocumentTypeId, ExtractedField } from '@/types';
 
 /** Claude downsamples anything larger, so sending more pixels just costs money. */
 const MAX_EDGE = 1568;
@@ -32,15 +32,12 @@ export type ScanResult = {
   documentNumber: string;
   confidence: 'high' | 'medium' | 'low';
   note: string;
+  /**
+   * Everything else the document said about itself. Absent from a service that
+   * has not been deployed yet, so every reader treats it as optional.
+   */
+  fields: ExtractedField[];
 };
-
-/**
- * In development the extraction service runs on the same machine as Metro, so
- * the phone can reach it at Metro's host on the service port — no config needed.
- */
-function extractionEndpoint(): string {
-  return `${serviceBase()}/extract`;
-}
 
 export async function pickImage(source: 'camera' | 'library'): Promise<PickedFile | null> {
   const permission =
@@ -133,58 +130,41 @@ export async function scanFile(
 ): Promise<{ result: ScanResult; fileUri: string }> {
   const { data, mediaType, uri } = await readBase64(file);
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const token = process.env.EXPO_PUBLIC_SCAN_TOKEN;
-    const install = await installToken();
-    const response = await fetch(extractionEndpoint(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'x-expyr-token': token } : {}),
-        ...(install ? { 'x-expyr-install': install } : {}),
+  const result = await postJson<ScanResult>(
+    '/extract',
+    {
+      imageBase64: data,
+      mediaType,
+      // Send the names this user will actually see, so the model classifies a
+      // Kuwaiti civil ID as a National ID rather than reaching for "Emirates ID".
+      categories: DOCUMENT_TYPES.map((t) => ({ id: t.id, label: labelFor(t, country) })),
+    },
+    {
+      timeoutMs: TIMEOUT_MS,
+      messages: {
+        rateLimited: 'You have scanned a lot in a short time. Try again in a few minutes.',
+        unauthorised: 'This copy of Expyr is not authorised to scan.',
+        refused: 'The scanning service could not read that. Try another photo.',
+        timedOut: 'Scanning took too long. Check your connection and try again.',
+        unreachable: 'Could not reach the scanning service. Check your connection.',
       },
-      signal: controller.signal,
-      body: JSON.stringify({
-        imageBase64: data,
-        mediaType,
-        // Send the names this user will actually see, so the model classifies a
-        // Kuwaiti civil ID as a National ID rather than reaching for "Emirates ID".
-        categories: DOCUMENT_TYPES.map((t) => ({ id: t.id, label: labelFor(t, country) })),
-      }),
-    });
+    }
+  );
 
-    if (response.status === 429) {
-      throw new Error('You have scanned a lot in a short time. Try again in a few minutes.');
-    }
-    if (response.status === 401) {
-      await forgetInstallToken();
-      throw new Error('This copy of Expyr is not authorised to scan.');
-    }
-    if (response.status === 413) {
-      throw new Error('That file is too large to read. Try a smaller one.');
-    }
-    if (!response.ok) {
-      throw new Error(`The scanning service returned an error (${response.status}).`);
-    }
-
-    const result = (await response.json()) as ScanResult;
-    const known = DOCUMENT_TYPES.some((t) => t.id === result.typeId);
-    return {
-      result: known ? result : { ...result, typeId: 'other' },
-      fileUri: uri,
-    };
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Scanning took too long. Check your connection and try again.');
-    }
-    if (error instanceof TypeError) {
-      throw new Error('Could not reach the scanning service. Check your connection.');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
+  // A category this build does not know about would break every screen that
+  // looks one up, so an unfamiliar answer falls back rather than being trusted.
+  const known = DOCUMENT_TYPES.some((t) => t.id === result.typeId);
+  return {
+    result: {
+      ...result,
+      typeId: known ? result.typeId : 'other',
+      /*
+       * Shaped here, at the edge, so no screen ever sees a raw transcription —
+       * and so an older service that sends no fields at all becomes an empty
+       * list rather than undefined.
+       */
+      fields: tidyFields(result.fields),
+    },
+    fileUri: uri,
+  };
 }

@@ -1,14 +1,20 @@
 /**
- * A deliberately small in-memory limiter. It is not a defence against a
- * determined attacker — it exists so a bug, a loop, or someone who pulled the
- * app token out of the bundle cannot quietly drain the API credits.
+ * The ceilings that stand between a leaked app token and the bill.
  *
- * Running more than one instance means each gets its own counter; move to a
- * shared store (Redis, Upstash) if this is ever scaled horizontally.
+ * Not a defence against a determined attacker — it exists so that a bug, a
+ * retry loop, or somebody who pulled the token out of the bundle cannot quietly
+ * drain the API credits. Three layers, each closing the hole the one above
+ * leaves open: a burst limit per caller, a daily budget per install, and a
+ * ceiling for the whole service.
+ *
+ * Everything is behind the `RateLimiter` interface for one reason: the counters
+ * below live in this process's memory. One instance on Render is fine — the
+ * numbers are ceilings for abuse rather than meters for honest use, and a
+ * restart forgiving everyone is the right way round for that. A second instance
+ * is not fine: each would get its own counters and every limit would silently
+ * double. When that day comes, the fix is a class implementing this interface
+ * against Redis, and nothing else in the service changes.
  */
-
-/** Stops the map growing without bound on a long-running server. */
-const SWEEP_EVERY_MS = 30 * 60 * 1000;
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -30,117 +36,142 @@ export const BUCKETS: Record<string, Bucket> = {
   '/read': { windowMs: HOUR, max: 12, label: 'documents read' },
   '/brief': { windowMs: HOUR, max: 12, label: 'summaries' },
   '/ask': { windowMs: HOUR, max: 30, label: 'questions' },
+  '/subscriptions': { windowMs: HOUR, max: 20, label: 'screenshots read' },
   /*
-   * Handing out install tokens is the one thing the bundled app token can do,
-   * so this is the ceiling on how fast a leaked one can mint credentials. A
-   * real phone asks for exactly one, once, and then never again.
+   * Guidance is nearly always a cache hit, and a phone asks for it once per
+   * document type it holds. Generous because a cached answer costs nothing;
+   * the ceiling that matters is the one on new jurisdictions in routes.ts.
+   */
+  '/guidance': { windowMs: HOUR, max: 40, label: 'renewal look-ups' },
+  /*
+   * Icons are cheap, cached, and fetched in a burst the first time somebody
+   * adds their subscriptions — so this is generous. It is here at all because
+   * the route needs no credential (on the web it is an <img> src, and an image
+   * tag cannot carry a header), which without a limit makes it free bandwidth
+   * for anyone who finds it.
+   */
+  '/icon': { windowMs: 10 * MINUTE, max: 120, label: 'icons' },
+  /*
+   * Handing out install credentials is the one thing the bundled app token can
+   * do, so this is the ceiling on how fast a leaked one can mint them. A real
+   * phone asks for exactly one, once, and then never again.
    */
   '/register': { windowMs: 24 * HOUR, max: 5, label: 'registrations' },
 };
 
 /**
  * What one install may do in a day, whatever address it arrives from. The
- * per-address buckets above stop a burst; this stops a slow drip, and it is
- * the reason a stolen credential is worth so much less than a stolen bundle.
+ * buckets above stop a burst; this stops a slow drip, and it is the reason a
+ * stolen credential is worth so much less than a stolen bundle.
  */
 export const DAILY_PER_INSTALL: Record<string, number> = {
   '/extract': 60,
   '/read': 30,
   '/brief': 30,
   '/ask': 80,
+  '/subscriptions': 40,
+  '/guidance': 60,
 };
 
 /**
- * The backstop that matters. Every route above is per address, and addresses
- * are free — a stolen token driven from a hundred of them would pass all of
- * them. This is the ceiling on the whole service for one day, sized well above
- * a real day's traffic and well below a bill worth panicking about.
+ * The ceiling on the whole service for one day, sized well above a real day's
+ * traffic and well below a bill worth panicking about.
  */
 const DAILY_TOTAL = Number(process.env.EXPYR_DAILY_BUDGET ?? 2000);
 
-const hits = new Map<string, number[]>();
-let lastSweep = 0;
-
-let dayStamp = '';
-let dayCount = 0;
-
-function sweep(now: number) {
-  if (now - lastSweep < SWEEP_EVERY_MS) return;
-  lastSweep = now;
-  const longest = Math.max(...Object.values(BUCKETS).map((b) => b.windowMs));
-  for (const [key, times] of hits) {
-    const recent = times.filter((t) => now - t < longest);
-    if (recent.length === 0) hits.delete(key);
-    else hits.set(key, recent);
-  }
-}
-
 export type RateLimitResult = { allowed: true } | { allowed: false; retryAfterSeconds: number };
+export type BudgetResult = { ok: boolean; used: number; max: number };
 
-export function checkRateLimit(address: string, route: string, now = Date.now()): RateLimitResult {
-  sweep(now);
-
-  const bucket = BUCKETS[route] ?? BUCKETS['/extract'];
-  const key = `${route}:${address}`;
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < bucket.windowMs);
-
-  if (recent.length >= bucket.max) {
-    const oldest = recent[0];
-    hits.set(key, recent);
-    return {
-      allowed: false,
-      retryAfterSeconds: Math.max(1, Math.ceil((bucket.windowMs - (now - oldest)) / 1000)),
-    };
-  }
-
-  recent.push(now);
-  hits.set(key, recent);
-  return { allowed: true };
+export interface RateLimiter {
+  /** Whether this caller may make this request now. */
+  check(client: string, route: string, now?: number): RateLimitResult;
+  /** Whether this install has any of today's allowance left for this route. */
+  installBudget(installId: string, route: string, now?: number): BudgetResult;
+  /** Whether the service as a whole has done less today than it is allowed. */
+  dailyBudget(now?: number): BudgetResult;
 }
 
-const installDays = new Map<string, { day: string; counts: Record<string, number> }>();
+/** Stops the maps growing without bound on a long-running server. */
+const SWEEP_EVERY_MS = 30 * MINUTE;
+/** Yesterday's installs are not worth remembering once a new day is counting. */
+const MAX_TRACKED_INSTALLS = 5000;
 
-/**
- * A day's work for one install. Kept in memory like everything else here, so a
- * restart forgives everyone — which is the right way round for a limit whose
- * job is to stop abuse rather than to meter honest use.
- */
-export function withinInstallBudget(
-  installId: string,
-  route: string,
-  now = Date.now()
-): { ok: boolean; used: number; max: number } {
-  const max = DAILY_PER_INSTALL[route];
-  if (max === undefined) return { ok: true, used: 0, max: 0 };
+export class InMemoryRateLimiter implements RateLimiter {
+  private readonly hits = new Map<string, number[]>();
+  private readonly installDays = new Map<string, { day: string; counts: Record<string, number> }>();
+  private lastSweep = 0;
+  private dayStamp = '';
+  private dayCount = 0;
 
-  const day = new Date(now).toISOString().slice(0, 10);
-  const record = installDays.get(installId);
-  const counts = record && record.day === day ? record.counts : {};
-  const used = counts[route] ?? 0;
-
-  if (used >= max) return { ok: false, used, max };
-
-  counts[route] = used + 1;
-  installDays.set(installId, { day, counts });
-  // Yesterday's installs are not worth remembering once a new day is counting.
-  if (installDays.size > 5000) {
-    for (const [key, value] of installDays) if (value.day !== day) installDays.delete(key);
+  private sweep(now: number) {
+    if (now - this.lastSweep < SWEEP_EVERY_MS) return;
+    this.lastSweep = now;
+    const longest = Math.max(...Object.values(BUCKETS).map((b) => b.windowMs));
+    for (const [key, times] of this.hits) {
+      const recent = times.filter((t) => now - t < longest);
+      if (recent.length === 0) this.hits.delete(key);
+      else this.hits.set(key, recent);
+    }
   }
-  return { ok: true, used: used + 1, max };
+
+  check(client: string, route: string, now = Date.now()): RateLimitResult {
+    this.sweep(now);
+
+    const bucket = BUCKETS[route] ?? BUCKETS['/extract'];
+    const key = `${route}:${client}`;
+    const recent = (this.hits.get(key) ?? []).filter((t) => now - t < bucket.windowMs);
+
+    if (recent.length >= bucket.max) {
+      this.hits.set(key, recent);
+      return {
+        allowed: false,
+        retryAfterSeconds: Math.max(
+          1,
+          Math.ceil((bucket.windowMs - (now - recent[0])) / 1000)
+        ),
+      };
+    }
+
+    recent.push(now);
+    this.hits.set(key, recent);
+    return { allowed: true };
+  }
+
+  installBudget(installId: string, route: string, now = Date.now()): BudgetResult {
+    const max = DAILY_PER_INSTALL[route];
+    if (max === undefined) return { ok: true, used: 0, max: 0 };
+
+    const day = new Date(now).toISOString().slice(0, 10);
+    const record = this.installDays.get(installId);
+    const counts = record && record.day === day ? record.counts : {};
+    const used = counts[route] ?? 0;
+
+    if (used >= max) return { ok: false, used, max };
+
+    counts[route] = used + 1;
+    this.installDays.set(installId, { day, counts });
+
+    if (this.installDays.size > MAX_TRACKED_INSTALLS) {
+      for (const [key, value] of this.installDays) {
+        if (value.day !== day) this.installDays.delete(key);
+      }
+    }
+    return { ok: true, used: used + 1, max };
+  }
+
+  dailyBudget(now = Date.now()): BudgetResult {
+    const today = new Date(now).toISOString().slice(0, 10);
+    if (today !== this.dayStamp) {
+      this.dayStamp = today;
+      this.dayCount = 0;
+    }
+    if (this.dayCount >= DAILY_TOTAL) {
+      return { ok: false, used: this.dayCount, max: DAILY_TOTAL };
+    }
+    this.dayCount += 1;
+    return { ok: true, used: this.dayCount, max: DAILY_TOTAL };
+  }
 }
 
-/**
- * Counts everything that reaches the model, for the day. Returns false once the
- * service has done more work in a day than it has any business doing, at which
- * point the honest answer to everyone is "not right now".
- */
-export function withinDailyBudget(now = Date.now()): { ok: boolean; used: number; max: number } {
-  const today = new Date(now).toISOString().slice(0, 10);
-  if (today !== dayStamp) {
-    dayStamp = today;
-    dayCount = 0;
-  }
-  if (dayCount >= DAILY_TOTAL) return { ok: false, used: dayCount, max: DAILY_TOTAL };
-  dayCount += 1;
-  return { ok: true, used: dayCount, max: DAILY_TOTAL };
-}
+/** The one the service uses. Swap this line for a Redis-backed one to scale out. */
+export const limiter: RateLimiter = new InMemoryRateLimiter();

@@ -10,6 +10,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { ensureBrandIcon, guessDomain } from '@/lib/brand-icons';
+import { searchableText } from '@/domain/fields';
 import { useTheme } from '@/hooks/use-theme';
 import { urgencyColor } from '@/hooks/use-urgency';
 import {
@@ -133,16 +134,15 @@ export default function HomeScreen() {
   const found = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return documents;
+    /*
+     * Everything the scan read counts, not just the title. "Salama" should
+     * find the motor policy issued by Salama even though nothing in its title
+     * says so — which is most of the point of having read the document at all.
+     */
     return documents.filter((doc) =>
-      [
-        doc.title,
-        doc.owner,
-        doc.notes,
-        doc.documentNumber,
-        labelForId(doc.typeId, settings.country),
-      ]
-        .filter(Boolean)
-        .some((field) => field!.toLowerCase().includes(needle))
+      `${searchableText(doc)} ${labelForId(doc.typeId, settings.country).toLowerCase()}`.includes(
+        needle
+      )
     );
   }, [documents, query, settings.country]);
 

@@ -12,6 +12,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { LockGate } from '@/components/lock-gate';
 import { LockOffer } from '@/components/lock-offer';
+import { SaveWarning } from '@/components/save-warning';
 import { Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -259,6 +260,12 @@ function AppShell() {
        * saved — whichever screen that happened on.
        */}
       <LockOffer />
+
+      {/*
+       * Above everything as well, and above the lock offer: a save that failed
+       * is the one thing in this app that must not be discovered later.
+       */}
+      <SaveWarning />
     </>
   );
 }

@@ -1,8 +1,7 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 
-import { forgetInstallToken, installToken } from '@/lib/install';
+import { postJson } from '@/lib/http';
 import type { PickedFile } from '@/lib/scan';
-import { serviceBase } from '@/lib/service';
 import type { Recurrence } from '@/types';
 
 /**
@@ -62,44 +61,19 @@ export async function readSubscriptionScreenshot(file: PickedFile): Promise<Subs
   if (file.type !== 'image') throw new Error('Send a screenshot rather than a PDF.');
 
   const fileBase64 = await prepare(file);
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-  try {
-    const token = process.env.EXPO_PUBLIC_SCAN_TOKEN;
-    const install = await installToken();
-    const response = await fetch(`${serviceBase()}/subscriptions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'x-expyr-token': token } : {}),
-        ...(install ? { 'x-expyr-install': install } : {}),
+  return postJson<SubscriptionScan>(
+    '/subscriptions',
+    { fileBase64, mediaType: 'image/jpeg' },
+    {
+      timeoutMs: TIMEOUT_MS,
+      messages: {
+        rateLimited: 'You have scanned a lot in a short time. Try again in a few minutes.',
+        refused: 'That screen could not be read. Try a clearer screenshot.',
+        timedOut: 'That took too long. Try again on a stronger connection.',
       },
-      signal: controller.signal,
-      body: JSON.stringify({ fileBase64, mediaType: 'image/jpeg' }),
-    });
-
-    if (response.status === 429) {
-      throw new Error('You have scanned a lot in a short time. Try again in a few minutes.');
     }
-    if (response.status === 401) {
-      await forgetInstallToken();
-      throw new Error('This copy of Expyr is not authorised.');
-    }
-    if (!response.ok) throw new Error('That screen could not be read. Try a clearer screenshot.');
-
-    return (await response.json()) as SubscriptionScan;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('That took too long. Try again on a stronger connection.');
-    }
-    if (error instanceof TypeError) {
-      throw new Error('Could not reach the reading service. Check your connection.');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
+  );
 }
 
 /**

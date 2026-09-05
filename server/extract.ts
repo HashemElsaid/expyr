@@ -27,7 +27,7 @@ const MODEL = process.env.EXPYR_MODEL ?? 'claude-haiku-4-5';
  * `output_config.effort` is rejected outright by the older small models, so it
  * can only be sent to models known to accept it.
  */
-const EFFORT_CAPABLE_MODELS = [
+export const EFFORT_CAPABLE = [
   'claude-fable-5',
   'claude-mythos-5',
   'claude-opus-5',
@@ -37,6 +37,26 @@ const EFFORT_CAPABLE_MODELS = [
   'claude-sonnet-5',
   'claude-sonnet-4-6',
 ];
+
+/**
+ * One thing the document says about itself.
+ *
+ * `kind` is not decoration. It decides how the app treats the value: a number
+ * gets a copy button because the thing people do with an Emirates ID number is
+ * paste it into a government form, a money field is searched and totalled
+ * differently from a name, and a date is not turned into a reminder unless the
+ * app asked for one. Left as a small closed set on purpose — an open
+ * vocabulary would drift into forty synonyms for "number".
+ */
+export const FieldSchema = z.object({
+  /** How it should read on screen, in the user's words: "Issuing authority". */
+  label: z.string(),
+  /** Exactly as printed. Never normalised, never reformatted, never guessed. */
+  value: z.string(),
+  kind: z.enum(['name', 'number', 'date', 'money', 'place', 'other']),
+});
+
+export type ExtractedField = z.infer<typeof FieldSchema>;
 
 /**
  * Every field is required with an empty-string sentinel rather than optional —
@@ -50,6 +70,13 @@ export const ExtractionSchema = z.object({
   documentNumber: z.string(),
   confidence: z.enum(['high', 'medium', 'low']),
   note: z.string(),
+  /**
+   * Everything else the document says. The app was built around one date, which
+   * meant a scan produced nothing a person could use until the day it mattered
+   * — sometimes years later. This is what makes the scan worth something the
+   * moment it happens.
+   */
+  fields: z.array(FieldSchema),
 });
 
 export type Extraction = z.infer<typeof ExtractionSchema>;
@@ -85,6 +112,17 @@ Rules:
 - note is one short plain-language sentence telling the user which date you used. No jargon.
 - Always return the date even when it has already passed. Expyr deliberately tracks expired items so the user can renew or discard them, so a past date is a correct answer with found set to true. Never reject an item for being out of date.
 - Set found to false only when no expiry or due date is legible anywhere in the image. In that case set expiryDate to an empty string and use note to say what you saw instead.
+
+fields is everything else the document states about itself, so that a person gets something useful out of the scan today rather than only on the day it expires.
+
+- Include what somebody would actually want back later: the full name as printed, the document or policy or account number, who issued it, the place it was issued, the dates it carries other than the expiry, and any amount of money on it — a premium, a rent, a subscription price, a fee.
+- Include the issue date and any start date as their own fields. They are useful and they are not the expiry.
+- label is what a person would call it: "Full name", "Issuing authority", "Policy number", "Annual rent", "Date of birth". Sentence case, no colon, no abbreviations they would have to decode.
+- value is exactly as printed on the document. Do not reformat a date, do not add or remove spaces in a number, do not expand an abbreviation, do not convert a currency. If it is written "AED 4,500 / year", that is the value.
+- kind: name for people and organisations, number for reference and account numbers, date for any date, money for any amount with a currency, place for addresses and cities and countries, other for everything else.
+- Repeat the name and the number here even though they may also appear above. This list is the document as it reads; the app decides what to show twice.
+- Nothing you cannot actually see. A field you are unsure of is a field you leave out — a wrong name or a mistyped number is worse than a short list, because a person will copy it into a government form without checking.
+- Leave fields empty rather than padding it with the obvious. "Document type: passport" tells nobody anything.
 
 Never invent information that is not visible in the image.
 
@@ -127,7 +165,7 @@ export async function extractFromImage(opts: {
     system: buildSystemPrompt(today, opts.categories),
     output_config: {
       // Keeps thinking tokens down on the models that support it; omitted elsewhere.
-      ...(EFFORT_CAPABLE_MODELS.includes(MODEL) ? { effort: 'low' as const } : {}),
+      ...(EFFORT_CAPABLE.includes(MODEL) ? { effort: 'low' as const } : {}),
       format: zodOutputFormat(ExtractionSchema),
     },
     messages: [
@@ -156,6 +194,7 @@ export async function extractFromImage(opts: {
       documentNumber: '',
       confidence: 'low',
       note: "This image couldn't be processed. Try entering the details by hand.",
+      fields: [],
     };
   }
 

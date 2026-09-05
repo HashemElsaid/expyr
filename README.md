@@ -10,13 +10,23 @@ tells you how to renew it.
 Built for the UAE first: every category carries the real renewal steps, typical
 cost, and the penalty for being late.
 
-The tracker works anywhere — the guidance does not. Renewal steps, costs, fines
-and prerequisite chains were verified against UAE sources only, so the app asks
-which country you are in and shows the advisory half of the detail screen only
-where it has been checked. Everywhere else keeps the dates, the reminders and
-the actions, drops the guides, and uses country-neutral category names. Adding a
-country means writing its guides and adding it to `WITH_GUIDANCE` in
-`src/data/countries.ts`; no screen needs touching.
+A scan reads the whole document, not just the date: the name as printed, the
+document or policy number, who issued it, where, and any amount of money on it.
+Values are kept exactly as printed — somebody is going to paste an Emirates ID
+number into a government form, and a helpfully reformatted number is a wrong
+one. Everything found is searchable, and exports as its own spreadsheet column.
+
+Renewal guidance comes from two places. The UAE guides were checked one
+authority at a time — every fee against the body that charges it — and those
+remain the answer there. Everywhere else the app asks its service to search the
+live web, and shows the result with its sources attached, labelled as guidance
+to check rather than instruction to follow. That is cached per jurisdiction, so
+the two thousandth person asking how to renew a driving licence in Sharjah costs
+nothing at all.
+
+Adding hand-checked guides for a country means writing them and adding it to
+`WITH_GUIDANCE` in `src/data/countries.ts`; no screen needs touching, and the
+generated answer steps aside for them.
 
 ## Running it
 
@@ -47,29 +57,69 @@ Scan the QR code with an iPhone running Expo Go. The app finds the scanning
 service automatically at Metro's host, so nothing needs configuring on the same
 Wi-Fi.
 
-> Pinned to **Expo SDK 54** on purpose: Expo Go on the App Store is frozen at 54,
-> and SDK 55+ needs a paid Apple Developer account to run on a physical phone.
+> **Expo SDK 57**, React Native 0.86, React 19.2 — matching whatever Expo Go on
+> the App Store is currently on, because there is no way to install an older
+> Expo Go on an iPhone. See `AGENTS.md` for what changed on the way here.
+
+### Checks
+
+```bash
+npm test
+```
+
+```bash
+npm run typecheck
+```
+
+The service has its own pair of the same, in `server/`. CI runs both as separate
+jobs, so a red build says which half broke.
 
 ## How it is put together
 
 ```
 src/
   app/              screens (expo-router)
-    (tabs)/         Items, Timeline, Settings
+    (tabs)/         Timeline · Household · [camera] · Expyr AI · Settings
     add.tsx         scan-first capture and edit
     document/[id]   detail, renewal guide, reminders
-    household.tsx   everyone you track for, grouped by person
     archive.tsx     items you are finished with
     onboarding.tsx  first run
-    paywall.tsx     subscription
+    paywall.tsx     what Pro lifts
     privacy.tsx     what happens to your data
-  components/       shared UI, including the ledger row and its runway
-  data/             categories, renewal guides, countries, emirate authorities, icons
-  hooks/            theme and urgency
-  lib/              dates, files, scanning, notifications, backup, biometrics
-  store/            documents and settings (AsyncStorage)
-server/             the scanning service — see server/README.md
+  components/       shared UI — the ledger row, form pieces, document actions
+  data/             categories, renewal guides, countries, authorities, icons,
+                    and the document repository
+  domain/           the rules, pure and tested: migrations, rolling forward,
+                    late fees, expiry dates, scanned fields, guidance provenance
+  hooks/            theme, urgency, reading a document, renewal guidance
+  lib/              dates, files, scanning, notifications, reminder planning,
+                    backup, biometrics, guidance, the HTTP client
+  store/            React context over the repository
+server/             the reading service — see server/README.md
 ```
+
+Four rules hold this shape together, and they are worth knowing before changing
+it:
+
+1. **`domain/` is pure.** No React, no expo, no clock of its own — every
+   function takes `now` as an argument. That is what makes it testable without
+   a device, and every bug that has reached a phone came out of a function that
+   belongs there.
+2. **Storage is behind `DocumentRepository`.** Screens never touch
+   AsyncStorage. The interface is shaped the way a syncing store needs — per-
+   record writes, tombstones for deletes, an outbox — so adding sync one day is
+   a new implementation rather than a rewrite. See
+   `src/data/document-repository.ts`.
+3. **Reminders are planned, not scheduled.** iOS holds only the 64 soonest
+   pending notifications and drops the rest silently, so `lib/reminder-plan.ts`
+   chooses which to book across the whole collection and `lib/notifications.ts`
+   makes iOS match.
+4. **One HTTP client.** Everything the app asks of the service goes through
+   `lib/http.ts`, so a lesson about handling a failure is learned once.
+5. **Generated guidance never dresses as verified guidance.** Both reach the
+   screen as one `DisplayGuidance`, and the sentence saying which it is comes
+   from `domain/renewal-guidance.ts` rather than from the screen — so it is not
+   possible to draw the guidance and forget to say where it came from.
 
 ## The design
 
@@ -96,8 +146,10 @@ Scanning runs on `claude-haiku-4-5` at roughly **0.4 fils per scan**. Switch to
   build, so they cannot run in Expo Go
 - Arabic and right-to-left layout, which matters for this market and is a
   project of its own rather than a bolt-on
-- Sync across devices — deliberately absent. Everything is on-device, and the
-  iPhone backup covers device loss. Real sync would mean a server holding
-  people's ID photos, which should only be built with end-to-end encryption
+- Sync across devices — not built, but no longer designed against. Everything
+  is on-device and the iPhone backup covers device loss. When it is built it
+  should be a `SyncDocumentRepository` beside the local one, a server holding
+  ciphertext it cannot read, and a key that never leaves the Keychain. The
+  interface, the tombstones and the outbox are already there for it
 
 `STORE.md` holds the App Store listing draft and the pre-submission checklist.

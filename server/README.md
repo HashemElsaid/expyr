@@ -4,9 +4,14 @@ A small HTTP service that reads documents on the phone's behalf. It exists for
 one reason: the Anthropic API key must never ship inside the app, where anyone
 could extract it and spend your credits.
 
-It stores nothing. There is no database and no user data — the only state is
-two in-memory maps of rate-limit counters, cleared on every restart. Documents,
-transcripts, questions and answers pass through and are gone.
+**It holds no user data.** There is no database and no accounts. Documents,
+transcripts, questions and answers pass through and are gone — never written to
+disk, never logged.
+
+It does cache one thing, and the distinction matters: generated renewal
+guidance, keyed by document type and region. That is a public fact about a
+jurisdiction, identical for everybody who asks, with nothing about the caller in
+it or stored beside it. See **Renewal guidance** below.
 
 ## Endpoints
 
@@ -20,6 +25,7 @@ transcripts, questions and answers pass through and are gone.
 | `POST` | `/brief`         | app token  | yes     | The points and obligations in a transcript.                |
 | `POST` | `/ask`           | app token  | yes     | A question, answered from transcripts and Expyr's record.  |
 | `POST` | `/subscriptions` | app token  | yes     | Subscriptions read off a screenshot or a receipt.          |
+| `POST` | `/guidance`      | app token  | yes     | How to renew a document type in a region. Cached, shared.  |
 
 `/icon` needs no credential because on the web the app uses it as an `<img>`
 src, and an image tag cannot carry a header. It is rate limited instead, so it
@@ -44,6 +50,32 @@ Four ceilings sit between a leaked app token and the bill:
 
 Set a monthly spend limit in the Claude Console as well. A billing cap is the
 only hard stop.
+
+## Renewal guidance
+
+`/guidance` searches the live web for how a document type is renewed in a
+region, and returns steps, what to bring, the fee, the penalty for lateness and
+the pages it came from. The app uses it only where it has no hand-checked guide
+of its own — the UAE guides in `src/data/document-types.ts` remain the answer
+there, and a search would be a downgrade rather than an upgrade.
+
+**It is cached per jurisdiction, not per user.** The key is document type,
+country and region, and nothing about the caller is in it or written with it.
+Two thousand people asking how to renew a driving licence in Sharjah cost one
+search between them. Entries live 90 days.
+
+Three ceilings, because a search costs real money:
+
+- The request bucket and per-install budget, like every other route.
+- `EXPYR_GUIDANCE_DAILY_NEW` — how many *new* jurisdictions may be researched in
+  one day. Cache hits are free, so this is the one that actually bounds spend.
+- A bounded key space. The route accepts a slug type id, a two-letter country
+  code and a short region, so a leaked app token cannot mint unlimited distinct
+  searches out of free text.
+
+Set `EXPYR_GUIDANCE_DIR` to a path the host keeps and the cache survives
+restarts; leave it unset and it is memory only, which still saves every request
+after the first for the life of the process. `/health` reports which.
 
 ## Errors
 
@@ -73,6 +105,9 @@ top of `log.ts`.
 | `EXPYR_INSTALL_SECRET`   | in prod  | Signs install credentials. Any long random string; rotating it makes every phone register again, silently. |
 | `EXPYR_DAILY_BUDGET`     | no       | Requests that may reach the model in one day. Default 2000.          |
 | `EXPYR_MODEL`            | no       | Extraction model. Default `claude-haiku-4-5`.                        |
+| `EXPYR_GUIDANCE_DIR`     | no       | Where cached renewal guidance is written. Unset means memory only.   |
+| `EXPYR_GUIDANCE_DAILY_NEW` | no     | New jurisdictions researched per day. Default 40.                    |
+| `EXPYR_GUIDANCE_MODEL`   | no       | Researches with web search. Default `claude-sonnet-5`.               |
 | `EXPYR_READ_MODEL`       | no       | Transcription model. Default `claude-haiku-4-5`.                     |
 | `EXPYR_BRIEF_MODEL`      | no       | Briefing model. Default `claude-sonnet-5`.                           |
 | `EXPYR_ASK_MODEL`        | no       | Answering model. Default `claude-haiku-4-5`.                         |

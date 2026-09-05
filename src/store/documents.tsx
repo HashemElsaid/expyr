@@ -16,6 +16,7 @@ import { rollForwardAll } from '@/domain/documents';
 import { daysUntil } from '@/lib/dates';
 import { deleteAttachment, storeAttachment } from '@/lib/files';
 import { newDocumentId } from '@/lib/ids';
+import { deleteAllGuidance } from '@/lib/guidance';
 import { deleteReading } from '@/lib/reading';
 import { applyReminderPlan, cancelAllReminders, type ReminderStatus } from '@/lib/notifications';
 import { snoozeDate } from '@/lib/reminder-plan';
@@ -301,6 +302,12 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       deleteReading(doc.id);
     }
     await cancelAllReminders();
+    /*
+     * Guidance is public information about a jurisdiction rather than anything
+     * about this person, but somebody who asked for everything to go expects
+     * everything to go. It costs one look-up to have it back.
+     */
+    deleteAllGuidance();
     await commit([], () => repository.replaceAll([]));
   }, [commit]);
 

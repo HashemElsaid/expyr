@@ -9,8 +9,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { displayFields } from '@/domain/fields';
+import { provenanceNote, worthShowing } from '@/domain/renewal-guidance';
 import { runningLateFee } from '@/domain/late-fee';
 import { useDocumentReading } from '@/hooks/use-document-reading';
+import { useRenewalGuidance } from '@/hooks/use-renewal-guidance';
 import { shareDocumentCopy } from '@/lib/share-copy';
 import { hasGuidance } from '@/data/countries';
 import { getDocumentType, numberFieldFor } from '@/data/document-types';
@@ -138,6 +140,22 @@ export default function DocumentDetailScreen() {
     // Re-bind when the document or theme changes so the handler stays current.
   }, [navigation, doc, theme.textSecondary]);
 
+  /*
+   * Above the early return, because hooks run on every render and one called
+   * only when a document exists is one React refuses. It does nothing until the
+   * section is opened, so an unopened guide costs no request.
+   */
+  const guideType = doc ? getDocumentType(doc.typeId) : null;
+  const renewal = useRenewalGuidance({
+    type: guideType,
+    country: settings.country,
+    // Renewal is run by the emirate here, and by the state or province elsewhere.
+    region: settings.emirate ?? '',
+    verifiedWhere:
+      doc && guideType ? (whereFor(doc.typeId, settings.emirate) ?? guideType.guide.where) : '',
+    enabled: guideOpen,
+  });
+
   if (!doc) return <ThemedView style={styles.container} />;
 
   const type = getDocumentType(doc.typeId);
@@ -150,7 +168,6 @@ export default function DocumentDetailScreen() {
   const guided = hasGuidance(settings.country);
   // The right authority depends on which emirate the user actually lives in.
   const portal = guided ? portalFor(doc.typeId, settings.emirate) : undefined;
-  const where = whereFor(doc.typeId, settings.emirate) ?? type.guide.where;
   /*
    * What the delay has cost, for the documents whose fine the app has verified
    * as a daily rate. The rule about grace periods lives in the domain, with
@@ -184,6 +201,13 @@ export default function DocumentDetailScreen() {
       outcome.reason === 'nothing-to-send'
         ? 'Attach a photo of this document first, then it can be sent as a PDF.'
         : 'Something went wrong building the PDF. Try again.'
+    );
+  }
+
+  function openSource(url: string) {
+    tapFeedback();
+    Linking.openURL(url).catch(() =>
+      Alert.alert('Could not open', `Visit ${url} in your browser.`)
     );
   }
 
@@ -546,19 +570,7 @@ export default function DocumentDetailScreen() {
           </View>
         )}
 
-        {!guided && (
-          <View style={styles.lateRow}>
-            <ThemedText type="label" themeColor="textTertiary">
-              How to renew
-            </ThemedText>
-            <ThemedText type="body" themeColor="textSecondary">
-              Expyr has verified renewal steps for the UAE only. It will keep the date and remind
-              you. It just will not guess at the procedure where you are.
-            </ThemedText>
-          </View>
-        )}
-
-        {guided && (
+        {(
           <Pressable
             onPress={() => setGuideOpen((open) => !open)}
             accessibilityRole="button"
@@ -577,46 +589,133 @@ export default function DocumentDetailScreen() {
           </Pressable>
         )}
 
-        {guided && guideOpen && (
+        {guideOpen && (
           <View style={styles.guide}>
-            {notes.length > 0 && (
+            {renewal.loading && (
+              <ThemedText type="body" themeColor="textSecondary">
+                Looking up how this is renewed where you are...
+              </ThemedText>
+            )}
+
+            {renewal.error && !renewal.guidance && (
               <View style={styles.notes}>
-                {notes.map((note) => (
-                  <ThemedText key={note} type="small" themeColor="textTertiary">
-                    {note}
-                  </ThemedText>
-                ))}
+                <ThemedText type="body" themeColor="textSecondary">
+                  {renewal.error}
+                </ThemedText>
+                <SecondaryAction icon="refresh" label="Try again" onPress={renewal.retry} />
               </View>
             )}
 
-            <View style={styles.steps}>
-              {type.guide.steps.map((step, i) => (
-                <View key={i} style={styles.stepRow}>
-                  <ThemedText
-                    type="ledgerFigure"
-                    themeColor="textTertiary"
-                    style={styles.stepNumber}>
-                    {i + 1}
+            {renewal.guidance && worthShowing(renewal.guidance) && (
+              <>
+                {/*
+                  * Said before the steps rather than after them, because a note
+                  * under a procedure is read once the procedure has already been
+                  * believed. It comes from the domain, so it is impossible to
+                  * draw the guidance without it.
+                  */}
+                <ThemedText
+                  type="small"
+                  themeColor={renewal.guidance.standing === 'thin' ? 'urgentSoft' : 'textTertiary'}>
+                  {provenanceNote(renewal.guidance)}
+                </ThemedText>
+
+                {renewal.guidance.summary !== '' && (
+                  <ThemedText type="body" themeColor="textSecondary">
+                    {renewal.guidance.summary}
                   </ThemedText>
-                  <ThemedText type="body" style={styles.flex}>
-                    {step}
-                  </ThemedText>
+                )}
+
+                {notes.length > 0 && (
+                  <View style={styles.notes}>
+                    {notes.map((note) => (
+                      <ThemedText key={note} type="small" themeColor="textTertiary">
+                        {note}
+                      </ThemedText>
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.steps}>
+                  {renewal.guidance.steps.map((step, i) => (
+                    <View key={step} style={styles.stepRow}>
+                      <ThemedText
+                        type="ledgerFigure"
+                        themeColor="textTertiary"
+                        style={styles.stepNumber}>
+                        {i + 1}
+                      </ThemedText>
+                      <ThemedText type="body" style={styles.flex}>
+                        {step}
+                      </ThemedText>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
 
-            {/* A blank means we have nothing to say, which beats a row saying so. */}
-            {where !== '' && <DataRow label="Where" value={where} bordered />}
-            {type.guide.typicalCost !== '' && (
-              <DataRow label="Cost" value={type.guide.typicalCost} bordered />
-            )}
-            {type.guide.processingTime !== '' && (
-              <DataRow label="Takes" value={type.guide.processingTime} bordered />
+                {renewal.guidance.needed.length > 0 && (
+                  <View style={styles.notes}>
+                    <ThemedText type="label" themeColor="textTertiary">
+                      What to bring
+                    </ThemedText>
+                    {renewal.guidance.needed.map((item) => (
+                      <ThemedText key={item} type="body" themeColor="textSecondary">
+                        {item}
+                      </ThemedText>
+                    ))}
+                  </View>
+                )}
+
+                {/* A blank means we have nothing to say, which beats a row saying so. */}
+                {renewal.guidance.where !== '' && (
+                  <DataRow label="Where" value={renewal.guidance.where} bordered />
+                )}
+                {renewal.guidance.typicalCost !== '' && (
+                  <DataRow label="Cost" value={renewal.guidance.typicalCost} bordered />
+                )}
+                {renewal.guidance.processingTime !== '' && (
+                  <DataRow label="Takes" value={renewal.guidance.processingTime} bordered />
+                )}
+
+                {/*
+                  * The pages this came from, so somebody about to spend a morning
+                  * on it can check. The authority's own page sorts first.
+                  */}
+                {renewal.guidance.sources.length > 0 && (
+                  <View style={styles.notes}>
+                    <ThemedText type="label" themeColor="textTertiary">
+                      Where this came from
+                    </ThemedText>
+                    {renewal.guidance.sources.map((source) => (
+                      <Pressable
+                        key={source.url}
+                        onPress={() => openSource(source.url)}
+                        accessibilityRole="link"
+                        accessibilityLabel={`Open ${source.title}`}>
+                        <ThemedText type="small" style={{ color: theme.accent }}>
+                          {source.title}
+                          {source.official ? ' · official' : ''}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+
+                <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
+                  {renewal.guidance.provenance === 'generated'
+                    ? `Looked up on ${shortDate(renewal.guidance.checkedOn)}${
+                        renewal.refreshing ? ' · checking for anything newer' : ''
+                      }`
+                    : 'Figures are indicative, so confirm with the official channel.'}
+                </ThemedText>
+              </>
             )}
 
-            <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
-              Figures are indicative, so confirm with the official channel.
-            </ThemedText>
+            {renewal.guidance && !worthShowing(renewal.guidance) && (
+              <ThemedText type="body" themeColor="textSecondary">
+                Expyr could not establish how this is renewed where you are. It will still keep
+                the date and remind you in time.
+              </ThemedText>
+            )}
           </View>
         )}
 

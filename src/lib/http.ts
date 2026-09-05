@@ -53,15 +53,27 @@ export type PostOptions = {
 };
 
 /**
- * Errors the service reports about the request itself rather than about
- * anything the user did.
+ * Errors that are about the app and the service rather than about the person
+ * holding the phone.
  *
- * "text is required" tells somebody holding a phone nothing they can act on,
- * and it means the app and the service disagree about the shape of a request —
- * which is a deployment, not a mistake they made. So these are swallowed in
- * favour of saying so.
+ * "Not found" means this build is asking for a route the deployed service does
+ * not have yet; "That request could not be read" names fields of a request they
+ * never wrote. Both are deployments, not mistakes they made, and relaying
+ * either shows somebody a developer's sentence. So the caller's own words are
+ * used instead.
+ *
+ * Matched on the service's error code rather than its message — the codes are
+ * a contract, and message text is not.
  */
-const INTERNAL_ERROR = /is required|too long|more text than|not one of/i;
+const NOT_THEIR_FAULT = new Set(['not_found', 'invalid_request', 'internal']);
+
+/**
+ * The same judgement for a service too old to send a code at all. Kept because
+ * a phone updates when somebody opens the App Store and the service updates
+ * when somebody deploys it, and between those two moments this is the only
+ * signal there is.
+ */
+const INTERNAL_MESSAGE = /is required|too long|more text than|not one of|^not found$/i;
 
 /** Thrown for everything below, so callers can tell ours from a bug. */
 export class ServiceError extends Error {
@@ -124,9 +136,15 @@ export async function postJson<T>(
       throw new ServiceError(say.unauthorised, 401);
     }
 
-    const detail = (await response.json().catch(() => null)) as { error?: string } | null;
+    const detail = (await response.json().catch(() => null)) as
+      | { error?: string; code?: string }
+      | null;
     const reported = detail?.error ?? '';
-    const relayable = reported && !INTERNAL_ERROR.test(reported);
+    const relayable =
+      reported &&
+      !NOT_THEIR_FAULT.has(detail?.code ?? '') &&
+      !(detail?.code === undefined && INTERNAL_MESSAGE.test(reported));
+
     throw new ServiceError(relayable ? reported : say.refused, response.status);
   } catch (error) {
     if (error instanceof ServiceError) throw error;

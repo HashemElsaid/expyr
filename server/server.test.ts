@@ -169,6 +169,42 @@ describe('what it will accept', () => {
   });
 });
 
+describe('what guidance will be asked about', () => {
+  /*
+   * Stricter than the other routes because each uncached combination costs a
+   * live web search. A free-text region would let one leaked app token mint an
+   * unbounded number of them, so the key space is bounded at the door.
+   */
+  const good = {
+    typeId: 'residence-visa',
+    label: 'Residence Visa',
+    country: 'AE',
+    countryName: 'United Arab Emirates',
+    region: 'Dubai',
+  };
+
+  it('refuses a country that is not a country code', async () => {
+    const response = await post('/guidance', { ...good, country: 'Atlantis' }, authed);
+    assert.equal(response.status, 400);
+    assert.equal(((await response.json()) as { code: string }).code, 'invalid_request');
+  });
+
+  it('refuses a region long enough to be a cache-busting string', async () => {
+    const response = await post('/guidance', { ...good, region: 'x'.repeat(300) }, authed);
+    assert.equal(response.status, 400);
+  });
+
+  it('refuses a typeId that is not the app’s own slug shape', async () => {
+    const response = await post('/guidance', { ...good, typeId: '../../secrets' }, authed);
+    assert.equal(response.status, 400);
+  });
+
+  it('needs the app token like every other route that costs money', async () => {
+    const response = await post('/guidance', good);
+    assert.equal(response.status, 401);
+  });
+});
+
 describe('the ceilings', () => {
   /*
    * Minting install credentials is the one thing the bundled app token can do,

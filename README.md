@@ -10,13 +10,23 @@ tells you how to renew it.
 Built for the UAE first: every category carries the real renewal steps, typical
 cost, and the penalty for being late.
 
-The tracker works anywhere — the guidance does not. Renewal steps, costs, fines
-and prerequisite chains were verified against UAE sources only, so the app asks
-which country you are in and shows the advisory half of the detail screen only
-where it has been checked. Everywhere else keeps the dates, the reminders and
-the actions, drops the guides, and uses country-neutral category names. Adding a
-country means writing its guides and adding it to `WITH_GUIDANCE` in
-`src/data/countries.ts`; no screen needs touching.
+A scan reads the whole document, not just the date: the name as printed, the
+document or policy number, who issued it, where, and any amount of money on it.
+Values are kept exactly as printed — somebody is going to paste an Emirates ID
+number into a government form, and a helpfully reformatted number is a wrong
+one. Everything found is searchable, and exports as its own spreadsheet column.
+
+Renewal guidance comes from two places. The UAE guides were checked one
+authority at a time — every fee against the body that charges it — and those
+remain the answer there. Everywhere else the app asks its service to search the
+live web, and shows the result with its sources attached, labelled as guidance
+to check rather than instruction to follow. That is cached per jurisdiction, so
+the two thousandth person asking how to renew a driving licence in Sharjah costs
+nothing at all.
+
+Adding hand-checked guides for a country means writing them and adding it to
+`WITH_GUIDANCE` in `src/data/countries.ts`; no screen needs touching, and the
+generated answer steps aside for them.
 
 ## Running it
 
@@ -80,10 +90,10 @@ src/
   data/             categories, renewal guides, countries, authorities, icons,
                     and the document repository
   domain/           the rules, pure and tested: migrations, rolling forward,
-                    late fees, expiry dates
-  hooks/            theme, urgency, reading a document
+                    late fees, expiry dates, scanned fields, guidance provenance
+  hooks/            theme, urgency, reading a document, renewal guidance
   lib/              dates, files, scanning, notifications, reminder planning,
-                    backup, biometrics, the HTTP client
+                    backup, biometrics, guidance, the HTTP client
   store/            React context over the repository
 server/             the reading service — see server/README.md
 ```
@@ -106,6 +116,10 @@ it:
    makes iOS match.
 4. **One HTTP client.** Everything the app asks of the service goes through
    `lib/http.ts`, so a lesson about handling a failure is learned once.
+5. **Generated guidance never dresses as verified guidance.** Both reach the
+   screen as one `DisplayGuidance`, and the sentence saying which it is comes
+   from `domain/renewal-guidance.ts` rather than from the screen — so it is not
+   possible to draw the guidance and forget to say where it came from.
 
 ## The design
 

@@ -117,6 +117,50 @@ export const AskRequest = z
 export type AskRequest = z.infer<typeof AskRequest>;
 
 /**
+ * What may be asked about, and nothing else.
+ *
+ * This one is stricter than the rest, and the reason is money. Each new
+ * combination that is not already cached costs a live web search, so the set of
+ * things that can be asked about has to be finite and small. A free-text region
+ * would let one leaked app token mint an unbounded number of them.
+ *
+ * So: a category id in the app's own slug shape, a two-letter country code, and
+ * an optional region that must also be a short slug. That bounds the key space
+ * at a few thousand, and the per-day ceiling on new generations bounds the
+ * spend inside that.
+ */
+export const GuidanceRequest = z.object({
+  typeId: z
+    .string()
+    .regex(/^[a-z][a-z0-9-]{1,39}$/, 'typeId')
+    .transform((value) => value.toLowerCase()),
+  /** What it is called where the user is — shown to the model, not part of the key. */
+  label: z.string().trim().min(1).max(60),
+  country: z
+    .string()
+    .regex(/^[A-Za-z]{2}$/, 'country')
+    .transform((value) => value.toLowerCase()),
+  countryName: z.string().trim().min(1).max(60),
+  region: z
+    .string()
+    .max(40)
+    .optional()
+    .transform((value) => (value ?? '').trim())
+    .refine((value) => value === '' || /^[a-z][a-z0-9 '-]{1,39}$/i.test(value), 'region'),
+});
+export type GuidanceRequest = z.infer<typeof GuidanceRequest>;
+
+/**
+ * The cache key, and the whole of what a cached entry is keyed on. Nothing
+ * about the person asking is in it, which is what makes one entry serveable to
+ * everybody who asks the same question.
+ */
+export function guidanceKey(request: GuidanceRequest): string {
+  const region = request.region.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  return [request.typeId, request.country, region].filter(Boolean).join('.');
+}
+
+/**
  * Parses a body against a schema, or raises the one error the app knows how to
  * present. The reason for failure is deliberately not relayed: it names fields
  * of a request the person holding the phone never wrote, and it can quote the

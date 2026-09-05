@@ -38,6 +38,12 @@ export const BUCKETS: Record<string, Bucket> = {
   '/ask': { windowMs: HOUR, max: 30, label: 'questions' },
   '/subscriptions': { windowMs: HOUR, max: 20, label: 'screenshots read' },
   /*
+   * Guidance is nearly always a cache hit, and a phone asks for it once per
+   * document type it holds. Generous because a cached answer costs nothing;
+   * the ceiling that matters is the one on new jurisdictions in routes.ts.
+   */
+  '/guidance': { windowMs: HOUR, max: 40, label: 'renewal look-ups' },
+  /*
    * Icons are cheap, cached, and fetched in a burst the first time somebody
    * adds their subscriptions — so this is generous. It is here at all because
    * the route needs no credential (on the web it is an <img> src, and an image
@@ -64,6 +70,7 @@ export const DAILY_PER_INSTALL: Record<string, number> = {
   '/brief': 30,
   '/ask': 80,
   '/subscriptions': 40,
+  '/guidance': 60,
 };
 
 /**

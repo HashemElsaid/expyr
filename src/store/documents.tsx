@@ -9,13 +9,15 @@ import {
   useRef,
   useState,
 } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
-import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
-import { daysUntil, toISODate } from '@/lib/dates';
-import { deleteAttachment, newAttachmentKey, storeAttachment } from '@/lib/files';
+import { migrateDocument, rollForwardAll } from '@/domain/documents';
+import { daysUntil } from '@/lib/dates';
+import { deleteAttachment, storeAttachment } from '@/lib/files';
 import { newDocumentId } from '@/lib/ids';
 import { deleteReading } from '@/lib/reading';
-import { cancelReminders, scheduleReminders, snoozeReminder } from '@/lib/notifications';
+import { applyReminderPlan, cancelAllReminders, type ReminderStatus } from '@/lib/notifications';
+import { snoozeDate } from '@/lib/reminder-plan';
 import { useSettings } from '@/store/settings';
 import { Attachment, DocumentDraft, TrackedDocument } from '@/types';
 
@@ -23,16 +25,34 @@ const STORAGE_KEY = 'expyr.documents.v1';
 /** Where documents lived before the app was renamed. Read once, then migrated. */
 const LEGACY_STORAGE_KEY = 'renewly.documents.v1';
 
+/**
+ * What went wrong while saving, in a sentence somebody can act on.
+ *
+ * This exists because the failure it describes used to be invisible. Every
+ * write ended in an empty catch, so a phone that could not write to storage
+ * showed the document on screen, said nothing, and lost it at the next launch.
+ * A tracker that silently forgets is worse than one that refuses.
+ */
+export type SaveProblem = {
+  message: string;
+  /** Runs the same write again. */
+  retry: () => Promise<void>;
+};
+
 type DocumentsContextValue = {
   /** Active items only — archived ones are kept separately. */
   documents: TrackedDocument[];
   archived: TrackedDocument[];
   loaded: boolean;
+  /** Set when the last write to storage failed. Null when all is well. */
+  saveProblem: SaveProblem | null;
+  /** How many reminders are booked with iOS, and how many were wanted. */
+  reminders: ReminderStatus;
   setArchived: (id: string, archived: boolean) => Promise<void>;
   addDocument: (draft: DocumentDraft) => Promise<TrackedDocument>;
   updateDocument: (id: string, draft: DocumentDraft) => Promise<void>;
   removeDocument: (id: string) => Promise<void>;
-  /** Re-books every reminder — used after the reminder time changes. */
+  /** Re-books every reminder — used after notification permission is granted. */
   rescheduleAll: () => Promise<void>;
   /** Swaps in a restored set, cancelling anything the old set had booked. */
   replaceAll: (documents: TrackedDocument[]) => Promise<void>;
@@ -44,128 +64,39 @@ type DocumentsContextValue = {
 
 const DocumentsContext = createContext<DocumentsContextValue | null>(null);
 
-/**
- * Fills in fields added after a document was first saved, so upgrading the app
- * never loses or breaks existing entries.
- */
-/**
- * Moves a subscription's date past today, one period at a time, remembering
- * the dates it has been. Nothing else in the app moves on its own: a visa sits
- * expired until somebody deals with it, which is the point of the warning. A
- * subscription has already taken the money and will take it again, so the only
- * useful thing to show is the next time.
- */
-function rollForward(doc: TrackedDocument): TrackedDocument {
-  if (!doc.renewsEvery || doc.archivedAt) return doc;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const next = new Date(`${doc.expiryDate}T00:00:00`);
-  if (Number.isNaN(next.getTime()) || next >= today) return doc;
-
-  /*
-   * The day of the month it charges on, kept for the whole journey. Adding a
-   * month to the 31st of January lands in March if you let the date do it
-   * itself, so each step moves whole months and then puts the day back, short
-   * months taking the last day they have.
-   */
-  const anchor = next.getDate();
-  const past: string[] = [];
-
-  // Guarded, so a nonsense date cannot spin here forever.
-  for (let i = 0; i < 400 && next < today; i += 1) {
-    past.push(toISODate(next));
-    if (doc.renewsEvery === 'weekly') {
-      next.setDate(next.getDate() + 7);
-      continue;
-    }
-    const months = doc.renewsEvery === 'monthly' ? 1 : doc.renewsEvery === 'quarterly' ? 3 : 12;
-    next.setDate(1);
-    next.setMonth(next.getMonth() + months);
-    const lastOfMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
-    next.setDate(Math.min(anchor, lastOfMonth));
-  }
-
-  return {
-    ...doc,
-    // Local, not UTC: toISOString would hand back yesterday everywhere east of London.
-    expiryDate: toISODate(next),
-    history: [...(doc.history ?? []), ...past],
-  };
-}
-
-function migrate(raw: unknown): TrackedDocument | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const doc = raw as Partial<TrackedDocument> & {
-    imageUri?: string;
-    fileUri?: string;
-    fileType?: 'image' | 'pdf';
-  };
-  if (!doc.id || !doc.typeId || !doc.expiryDate) return null;
-
-  // A category removed in a later version falls back rather than disappearing.
-  const typeId = DOCUMENT_TYPES.some((t) => t.id === doc.typeId) ? doc.typeId : 'other';
-
-  /*
-   * Two older shapes to carry forward: `imageUri` from before PDFs, and a
-   * single `fileUri` from before multiple attachments. The files on disk keep
-   * their original names, so nothing needs moving — only describing.
-   */
-  const legacyUri = doc.fileUri ?? doc.imageUri;
-  const files: Attachment[] = doc.files?.length
-    ? doc.files
-    : legacyUri
-      ? [{ uri: legacyUri, type: doc.fileType ?? 'image', key: 'legacy' }]
-      : [];
-
-  return {
-    // Existing ids are left exactly as they are — scheduled notifications and
-    // attachment filenames on disk are named after them.
-    id: doc.id,
-    typeId,
-    title: doc.title ?? getDocumentType(typeId).label,
-    expiryDate: doc.expiryDate,
-    documentNumber: doc.documentNumber,
-    notes: doc.notes,
-    owner: doc.owner,
-    files,
-    leadDays: doc.leadDays?.length ? doc.leadDays : getDocumentType(typeId).defaultLeadDays,
-    archivedAt: doc.archivedAt,
-    history: doc.history,
-    renewsEvery: doc.renewsEvery,
-    iconDomain: doc.iconDomain,
-    visibility: doc.visibility ?? 'private',
-    notificationIds: doc.notificationIds ?? [],
-    createdAt: doc.createdAt ?? new Date().toISOString(),
-    // Anything saved before this field existed has not changed since it was made.
-    updatedAt: doc.updatedAt ?? doc.createdAt ?? new Date().toISOString(),
-  };
-}
+const NO_REMINDERS: ReminderStatus = { booked: 0, wanted: 0, unchanged: true };
 
 /**
  * Copies any newly picked attachments into permanent storage and removes the
- * files behind attachments the user dropped.
+ * files behind attachments the user dropped. Reports what it could not store,
+ * because a document saved without the photo somebody just took is a silent
+ * loss they will only discover when they need it.
  */
 function persistAttachments(
   next: Attachment[],
   previous: Attachment[],
   documentId: string
-): Attachment[] {
+): { kept: Attachment[]; failed: number } {
   const kept: Attachment[] = [];
+  let failed = 0;
+
   for (const attachment of next) {
     const stored = storeAttachment(attachment.uri, documentId, attachment.type, attachment.key);
     if (stored) kept.push(stored);
+    else failed += 1;
   }
 
   for (const old of previous) {
     if (!next.some((a) => a.key === old.key)) deleteAttachment(old);
   }
-  return kept;
+  return { kept, failed };
 }
 
 export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [documents, setDocuments] = useState<TrackedDocument[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [saveProblem, setSaveProblem] = useState<SaveProblem | null>(null);
+  const [reminders, setReminders] = useState<ReminderStatus>(NO_REMINDERS);
   const { settings } = useSettings();
   /** Mirror of state so writes never race against a stale closure. */
   const latest = useRef<TrackedDocument[]>([]);
@@ -173,71 +104,140 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const country = useRef(settings.country);
   country.current = settings.country;
 
-  const commit = useCallback((next: TrackedDocument[]) => {
+  /**
+   * Writes the list to storage and brings the reminders in line with it.
+   *
+   * The write is awaited rather than fired and forgotten: it is the only moment
+   * the app can discover that a phone has no room left, and the one thing a
+   * user must not be lied to about. The reminder pass follows, and is allowed
+   * to be slower — the list is already on screen by then.
+   */
+  const commit = useCallback(async (next: TrackedDocument[]) => {
     latest.current = next;
     setDocuments(next);
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setSaveProblem(null);
+    } catch {
+      setSaveProblem({
+        message:
+          'Expyr could not save that to this iPhone. Your other items are safe, but this change will be lost if you close the app. Freeing up storage usually fixes it.',
+        retry: () => commit(latest.current),
+      });
+      // The reminders would describe a list that is not on disk. Leave them.
+      return;
+    }
+
+    const status = await applyReminderPlan(next, country.current);
+    setReminders(status);
   }, []);
+
+  /**
+   * Brings dates and reminders up to date without changing anything the user
+   * did. Runs on load and whenever the app comes back to the front, because
+   * both subscriptions and reminders go stale by the passage of time alone.
+   */
+  const refresh = useCallback(async () => {
+    const rolled = rollForwardAll(latest.current);
+    if (rolled !== latest.current) {
+      await commit(rolled);
+      return;
+    }
+    const status = await applyReminderPlan(latest.current, country.current);
+    setReminders(status);
+  }, [commit]);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then(async (raw) => {
+    let live = true;
+
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
         // Anything saved under the old name is adopted, then written back under
-        // the new one on the next change. Renaming the app must not look like
-        // losing everything you had put in it.
+        // the new one. Renaming the app must not look like losing everything.
         const source = raw ?? (await AsyncStorage.getItem(LEGACY_STORAGE_KEY));
         if (!source) return;
+
         const parsed: unknown = JSON.parse(source);
         if (!Array.isArray(parsed)) return;
-        const loaded = parsed.map(migrate).filter((d): d is TrackedDocument => d !== null);
 
-        /*
-         * Anything whose date moved is carrying reminders for a charge that has
-         * already happened. They are rebooked against the new date, after the
-         * list is on screen — the app should not wait on notification work to
-         * show somebody their own documents.
-         */
-        const moved = new Set<string>();
-        const migrated = loaded.map((doc) => {
-          const advanced = rollForward(doc);
-          if (advanced !== doc) moved.add(doc.id);
-          return advanced;
-        });
-        if (moved.size > 0) {
-          setTimeout(async () => {
-            const rebooked = await Promise.all(
-              latest.current.map(async (doc) => {
-                if (!moved.has(doc.id)) return doc;
-                await cancelReminders(doc.notificationIds);
-                return { ...doc, notificationIds: await scheduleReminders(doc, country.current) };
-              })
-            );
-            commit(rebooked);
-          }, 0);
+        const loadedDocs = parsed
+          .map(migrateDocument)
+          .filter((d): d is TrackedDocument => d !== null);
+
+        if (!live) return;
+        latest.current = loadedDocs;
+        setDocuments(loadedDocs);
+
+        // Written back under the new key only when it was read from the old one.
+        if (!raw) {
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(loadedDocs)).catch(() => {});
         }
-        latest.current = migrated;
-        setDocuments(migrated);
-        if (!raw) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated)).catch(() => {});
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
+      } catch {
+        /*
+         * Unreadable storage. The list stays empty rather than the app refusing
+         * to open, and nothing is written over the top of whatever is there —
+         * a later launch may well read it, and overwriting now would make sure
+         * it never did.
+         */
+        if (live) {
+          setSaveProblem({
+            message:
+              'Expyr could not read what it had saved on this iPhone. Nothing has been overwritten. Restarting usually fixes it; if it does not, restore from a backup.',
+            retry: async () => {},
+          });
+        }
+      } finally {
+        if (live) setLoaded(true);
+      }
+    })();
+
+    return () => {
+      live = false;
+    };
   }, []);
+
+  /*
+   * Once the list is on screen, catch it up: subscriptions whose charge has
+   * passed move to the next one, and the reminder plan is rebuilt for the
+   * dates as they now are. Deliberately after the first paint — nobody should
+   * wait on notification work to see their own documents.
+   */
+  useEffect(() => {
+    if (!loaded) return;
+    refresh();
+  }, [loaded, refresh]);
+
+  /*
+   * And again whenever the app comes back to the front. A phone left closed
+   * for two months has subscriptions that have charged twice and a reminder
+   * queue describing a world that has moved on.
+   */
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active' && loaded) refresh();
+    });
+    return () => sub.remove();
+  }, [loaded, refresh]);
 
   const addDocument = useCallback(
     async (draft: DocumentDraft) => {
       const id = newDocumentId();
       const now = new Date().toISOString();
+      const { kept, failed } = persistAttachments(draft.files, [], id);
+
       const doc: TrackedDocument = {
         ...draft,
         id,
-        files: persistAttachments(draft.files, [], id),
+        files: kept,
         visibility: draft.visibility ?? 'private',
-        notificationIds: [],
         createdAt: now,
         updatedAt: now,
       };
-      doc.notificationIds = await scheduleReminders(doc, country.current);
-      commit([...latest.current, doc]);
+
+      await commit([...latest.current, doc]);
+      if (failed > 0) reportAttachmentFailure(failed, setSaveProblem);
       return doc;
     },
     [commit]
@@ -248,23 +248,20 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       const previous = latest.current.find((d) => d.id === id);
       if (!previous) return;
 
-      await cancelReminders(previous.notificationIds);
+      const { kept, failed } = persistAttachments(draft.files, previous.files, id);
 
       const updated: TrackedDocument = {
         ...draft,
         id,
-        files: persistAttachments(draft.files, previous.files, id),
+        files: kept,
         // No screen sets this yet, so an edit must not quietly reset it.
         visibility: draft.visibility ?? previous.visibility,
-        notificationIds: [],
         createdAt: previous.createdAt,
         updatedAt: new Date().toISOString(),
       };
-      updated.notificationIds = await scheduleReminders(
-        updated,
-        country.current
-      );
-      commit(latest.current.map((d) => (d.id === id ? updated : d)));
+
+      await commit(latest.current.map((d) => (d.id === id ? updated : d)));
+      if (failed > 0) reportAttachmentFailure(failed, setSaveProblem);
     },
     [commit]
   );
@@ -273,54 +270,35 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       const target = latest.current.find((d) => d.id === id);
       if (!target) return;
-      await cancelReminders(target.notificationIds);
       target.files.forEach(deleteAttachment);
       // The transcript is the document's contents in plain text. It must not
       // outlive the document somebody just deleted.
       deleteReading(id);
-      commit(latest.current.filter((d) => d.id !== id));
+      await commit(latest.current.filter((d) => d.id !== id));
     },
     [commit]
   );
 
   const rescheduleAll = useCallback(async () => {
-    const next: TrackedDocument[] = [];
-    for (const doc of latest.current) {
-      await cancelReminders(doc.notificationIds);
-      next.push({
-        ...doc,
-        notificationIds: doc.archivedAt
-          ? []
-          : await scheduleReminders(doc, country.current),
-      });
-    }
-    commit(next);
-  }, [commit]);
+    const status = await applyReminderPlan(latest.current, country.current);
+    setReminders(status);
+  }, []);
 
   const replaceAll = useCallback(
     async (restored: TrackedDocument[]) => {
-      for (const doc of latest.current) {
-        await cancelReminders(doc.notificationIds);
-      }
-      const next: TrackedDocument[] = [];
-      for (const doc of restored) {
-        next.push({
-          ...doc,
-          notificationIds: await scheduleReminders(doc, country.current),
-        });
-      }
-      commit(next);
+      await cancelAllReminders();
+      await commit(restored);
     },
     [commit]
   );
 
   const deleteEverything = useCallback(async () => {
     for (const doc of latest.current) {
-      await cancelReminders(doc.notificationIds);
       doc.files.forEach(deleteAttachment);
       deleteReading(doc.id);
     }
-    commit([]);
+    await cancelAllReminders();
+    await commit([]);
   }, [commit]);
 
   const setArchived = useCallback(
@@ -328,34 +306,30 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       const target = latest.current.find((d) => d.id === id);
       if (!target) return;
 
-      await cancelReminders(target.notificationIds);
       const updated: TrackedDocument = {
         ...target,
         archivedAt: archived ? new Date().toISOString() : undefined,
+        // Archiving settles the matter; an outstanding snooze goes with it.
+        snoozedUntil: archived ? undefined : target.snoozedUntil,
         updatedAt: new Date().toISOString(),
-        // Archived items keep no reminders; restoring one re-books them.
-        notificationIds: archived
-          ? []
-          : await scheduleReminders(
-              { ...target, archivedAt: undefined },
-                  country.current
-            ),
       };
-      commit(latest.current.map((d) => (d.id === id ? updated : d)));
+      await commit(latest.current.map((d) => (d.id === id ? updated : d)));
     },
     [commit]
   );
 
+  /**
+   * Records the snooze on the document rather than booking a notification for
+   * it. The planner picks it up on the next pass, which means a later
+   * rebalance carries it forward instead of cancelling something it knew
+   * nothing about.
+   */
   const snoozeDocument = useCallback(
     async (id: string, days = 7) => {
       const target = latest.current.find((d) => d.id === id);
       if (!target) return;
-      const notificationId = await snoozeReminder(target, days);
-      if (!notificationId) return;
-      commit(
-        latest.current.map((d) =>
-          d.id === id ? { ...d, notificationIds: [...d.notificationIds, notificationId] } : d
-        )
+      await commit(
+        latest.current.map((d) => (d.id === id ? { ...d, snoozedUntil: snoozeDate(days) } : d))
       );
     },
     [commit]
@@ -370,6 +344,8 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         .filter((d) => d.archivedAt)
         .sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? '')),
       loaded,
+      saveProblem,
+      reminders,
       setArchived,
       addDocument,
       updateDocument,
@@ -382,6 +358,8 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     [
       documents,
       loaded,
+      saveProblem,
+      reminders,
       setArchived,
       addDocument,
       updateDocument,
@@ -394,6 +372,24 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   );
 
   return <DocumentsContext.Provider value={value}>{children}</DocumentsContext.Provider>;
+}
+
+/**
+ * The document saved but a photo did not. Said plainly rather than silently,
+ * because the person who just photographed their Emirates ID has every reason
+ * to believe the photo is in there.
+ */
+function reportAttachmentFailure(
+  failed: number,
+  report: (problem: SaveProblem) => void
+): void {
+  report({
+    message:
+      failed === 1
+        ? 'One attachment could not be saved to this iPhone. The item was saved without it — try attaching it again.'
+        : `${failed} attachments could not be saved to this iPhone. The item was saved without them — try attaching them again.`,
+    retry: async () => {},
+  });
 }
 
 export function useDocuments(): DocumentsContextValue {

@@ -34,7 +34,6 @@ export function makeDocument(
     files: [],
     leadDays: getDocumentType(typeId).defaultLeadDays,
     visibility: 'private',
-    notificationIds: [],
     createdAt: now,
     updatedAt: now,
     ...overrides,

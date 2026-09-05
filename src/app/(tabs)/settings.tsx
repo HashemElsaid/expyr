@@ -40,7 +40,7 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings, update } = useSettings();
-  const { documents, rescheduleAll } = useDocuments();
+  const { documents, reminders, rescheduleAll } = useDocuments();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
   const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
   const [testState, setTestState] = useState<'idle' | 'sent'>('idle');
@@ -49,7 +49,20 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     countScheduled().then(setBookedWithIOS).catch(() => {});
-  }, [notificationsOn, documents.length]);
+  }, [notificationsOn, documents.length, reminders.booked]);
+
+  const reminderAt = formatTime(REMINDER_TIME.hour, REMINDER_TIME.minute);
+
+  /*
+   * Honest about the ceiling. iOS holds 64 pending reminders for an app and
+   * silently drops the rest, so Expyr books the soonest and says plainly when
+   * there were more — rather than claiming everything is covered when the far
+   * end of the list is not booked yet.
+   */
+  const reminderSummary =
+    reminders.wanted > reminders.booked
+      ? `${bookedWithIOS} booked with iOS, each at ${reminderAt}. The furthest ${reminders.wanted - reminders.booked} are booked as these arrive — iOS holds a limited number at once.`
+      : `${bookedWithIOS} booked with iOS, each at ${reminderAt}.`;
 
   useEffect(() => {
     checkBiometricSupport().then(setBiometrics).catch(() => {});
@@ -94,7 +107,6 @@ export default function SettingsScreen() {
     }
   }
 
-  const reminderAt = formatTime(REMINDER_TIME.hour, REMINDER_TIME.minute);
 
   return (
     <ThemedView style={styles.container}>
@@ -148,7 +160,7 @@ export default function SettingsScreen() {
                     ? 'Expyr cannot warn you about anything until these are allowed.'
                     : testState === 'sent'
                       ? 'Two sent, a few seconds apart: an ordinary one and a subscription. Lock your phone to see them properly, and hold one to see its buttons.'
-                      : `${bookedWithIOS} booked with iOS, each at ${reminderAt}.`
+                      : reminderSummary
               }
               action={
                 notificationsOn

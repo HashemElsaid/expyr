@@ -10,7 +10,7 @@ import { Attachment, TrackedDocument } from '@/types';
 
 const BACKUP_FORMAT = 1;
 
-type BackupDocument = Omit<TrackedDocument, 'files' | 'notificationIds'> & {
+type BackupDocument = Omit<TrackedDocument, 'files'> & {
   /** Attachments travel inside the file so a restore is complete. */
   attachments?: { key: string; type: 'image' | 'pdf'; base64: string }[];
   /** Written by earlier versions, when a document had a single attachment. */
@@ -54,7 +54,7 @@ export async function exportBackup(documents: TrackedDocument[]): Promise<void> 
     format: BACKUP_FORMAT,
     exportedAt: new Date().toISOString(),
     documents: documents.map((doc) => {
-      const { files, notificationIds, ...rest } = doc;
+      const { files, ...rest } = doc;
       const attachments: BackupDocument['attachments'] = [];
       for (const file of files) {
         try {
@@ -183,7 +183,7 @@ export async function importBackup(): Promise<RestoreResult | null> {
         ? entry.leadDays
         : getDocumentType(entry.typeId).defaultLeadDays,
       visibility: entry.visibility ?? 'private',
-      notificationIds: [],
+      snoozedUntil: entry.snoozedUntil,
       createdAt: entry.createdAt ?? new Date().toISOString(),
       updatedAt: entry.updatedAt ?? entry.createdAt ?? new Date().toISOString(),
     });

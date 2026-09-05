@@ -91,6 +91,15 @@ export type TrackedDocument = {
   leadDays: number[];
   /** Set once dealt with — hidden from the main list, reminders cancelled. */
   archivedAt?: string;
+  /**
+   * An extra nudge the user asked for from a notification, as an ISO date.
+   *
+   * Stored rather than booked straight with iOS, because reminders are planned
+   * as a whole and a plan that rebooked everything would cancel a bare
+   * scheduled notification it knew nothing about. This is the one reminder
+   * somebody explicitly asked for, so it is the last that should vanish.
+   */
+  snoozedUntil?: string;
   /** Expiry dates this item has had before, oldest first. */
   history?: string[];
   /**
@@ -106,8 +115,6 @@ export type TrackedDocument = {
    */
   iconDomain?: string;
   visibility: Visibility;
-  /** Ids of scheduled local notifications, so they can be cancelled. */
-  notificationIds: string[];
   createdAt: string;
   /**
    * Last change made on this device. Nothing reads it yet; it is what decides
@@ -123,5 +130,5 @@ export type TrackedDocument = {
  */
 export type DocumentDraft = Omit<
   TrackedDocument,
-  'id' | 'notificationIds' | 'createdAt' | 'updatedAt' | 'visibility'
+  'id' | 'createdAt' | 'updatedAt' | 'visibility'
 > & { visibility?: Visibility };

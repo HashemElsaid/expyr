@@ -252,6 +252,8 @@ function AppShell() {
           }}
         />
         <Stack.Screen name="document/[id]" options={{ title: '' }} />
+        {/* Titled from inside, once the person is known. */}
+        <Stack.Screen name="person/[name]" options={{ title: '' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
         <Stack.Screen name="terms" options={{ title: 'Terms' }} />
         <Stack.Screen name="archive" options={{ title: 'Archive' }} />

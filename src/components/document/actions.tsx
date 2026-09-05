@@ -1,4 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -75,18 +77,55 @@ export function ActionMenu({
   open,
   onClose,
   actions,
+  anchor,
 }: {
   open: boolean;
   onClose: () => void;
   actions: MenuAction[];
+  /**
+   * Where on the screen the button that opened this sits, when it is not the
+   * one in the navigation bar.
+   *
+   * Without it the card lands under the header, which is right for the ⋯ that
+   * lives there and wrong for every other ⋯ in the app — a menu that opens
+   * three inches from the finger that asked for it is the thing this component
+   * was written to stop doing.
+   */
+  anchor?: { top: number; right: number };
 }) {
   const theme = useTheme();
   // The card hangs below the navigation bar, whose height starts at the notch.
   const insets = useSafeAreaInsets();
 
+  /*
+   * Gone the instant the screen behind it is.
+   *
+   * Every action here can navigate, and the screen this menu belongs to stays
+   * mounted when it does — a tab always, a pushed screen until you come back.
+   * Closing the menu starts a fade, the push interrupts it, and the fade never
+   * finishes: a full-screen dim sat on top of the newly opened page and would
+   * not go away until you navigated back to the screen that owned it.
+   *
+   * Unmounting on blur rather than animating out. There is no exit animation to
+   * be interrupted if there is nothing left to animate.
+   */
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, [])
+  );
+
+  if (!focused) return null;
+
+  const placement = anchor
+    ? { paddingTop: anchor.top, paddingRight: anchor.right }
+    : { paddingTop: insets.top + 46 };
+
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={[styles.backdrop, { paddingTop: insets.top + 46 }]} onPress={onClose}>
+      <Pressable style={[styles.backdrop, placement]} onPress={onClose}>
         <View
           style={[
             styles.card,

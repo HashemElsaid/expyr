@@ -1,17 +1,20 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Dimensions,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ActionMenu, type MenuAction } from '@/components/document/actions';
 import { PrimaryButton, SecondaryButton } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -45,6 +48,21 @@ import type { TrackedDocument } from '@/types';
  * nothing.
  */
 
+/**
+ * Where a person's own file lives.
+ *
+ * The object form rather than a built string: expo-router encodes the parameter
+ * itself, which matters the moment somebody is called "Abu Bakr" or has an
+ * apostrophe in their name. "mine" travels as a literal because a route
+ * parameter cannot be empty and the phone's owner is stored with no name.
+ */
+function personHref(person: Person) {
+  return {
+    pathname: '/person/[name]' as const,
+    params: { name: person.name === MINE ? 'mine' : person.name },
+  };
+}
+
 /** Enough of the next card shows to say there is one. */
 const CARD_WIDTH = Math.min(320, Dimensions.get('window').width * 0.78);
 /** How many of a person's items fit before the card starts scrolling itself. */
@@ -53,12 +71,19 @@ const ITEMS_SHOWN = 4;
 export default function HouseholdScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { documents, updateDocument } = useDocuments();
+  const { documents, updateDocument, removeDocument } = useDocuments();
   const { settings, update } = useSettings();
 
   const [renaming, setRenaming] = useState<Person | null>(null);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
+  /**
+   * Which card's menu is open, and where its button is on screen.
+   *
+   * The position travels with it because a menu that opens under the header
+   * when the button is halfway down the page is a menu pointing at nothing.
+   */
+  const [menu, setMenu] = useState<{ person: Person; top: number; right: number } | null>(null);
 
   const people = useMemo(
     () => buildHousehold(documents, settings.people),
@@ -107,6 +132,101 @@ export default function HouseholdScreen() {
     successFeedback();
   }
 
+  /**
+   * Removing somebody, and being plain about what goes with them.
+   *
+   * Their documents are the question. Silently moving a partner's passport into
+   * your own file is wrong, and silently deleting it is worse — so the choice
+   * is put to the person making it, with the count in front of them.
+   */
+  function confirmRemove(person: Person) {
+    const count = person.items.length;
+
+    const forget = () =>
+      update({
+        people: settings.people.filter(
+          (name) => name.trim().toLowerCase() !== person.name.trim().toLowerCase()
+        ),
+      });
+
+    const reassign = async () => {
+      for (const doc of person.items) {
+        await updateDocument(doc.id, {
+          typeId: doc.typeId,
+          title: doc.title,
+          expiryDate: doc.expiryDate,
+          documentNumber: doc.documentNumber,
+          notes: doc.notes,
+          owner: '',
+          files: doc.files,
+          leadDays: doc.leadDays,
+          archivedAt: doc.archivedAt,
+          history: doc.history,
+          fields: doc.fields,
+        });
+      }
+      forget();
+      successFeedback();
+    };
+
+    const erase = async () => {
+      for (const doc of person.items) await removeDocument(doc.id);
+      forget();
+      successFeedback();
+    };
+
+    if (count === 0) {
+      forget();
+      successFeedback();
+      return;
+    }
+
+    Alert.alert(
+      `Remove ${person.label}?`,
+      `${person.label} has ${count} ${count === 1 ? 'item' : 'items'}. What should happen to ${
+        count === 1 ? 'it' : 'them'
+      }?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Keep as mine', onPress: reassign },
+        { text: `Delete ${count === 1 ? 'it' : 'them'}`, style: 'destructive', onPress: erase },
+      ]
+    );
+  }
+
+  function actionsFor(person: Person): MenuAction[] {
+    return [
+      {
+        label: 'Open their file',
+        icon: 'account-details-outline',
+        run: () => router.push(personHref(person)),
+      },
+      {
+        label: 'Add something for them',
+        icon: 'camera-outline',
+        run: () => router.push('/add'),
+      },
+      ...(person.name === MINE
+        ? []
+        : [
+            {
+              label: 'Rename',
+              icon: 'pencil-outline',
+              run: () => {
+                setDraft(person.name);
+                setRenaming(person);
+              },
+            },
+            {
+              label: `Remove ${person.label}`,
+              icon: 'account-remove-outline',
+              run: () => confirmRemove(person),
+              destructive: true,
+            },
+          ]),
+    ];
+  }
+
   function commitAdd() {
     const next = draft.trim();
     setAdding(false);
@@ -145,10 +265,13 @@ export default function HouseholdScreen() {
               person={person}
               gaps={gapsFor(person)}
               country={settings.country}
-              onRename={() => {
+              onOpenPerson={() => {
                 tapFeedback();
-                setDraft(person.name);
-                setRenaming(person);
+                router.push(personHref(person));
+              }}
+              onMenu={(at) => {
+                tapFeedback();
+                setMenu({ person, ...at });
               }}
               onOpen={(doc) => router.push(`/document/${doc.id}`)}
               onAddItem={() => router.push('/add')}
@@ -188,6 +311,13 @@ export default function HouseholdScreen() {
         </ScrollView>
       </SafeAreaView>
 
+      <ActionMenu
+        open={menu !== null}
+        onClose={() => setMenu(null)}
+        anchor={menu ? { top: menu.top, right: menu.right } : undefined}
+        actions={menu ? actionsFor(menu.person) : []}
+      />
+
       <NamePrompt
         visible={adding || renaming !== null}
         title={adding ? 'Add a family member' : 'What should they be called?'}
@@ -207,18 +337,22 @@ function PersonCard({
   person,
   gaps,
   country,
-  onRename,
+  onOpenPerson,
+  onMenu,
   onOpen,
   onAddItem,
 }: {
   person: Person;
   gaps: ReturnType<typeof findGaps>;
   country: Parameters<typeof labelForId>[1];
-  onRename: () => void;
+  onOpenPerson: () => void;
+  onMenu: (at: { top: number; right: number }) => void;
   onOpen: (doc: TrackedDocument) => void;
   onAddItem: () => void;
 }) {
   const theme = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const menuButton = useRef<View>(null);
   const shown = person.items.slice(0, ITEMS_SHOWN);
   const rest = person.items.length - shown.length;
 
@@ -231,23 +365,49 @@ function PersonCard({
 
   return (
     <View style={[styles.card, { borderColor: theme.border }]}>
-      <Pressable onPress={onRename} accessibilityRole="button" accessibilityLabel="Rename">
-        <View style={styles.nameRow}>
-          <ThemedText type="headline" numberOfLines={1} style={styles.flex}>
+      <View style={styles.nameRow}>
+        {/*
+         * The name and the summary open the person; the ⋯ opens everything you
+         * can do to them. Two targets rather than one, because "rename" was
+         * hiding behind a tap on a name that looked like a heading.
+         */}
+        <Pressable
+          onPress={onOpenPerson}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${person.label}`}
+          style={styles.flex}>
+          <ThemedText type="headline" numberOfLines={1}>
             {person.label}
           </ThemedText>
-          {/* Only somebody with a name of their own can be renamed. */}
-          {person.name !== MINE && (
-            <MaterialCommunityIcons name="pencil" size={15} color={theme.textTertiary} />
-          )}
-        </View>
-      </Pressable>
+          <ThemedText
+            type="small"
+            themeColor={person.urgent > 0 ? 'urgentStrong' : 'textTertiary'}>
+            {personSummary(person)}
+          </ThemedText>
+        </Pressable>
 
-      <ThemedText
-        type="small"
-        themeColor={person.urgent > 0 ? 'urgentStrong' : 'textTertiary'}>
-        {personSummary(person)}
-      </ThemedText>
+        <Pressable
+          ref={menuButton}
+          onPress={() => {
+            /*
+             * Measured at the moment it is pressed rather than on layout: these
+             * cards scroll sideways, so where this button was when the screen
+             * drew is not where the finger just touched.
+             */
+            menuButton.current?.measureInWindow((x, y, w) => {
+              onMenu({ top: y + w, right: Math.max(8, screenWidth - (x + w)) });
+            });
+          }}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={`More for ${person.label}`}>
+          <MaterialCommunityIcons
+            name="dots-horizontal"
+            size={20}
+            color={theme.textTertiary}
+          />
+        </Pressable>
+      </View>
 
       {worst && (
         <View style={styles.gap}>
@@ -391,6 +551,11 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 8,
   },
+  /*
+   * Filled rather than outlined. A hairline on warm paper is a suggestion of a
+   * card; these are meant to read as separate things you can pick between, and
+   * that needs the card to sit on the page rather than in it.
+   */
   addCard: { alignItems: 'center', justifyContent: 'center', gap: 10, borderStyle: 'dashed' },
 
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

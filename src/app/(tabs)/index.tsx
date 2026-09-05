@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DocIcon } from '@/components/doc-icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -12,40 +11,20 @@ import { labelForId } from '@/data/document-types';
 import { ensureBrandIcon, guessDomain } from '@/lib/brand-icons';
 import { Segmented } from '@/components/segmented';
 import { isSubscription } from '@/domain/documents';
+import { TimelineRow, TimelineSectionHeader } from '@/components/timeline-row';
+import { buildSections } from '@/domain/timeline';
 import { searchableText } from '@/domain/fields';
 import { useTheme } from '@/hooks/use-theme';
-import { urgencyColor } from '@/hooks/use-urgency';
 import {
-  countdownLabel,
   countdownShort,
   countWord,
   daysUntil,
   mastheadDate,
-  urgencyFor,
 } from '@/lib/dates';
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
 import { DocumentTypeId, TrackedDocument } from '@/types';
-
-type Section = { title: string; data: TrackedDocument[] };
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /** The renewals that come round every year, in the order worth suggesting. */
 const ANNUAL_STAPLES: DocumentTypeId[] = [
@@ -54,39 +33,6 @@ const ANNUAL_STAPLES: DocumentTypeId[] = [
   'health-insurance',
   'tenancy-ejari',
 ];
-
-/** One section per calendar month, in date order, so the year reads as a story. */
-function buildSections(docs: TrackedDocument[]): Section[] {
-  const byMonth = new Map<string, TrackedDocument[]>();
-  /*
-   * Anything already past comes out of the calendar and goes to the top under
-   * its own heading. Filed by month it reads as history — an Emirates ID that
-   * lapsed in August sits under "August 2026", above today, looking as settled
-   * as a tenancy that ends next year. It is not history. It is costing AED 20
-   * a day, and it is the only thing on the screen that cannot wait.
-   */
-  const overdue: TrackedDocument[] = [];
-
-  const sorted = [...docs].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate));
-  for (const doc of sorted) {
-    if (daysUntil(doc.expiryDate) < 0) {
-      overdue.push(doc);
-      continue;
-    }
-    const date = new Date(`${doc.expiryDate}T00:00:00`);
-    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
-    const existing = byMonth.get(key);
-    if (existing) existing.push(doc);
-    else byMonth.set(key, [doc]);
-  }
-
-  const months = [...byMonth.entries()].map(([key, data]) => {
-    const [year, month] = key.split('-');
-    return { title: `${MONTHS[Number(month)]} ${year}`, data };
-  });
-
-  return overdue.length > 0 ? [{ title: 'Overdue', data: overdue }, ...months] : months;
-}
 
 /**
  * Home: whether anything needs you today, and then the year in the order it
@@ -379,99 +325,12 @@ export default function HomeScreen() {
               )}
             </View>
           }
-          renderSectionHeader={({ section }) => {
-            const overdue = section.title === 'Overdue';
-            return (
-              <View style={styles.monthHeader}>
-                <ThemedText
-                  type="label"
-                  themeColor={overdue ? undefined : 'textTertiary'}
-                  style={overdue ? { color: theme.urgentStrong } : undefined}>
-                  {section.title}
-                </ThemedText>
-                <View
-                  style={[
-                    styles.rule,
-                    { backgroundColor: overdue ? theme.urgentStrong : theme.border },
-                    overdue && styles.ruleStrong,
-                  ]}
-                />
-              </View>
-            );
-          }}
-          renderItem={({ item }) => {
-            const date = new Date(`${item.expiryDate}T00:00:00`);
-            const days = daysUntil(item.expiryDate);
-            const color = urgencyColor(urgencyFor(days), theme);
-            const label = labelForId(item.typeId, settings.country);
-
-            return (
-              <Pressable onPress={() => router.push(`/document/${item.id}`)}>
-                {({ pressed }) => (
-                  <View style={[styles.row, pressed && styles.dim]}>
-                    <View style={styles.dateColumn}>
-                      <ThemedText type="numeral" style={{ color }}>
-                        {date.getDate()}
-                      </ThemedText>
-                      <ThemedText type="label" themeColor="textTertiary">
-                        {WEEKDAYS[date.getDay()]}
-                      </ThemedText>
-                    </View>
-
-                    <View style={[styles.spine, { backgroundColor: theme.border }]}>
-                      <View style={[styles.node, { backgroundColor: color }]} />
-                    </View>
-
-                    <View style={styles.rowBody}>
-                      <ThemedText type="title" numberOfLines={1}>
-                        {item.title}
-                      </ThemedText>
-                      {/*
-                       * What this row cannot show any other way. The countdown
-                       * is the point of the app and was missing from the list
-                       * entirely, and "Expires this day" appeared under things
-                       * that expired a fortnight ago because it was written as
-                       * a filler for rows with nothing else to say.
-                       */}
-                      <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
-                        {[
-                          /*
-                           * First, and only when it is close. The big date on
-                           * the left already says when; how long is what a
-                           * person needs when the answer is soon or already
-                           * past, and last in the line it was being truncated
-                           * away on every row.
-                           */
-                          days <= 30 ? countdownLabel(days) : null,
-                          item.owner,
-                          // A subscription's plan and price beat repeating its type.
-                          item.renewsEvery ? item.notes : null,
-                          // "Claude Pro - Monthly · AED 73.99 · Subscription / Membership" —
-                          // the last part is the only one nobody needed.
-                          item.title.trim() === label || (item.renewsEvery && item.notes)
-                            ? null
-                            : label,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </ThemedText>
-                    </View>
-
-                    <DocIcon
-                      typeId={item.typeId}
-                      iconDomain={
-                        item.iconDomain ??
-                        (item.renewsEvery || item.typeId === 'membership'
-                          ? guessDomain(item.title)
-                          : undefined)
-                      }
-                      size={38}
-                    />
-                  </View>
-                )}
-              </Pressable>
-            );
-          }}
+          renderSectionHeader={({ section }) => (
+            <TimelineSectionHeader title={section.title} />
+          )}
+          renderItem={({ item }) => (
+            <TimelineRow doc={item} onPress={() => router.push(`/document/${item.id}`)} />
+          )}
           ListEmptyComponent={
             loaded && documents.length === 0 ? (
               <EmptyState onAdd={() => router.push('/add')} />

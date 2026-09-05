@@ -89,6 +89,16 @@ export const GuidanceSchema = z.object({
    * procedure — the app says so differently, and more loudly.
    */
   standing: z.enum(['good', 'thin']),
+  /**
+   * Which of the hosts it was shown belong to the authority.
+   *
+   * A pattern cannot answer this. Ireland runs driver licensing on ndls.ie and
+   * publishes passports on ireland.ie; neither looks like a government from the
+   * outside, and enumerating two hundred countries' domains is not a rule, it
+   * is a list that is always wrong somewhere. The model has just read the pages
+   * and knows which one is the licensing authority, so it is asked.
+   */
+  officialHosts: z.array(z.string()),
 });
 
 export type Guidance = z.infer<typeof GuidanceSchema> & {
@@ -138,6 +148,7 @@ Rules:
 - needed is what they have to bring or upload, one item each.
 - typicalCost, lateFee and processingTime are short phrases as the notes state them, keeping the currency and the units the source used.
 - standing is "good" only if the notes are grounded in the responsible authority's own pages and cover the steps and at least the fee. Otherwise "thin".
+- officialHosts: of the hosts listed at the end of the notes, return those belonging to the government, the licensing authority, or the state body that actually performs this renewal — as bare hostnames, copied exactly from the list. Include state bodies that do not use a government-style domain. Exclude anything commercial, any blog, any encyclopedia, any law firm, any insurance broker and any relocation agency, however useful their page was. When in doubt, leave it out.
 - Write for somebody who has never done this before and does not know the jargon.`;
 
 /** A search result the model actually read, as opposed to one it remembers. */
@@ -169,13 +180,19 @@ export function looksOfficialForTests(url: string): boolean {
   return looksOfficial(url);
 }
 
-function looksOfficial(url: string): boolean {
+/** The bare hostname, or an empty string when it is not a URL at all. */
+function hostOf(url: string): string {
   try {
-    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
-    return GOVERNMENT_SUFFIX.test(host) || GOVERNMENT_HOST.test(host);
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
   } catch {
-    return false;
+    return '';
   }
+}
+
+function looksOfficial(url: string): boolean {
+  const host = hostOf(url);
+  if (!host) return false;
+  return GOVERNMENT_SUFFIX.test(host) || GOVERNMENT_HOST.test(host);
 }
 
 /**
@@ -325,7 +342,11 @@ Find the responsible authority's own current pages. Report the steps, what to br
 }
 
 /** Step two: shape the prose into what the app draws. Cheap, and no web access. */
-async function shape(request: GuidanceRequest, notes: string): Promise<z.infer<typeof GuidanceSchema>> {
+async function shape(
+  request: GuidanceRequest,
+  notes: string,
+  hosts: string[]
+): Promise<z.infer<typeof GuidanceSchema>> {
   const where = request.region
     ? `${request.region}, ${request.countryName}`
     : request.countryName;
@@ -338,7 +359,9 @@ async function shape(request: GuidanceRequest, notes: string): Promise<z.infer<t
     messages: [
       {
         role: 'user',
-        content: `Notes on renewing a ${request.label} in ${where}:\n\n${notes}`,
+        content:
+          `Notes on renewing a ${request.label} in ${where}:\n\n${notes}\n\n` +
+          `Hosts these notes came from:\n${hosts.map((host) => `- ${host}`).join('\n')}`,
       },
     ],
   });
@@ -360,7 +383,27 @@ async function shape(request: GuidanceRequest, notes: string): Promise<z.infer<t
  */
 export async function generateGuidance(request: GuidanceRequest): Promise<Guidance> {
   const { notes, sources } = await research(request);
-  const structured = await shape(request, notes);
+
+  const hosts = [...new Set(sources.map((source) => hostOf(source.url)).filter(Boolean))];
+  const structured = await shape(request, notes, hosts);
+
+  /*
+   * Either judgement is enough to earn the mark, and neither can take it away.
+   * The pattern knows a .gov when it sees one and nothing else; the model knows
+   * that ndls.ie is Ireland's licensing authority and could be talked into
+   * anything. Together they are wrong less often than either alone, and the
+   * prompt is told to leave it out when in doubt.
+   */
+  const named = new Set(
+    structured.officialHosts.map((host) => host.toLowerCase().replace(/^www\./, ''))
+  );
+  const marked = sources.map((source) => ({
+    ...source,
+    official: source.official || named.has(hostOf(source.url)),
+  }));
+
+  // Authorities first, now that more of them are recognised as such.
+  marked.sort((a, b) => Number(b.official) - Number(a.official));
 
   return {
     ...structured,
@@ -373,12 +416,12 @@ export async function generateGuidance(request: GuidanceRequest): Promise<Guidan
     typicalCost: orEmpty(structured.typicalCost),
     lateFee: orEmpty(structured.lateFee),
     processingTime: orEmpty(structured.processingTime),
-    sources,
+    sources: marked,
     /*
      * Guidance with no source behind it is a guess with a citation-shaped hole.
      * The app is told it is thin whatever the model thought of itself.
      */
-    standing: sources.length === 0 ? 'thin' : structured.standing,
+    standing: marked.length === 0 ? 'thin' : structured.standing,
     checkedOn: new Date().toISOString().slice(0, 10),
   };
 }

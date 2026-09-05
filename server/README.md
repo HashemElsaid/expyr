@@ -72,6 +72,19 @@ Three ceilings, because a search costs real money:
 - A bounded key space. The route accepts a slug type id, a two-letter country
   code and a short region, so a leaked app token cannot mint unlimited distinct
   searches out of free text.
+- A cooldown on failure. A jurisdiction whose research throws is left alone for
+  ten minutes and the route says so, rather than replying "working on it" to
+  something that will not work — otherwise the app's own polling turns one
+  unanswerable question into a day's worth of searches.
+
+**The route is asynchronous.** A jurisdiction it has not seen gets `202` and
+`{"status":"working"}` straight away; the app asks again every few seconds
+until it gets the answer. It has to work this way: researching one takes about
+fifty seconds, and a request that sends no bytes for that long is one a proxy
+closes — Render's edge returned `502` at twenty-one seconds, and the answer was
+produced, cached, and thrown away down a connection nobody was listening on.
+The research runs regardless of who is still waiting, so an abandoned request
+still warms the cache for its own retry.
 
 Set `EXPYR_GUIDANCE_DIR` to a path the host keeps and the cache survives
 restarts; leave it unset and it is memory only, which still saves every request

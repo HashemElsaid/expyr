@@ -3,6 +3,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
 
 import { getClient, THINKING_CAPABLE } from './comprehend.ts';
+import { EFFORT_CAPABLE } from './extract.ts';
 
 /**
  * How to renew a thing, in a place, worked out on demand.
@@ -31,10 +32,26 @@ const RESEARCH_MODEL = process.env.EXPYR_GUIDANCE_MODEL ?? 'claude-sonnet-5';
 const SHAPE_MODEL = process.env.EXPYR_GUIDANCE_SHAPE_MODEL ?? 'claude-haiku-4-5';
 
 /**
- * Searches per request. Enough for an official page and a corroborating one;
- * few enough that a single request cannot run away.
+ * Searches per request.
+ *
+ * Started at six, which was wrong for a reason worth writing down: this is the
+ * one request in the app where a person is watching a spinner rather than
+ * getting on with something, and six searches at full effort took over four
+ * minutes — longer than the app's own timeout, so nobody would ever have seen
+ * the answer. Three finds the authority's page and one corroborating source,
+ * which is what the answer is actually built from.
  */
-const MAX_SEARCHES = 6;
+const MAX_SEARCHES = 3;
+
+/**
+ * Low effort, deliberately.
+ *
+ * The work here is finding the right page and reporting what it says, not
+ * reasoning about it — the judgment that matters is "is this the authority or a
+ * blog", which is a shallow question. Effort bought minutes and no accuracy on
+ * a task shaped like this one, and minutes are the whole problem.
+ */
+const RESEARCH_EFFORT = 'low' as const;
 
 /**
  * A server tool can hand the turn back mid-flight and ask to be continued.
@@ -108,7 +125,9 @@ What matters more than completeness:
 - Do not generalise from a neighbouring country or a different emirate or state. Jurisdictions differ precisely in the details a person needs.
 - If the rules genuinely differ by sub-region and you were not told which one, say so rather than picking one.
 
-Write your findings as plain prose, in this order: what renewing this involves, who does it, the steps in order, what to bring, the fee, the penalty for lateness, how long it takes. Say explicitly which of those you could not establish.`;
+Search no more than three times. The authority's own page is usually the first result for "<document> renewal <place> official"; go there rather than reading around it.
+
+Write your findings as terse notes, not an essay, in this order: what renewing this involves, who does it, the steps in order, what to bring, the fee, the penalty for lateness, how long it takes. One line each. Name explicitly which of those you could not establish. Do not restate the question, do not explain your search, and do not add a conclusion.`;
 
 const SHAPE_SYSTEM = `You turn research notes about renewing a document into the exact structure an app will display.
 
@@ -219,22 +238,33 @@ Find the responsible authority's own current pages. Report the steps, what to br
   const collected: Anthropic.ContentBlock[] = [];
 
   for (let turn = 0; turn <= MAX_CONTINUATIONS; turn += 1) {
-    const response = await getClient().messages.create({
-      model: RESEARCH_MODEL,
-      max_tokens: 8000,
-      system: RESEARCH_SYSTEM,
-      ...(THINKING_CAPABLE.includes(RESEARCH_MODEL)
-        ? { thinking: { type: 'adaptive' as const } }
-        : {}),
-      tools: [
-        {
-          type: 'web_search_20260209',
-          name: 'web_search',
-          max_uses: MAX_SEARCHES,
-        },
-      ],
-      messages,
-    });
+    /*
+     * Streamed rather than awaited whole. Several web searches take long enough
+     * that a plain request risks the SDK's own HTTP timeout, and a request that
+     * dies at the transport after paying for three searches is the worst of
+     * both. `getFinalMessage` gives back the same message either way.
+     */
+    const response = await getClient().messages
+      .stream({
+        model: RESEARCH_MODEL,
+        max_tokens: 4000,
+        system: RESEARCH_SYSTEM,
+        ...(THINKING_CAPABLE.includes(RESEARCH_MODEL)
+          ? { thinking: { type: 'adaptive' as const } }
+          : {}),
+        ...(EFFORT_CAPABLE.includes(RESEARCH_MODEL)
+          ? { output_config: { effort: RESEARCH_EFFORT } }
+          : {}),
+        tools: [
+          {
+            type: 'web_search_20260209',
+            name: 'web_search',
+            max_uses: MAX_SEARCHES,
+          },
+        ],
+        messages,
+      })
+      .finalMessage();
 
     collected.push(...response.content);
 

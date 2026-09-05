@@ -27,7 +27,7 @@ const MODEL = process.env.EXPYR_MODEL ?? 'claude-haiku-4-5';
  * `output_config.effort` is rejected outright by the older small models, so it
  * can only be sent to models known to accept it.
  */
-const EFFORT_CAPABLE_MODELS = [
+export const EFFORT_CAPABLE = [
   'claude-fable-5',
   'claude-mythos-5',
   'claude-opus-5',
@@ -165,7 +165,7 @@ export async function extractFromImage(opts: {
     system: buildSystemPrompt(today, opts.categories),
     output_config: {
       // Keeps thinking tokens down on the models that support it; omitted elsewhere.
-      ...(EFFORT_CAPABLE_MODELS.includes(MODEL) ? { effort: 'low' as const } : {}),
+      ...(EFFORT_CAPABLE.includes(MODEL) ? { effort: 'low' as const } : {}),
       format: zodOutputFormat(ExtractionSchema),
     },
     messages: [

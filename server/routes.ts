@@ -71,9 +71,24 @@ export type Route = {
  * one regeneration, never a wrong answer.
  */
 const guidanceDir = process.env.EXPYR_GUIDANCE_DIR;
-export const guidanceCache = new LayeredGuidanceStore<Guidance>(
-  guidanceDir ? new FileGuidanceStore<Guidance>(guidanceDir) : null
-);
+const guidanceDisk = guidanceDir ? new FileGuidanceStore<Guidance>(guidanceDir) : null;
+export const guidanceCache = new LayeredGuidanceStore<Guidance>(guidanceDisk);
+
+/**
+ * What the cache is actually doing, as opposed to what it was asked to do.
+ *
+ * Being configured with a directory and being able to write to one are
+ * different things: a host with no persistent disk mounted at that path accepts
+ * the setting and then fails every write. The service copes — it degrades to
+ * memory, which costs a regeneration per restart and nothing worse — but a
+ * health check that reported "disk" on the strength of an environment variable
+ * would be reporting the intention rather than the fact, and the whole point of
+ * this line is to tell somebody deploying which one they got.
+ */
+async function guidanceCacheKind(): Promise<'disk' | 'memory'> {
+  if (!guidanceDisk) return 'memory';
+  return (await guidanceDisk.writable()) ? 'disk' : 'memory';
+}
 
 /**
  * How many *new* jurisdictions may be researched in one day.
@@ -110,12 +125,12 @@ export const ROUTES: Record<string, Route> = {
         apiKeyConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
         registrationConfigured: canIssueTokens,
         /*
-         * Whether guidance survives a restart, which depends entirely on
-         * whether the host keeps the directory. Reported because it is the
+         * Whether guidance survives a restart. Reported because it is the
          * difference between one web search per jurisdiction and one per
-         * deploy, and it is silent otherwise.
+         * deploy, and it is otherwise completely silent.
          */
-        guidanceCache: guidanceDir ? 'disk' : 'memory',
+        guidanceCache: await guidanceCacheKind(),
+        guidanceHeld: guidanceDisk ? await guidanceDisk.size() : undefined,
       }),
   },
 

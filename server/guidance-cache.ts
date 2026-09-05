@@ -188,6 +188,13 @@ export class LayeredGuidanceStore<T> implements GuidanceStore<T> {
     const running = this.inFlight.get(key);
     if (running) return { value: await running, cached: true };
 
+    /*
+     * Deliberately not tied to the request that started it. A phone that gives
+     * up waiting — a slow connection, a cold host, an app backgrounded — leaves
+     * this running, and the answer still lands in the cache. So the retry that
+     * person taps a moment later is served in a millisecond rather than paying
+     * for the same three searches again.
+     */
     const work = produce()
       .then(async (value) => {
         await this.set(key, value);

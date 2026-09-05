@@ -10,6 +10,8 @@ import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { ensureBrandIcon, guessDomain } from '@/lib/brand-icons';
+import { Segmented } from '@/components/segmented';
+import { isSubscription } from '@/domain/documents';
 import { searchableText } from '@/domain/fields';
 import { useTheme } from '@/hooks/use-theme';
 import { urgencyColor } from '@/hooks/use-urgency';
@@ -95,6 +97,9 @@ function buildSections(docs: TrackedDocument[]): Section[] {
  * the home screen. The verdict answers "do I need to worry"; everything under
  * it answers "when", which is the only question a tracker has to be good at.
  */
+/** Which half of the list is showing. */
+type Side = 'documents' | 'subscriptions';
+
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -102,6 +107,20 @@ export default function HomeScreen() {
   const { settings } = useSettings();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
   const [query, setQuery] = useState('');
+  /*
+   * Which half of the list is on screen.
+   *
+   * Documents and subscriptions are different things — one lapses and waits for
+   * you, the other takes money whether or not you do anything — and this shows
+   * one at a time rather than filtering within a single list.
+   *
+   * The cost of that is real and worth naming: half of what you track is
+   * always hidden, so an expired passport can sit one tap away with nothing on
+   * screen suggesting anybody look. The dot on the other segment is what pays
+   * for it, and the verdict below only ever counts what is actually in view —
+   * "four need you" over a list of one is the confusion a split invites.
+   */
+  const [side, setSide] = useState<Side>('documents');
   /** Bumped when an icon lands, so the rows redraw wearing it. */
   const [, setIconsFetched] = useState(0);
 
@@ -146,17 +165,43 @@ export default function HomeScreen() {
     );
   }, [documents, query, settings.country]);
 
-  const sections = useMemo(() => buildSections(found), [found]);
-  const expired = documents.filter((d) => daysUntil(d.expiryDate) < 0);
-  const soon = documents.filter((d) => {
+  /** The two halves, split before anything else looks at them. */
+  const halves = useMemo(
+    () => ({
+      documents: documents.filter((doc) => !isSubscription(doc)),
+      subscriptions: documents.filter(isSubscription),
+    }),
+    [documents]
+  );
+
+  /** Only what is on screen. Everything below counts this, not the whole list. */
+  const inView = useMemo(
+    () => found.filter((doc) => (side === 'subscriptions') === isSubscription(doc)),
+    [found, side]
+  );
+
+  const sections = useMemo(() => buildSections(inView), [inView]);
+  const expired = inView.filter((d) => daysUntil(d.expiryDate) < 0);
+  const soon = inView.filter((d) => {
     const days = daysUntil(d.expiryDate);
     return days >= 0 && days <= 30;
   });
   const urgent = [...expired, ...soon];
   const allClear = urgent.length === 0;
   const next = useMemo(
-    () => [...documents].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))[0],
-    [documents]
+    () => [...inView].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))[0],
+    [inView]
+  );
+
+  /**
+   * Whether the half you are not reading has something that cannot wait.
+   *
+   * Overdue, or inside a week. A dot for anything merely due next month would
+   * be on permanently, and a mark that is always lit stops being a mark.
+   */
+  const pressing = useCallback(
+    (docs: TrackedDocument[]) => docs.some((doc) => daysUntil(doc.expiryDate) <= 7),
+    []
   );
 
   /*
@@ -228,6 +273,32 @@ export default function HomeScreen() {
                   </ThemedText>
                 )}
               </View>
+
+              {/*
+                * Offered only once there is something on both sides. A control
+                * that splits one item from nothing asks a question with one
+                * answer.
+                */}
+              {halves.documents.length > 0 && halves.subscriptions.length > 0 && (
+                <View style={styles.segmented}>
+                  <Segmented
+                    value={side}
+                    onChange={setSide}
+                    segments={[
+                      {
+                        value: 'documents',
+                        label: 'Documents',
+                        attention: pressing(halves.documents),
+                      },
+                      {
+                        value: 'subscriptions',
+                        label: 'Subscriptions',
+                        attention: pressing(halves.subscriptions),
+                      },
+                    ]}
+                  />
+                </View>
+              )}
 
               {allClear && next && daysUntil(next.expiryDate) > 120 && missingAnnual.length > 0 && (
                 <Pressable onPress={() => router.push('/add')} accessibilityRole="button">
@@ -388,6 +459,19 @@ export default function HomeScreen() {
           ListEmptyComponent={
             loaded && documents.length === 0 ? (
               <EmptyState onAdd={() => router.push('/add')} />
+            ) : halves.documents.length > 0 && halves.subscriptions.length > 0 && !query.trim() ? (
+              /*
+               * The half you are on is empty but the other is not — which only
+               * happens because the list is split, so the way out is named
+               * rather than left to be guessed at.
+               */
+              <View style={styles.empty}>
+                <ThemedText type="body" themeColor="textSecondary">
+                  {side === 'documents'
+                    ? 'Nothing here that expires on its own. Your subscriptions are on the other tab.'
+                    : 'Nothing here that charges you. Your documents are on the other tab.'}
+                </ThemedText>
+              </View>
             ) : query.trim() ? (
               <ThemedText type="small" themeColor="textTertiary" style={styles.noResults}>
                 Nothing matches “{query.trim()}”.
@@ -456,6 +540,7 @@ const styles = StyleSheet.create({
   masthead: { paddingTop: Spacing.four },
   verdict: { marginTop: 6 },
   reassurance: { paddingTop: Spacing.three, maxWidth: 340 },
+  segmented: { paddingTop: Spacing.four },
   search: {
     flexDirection: 'row',
     alignItems: 'center',

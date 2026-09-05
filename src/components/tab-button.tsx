@@ -113,7 +113,13 @@ export function TabButton({
 
 const styles = StyleSheet.create({
   slot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  stack: { alignItems: 'center', justifyContent: 'center' },
+  /*
+   * Stretched to the slot rather than shrunk to the label, so the pill is the
+   * same width under every tab. Sized to its content it was a different shape
+   * on each — and "Household" is wider than a fifth of a 375-point screen, so
+   * the leftmost one ran off the edge of the phone.
+   */
+  stack: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   /*
    * Behind the icon and its label both, inset rather than sized to the content
    * — four tabs whose labels differ in length would otherwise get four
@@ -128,8 +134,8 @@ const styles = StyleSheet.create({
      */
     top: -8,
     bottom: -1,
-    left: -14,
-    right: -14,
+    left: 5,
+    right: 5,
     borderRadius: Radius.medium,
   },
 });

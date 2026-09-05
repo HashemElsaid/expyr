@@ -73,6 +73,22 @@ export function migrateDocument(raw: unknown): TrackedDocument | null {
 }
 
 /**
+ * Whether this is a thing that charges you, rather than a thing that lapses.
+ *
+ * The distinction the app already makes everywhere else, named once so the
+ * Timeline can sort on it. What decides it is `renewsEvery` — money leaving on
+ * a cycle whether or not you do anything — and not the category, because a gym
+ * membership paid yearly by standing order is a subscription and a membership
+ * card that simply expires is not.
+ *
+ * The category is a fallback for records written before the app asked how
+ * often a thing recurs, so those do not silently land on the wrong side.
+ */
+export function isSubscription(doc: Pick<TrackedDocument, 'renewsEvery' | 'typeId'>): boolean {
+  return Boolean(doc.renewsEvery) || doc.typeId === 'membership';
+}
+
+/**
  * Moves a subscription's date past today, one period at a time, remembering
  * the dates it has been.
  *

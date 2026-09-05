@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { migrateDocument, rollForward, rollForwardAll } from '@/domain/documents';
+import { isSubscription, migrateDocument, rollForward, rollForwardAll } from '@/domain/documents';
 import { makeDocument } from '@/test/factories';
 
 /**
@@ -76,6 +76,32 @@ describe('migrateDocument', () => {
   it('does not lose an outstanding snooze', () => {
     const doc = makeDocument('passport', { snoozedUntil: '2026-09-20' });
     expect(migrateDocument(doc)?.snoozedUntil).toBe('2026-09-20');
+  });
+});
+
+describe('isSubscription', () => {
+  it('is about money leaving on a cycle, not about the category', () => {
+    const gym = makeDocument('other', { renewsEvery: 'yearly' });
+    expect(isSubscription(gym)).toBe(true);
+  });
+
+  it('leaves a document that merely expires on the other side', () => {
+    expect(isSubscription(makeDocument('passport'))).toBe(false);
+    expect(isSubscription(makeDocument('residence-visa'))).toBe(false);
+    expect(isSubscription(makeDocument('tenancy-ejari'))).toBe(false);
+  });
+
+  /*
+   * Records written before the app asked how often a thing recurs have no
+   * renewsEvery at all. Without the fallback a person's Netflix would quietly
+   * appear under Documents after an update.
+   */
+  it('still recognises a membership saved before recurrence existed', () => {
+    expect(isSubscription(makeDocument('membership'))).toBe(true);
+  });
+
+  it('does not need a whole document to answer', () => {
+    expect(isSubscription({ typeId: 'passport', renewsEvery: 'monthly' })).toBe(true);
   });
 });
 

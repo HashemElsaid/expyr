@@ -76,6 +76,27 @@ const GAP = 12;
 /** A tile this narrow shows the next few; the rest are behind the tap. */
 const ITEMS_SHOWN = 3;
 
+/**
+ * Every tile the same height, whatever is in it.
+ *
+ * Sized to the fullest a tile can get — a name, a status, two lines of gap, and
+ * three items with a "+N more" under them — because the alternative is a grid
+ * whose rows step up and down with whoever happens to own the most documents.
+ * A person with two items is not a smaller person, and a tile that shrinks to
+ * fit them reads as though something is missing from it.
+ *
+ * The content is bounded by the two constants above and the line limits on the
+ * text, so nothing can grow past this; overflow is hidden as a backstop rather
+ * than as a plan.
+ *
+ * Measured rather than guessed, and the first guess was wrong by fourteen
+ * points — which did not clip anything, it silently squeezed "3 need you" to
+ * nothing while the item rows underneath kept their space. A card that quietly
+ * drops the one line saying somebody needs you is worse than one that is too
+ * tall, so the pieces below declare which of them may give way.
+ */
+const CARD_HEIGHT = 214;
+
 export default function HouseholdScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -375,12 +396,13 @@ function PersonCard({
       <ThemedText
         type="small"
         themeColor={person.urgent > 0 ? 'urgentStrong' : 'textTertiary'}
-        numberOfLines={1}>
+        numberOfLines={1}
+        style={styles.keep}>
         {personSummary(person)}
       </ThemedText>
 
       {worst && (
-        <View style={styles.gap}>
+        <View style={[styles.gap, styles.keep]}>
           <MaterialCommunityIcons
             name={worst.severity === 'blocked' ? 'alert-outline' : 'tray-arrow-up'}
             size={13}
@@ -465,8 +487,11 @@ function PersonCard({
       <Pressable
         onPress={onOpenPerson}
         accessibilityRole="button"
-        accessibilityLabel={`Open ${person.label}`}>
-        {({ pressed }) => <View style={pressed ? styles.dim : undefined}>{open}</View>}
+        accessibilityLabel={`Open ${person.label}`}
+        style={styles.flex}>
+        {({ pressed }) => (
+          <View style={[styles.body, pressed && styles.dim]}>{open}</View>
+        )}
       </Pressable>
     </View>
   );
@@ -552,20 +577,28 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
   },
   card: {
+    height: CARD_HEIGHT,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16,
     padding: 14,
     gap: 4,
+    overflow: 'hidden',
   },
   addCard: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     borderStyle: 'dashed',
-    paddingVertical: 28,
   },
 
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  body: { flex: 1, gap: 4 },
+  /*
+   * Never squeezed. Whether somebody needs you, and why, is the whole reason
+   * this tile is on the page; the list of items underneath is the part that can
+   * afford to lose a row.
+   */
+  keep: { flexShrink: 0 },
   gap: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
 
   items: { paddingTop: 8, marginTop: 2, gap: 6, borderTopWidth: StyleSheet.hairlineWidth },

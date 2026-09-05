@@ -83,6 +83,17 @@ export function TabButton({
     transform: [{ scale: 1 - pressed.value * 0.08 }],
   }));
 
+  /*
+   * Centred, and it has to be said explicitly.
+   *
+   * Wrapping the icon and label in this view to scale them on press cost them
+   * the centring the navigator had been doing: a column stretches its children
+   * by default, so the icon's box grew to the width of the word beneath it and
+   * the glyph sat at the left edge of that box. The drift was invisible on
+   * "Settings" and obvious on "Household" — the offset was exactly half the
+   * difference between the icon and the label, which is what gave it away.
+   */
+
   return (
     <Pressable
       {...rest}
@@ -105,7 +116,7 @@ export function TabButton({
           pointerEvents="none"
           style={[styles.pill, { backgroundColor: theme.accent }, pill]}
         />
-        <Animated.View style={content}>{children}</Animated.View>
+        <Animated.View style={[styles.content, content]}>{children}</Animated.View>
       </View>
     </Pressable>
   );
@@ -120,6 +131,7 @@ const styles = StyleSheet.create({
    * the leftmost one ran off the edge of the phone.
    */
   stack: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+  content: { alignItems: 'center' },
   /*
    * Behind the icon and its label both, inset rather than sized to the content
    * — four tabs whose labels differ in length would otherwise get four

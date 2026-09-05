@@ -174,10 +174,88 @@ describe('the layered store', () => {
     assert.equal(result.cached, true);
   });
 
-  it('recovers on the next attempt after a failure', async () => {
+  /*
+   * The bug polling introduced. A phone asks every few seconds until an answer
+   * appears, so a key that fails reliably would start a fresh web search on
+   * every ask — one unanswerable question spending the whole day's budget.
+   */
+  it('does not start a fresh search on every ask for something that keeps failing', async () => {
+    const store = new LayeredGuidanceStore<string>(null);
+    let attempts = 0;
+    const failing = async () => {
+      attempts += 1;
+      throw new Error('nothing findable');
+    };
+
+    await assert.rejects(() => store.fetch('hopeless', failing));
+    for (let i = 0; i < 10; i += 1) {
+      await assert.rejects(() => store.fetch('hopeless', failing));
+    }
+
+    assert.equal(attempts, 1, 'it must not research again while cooling off');
+  });
+
+  it('says so plainly rather than pretending to still be working', async () => {
+    const store = new LayeredGuidanceStore<string>(null);
+    await assert.rejects(() => store.fetch('hopeless', async () => { throw new Error('x'); }));
+    assert.equal(store.failedRecently('hopeless'), true);
+    assert.equal(store.failedRecently('a-different-place'), false);
+  });
+
+  it('still serves a stale answer for a key that has started failing', async () => {
+    const store = new LayeredGuidanceStore<string>(null);
+    await store.fetch('k', async () => 'old answer');
+
+    const aged = await store.get('k');
+    (aged as { at: number }).at = Date.now() - MAX_AGE_MS - 1000;
+
+    let attempts = 0;
+    const failing = async (): Promise<string> => {
+      attempts += 1;
+      throw new Error('down');
+    };
+
+    // A stale answer beats an error, so this resolves rather than rejecting —
+    // and the failure is still recorded underneath.
+    assert.equal((await store.fetch('k', failing)).value, 'old answer');
+    assert.equal(store.failedRecently('k'), true);
+
+    // Cooling off now, and there is something to show, so it is shown without
+    // paying for another search.
+    assert.equal((await store.fetch('k', failing)).value, 'old answer');
+    assert.equal(attempts, 1);
+  });
+
+  it('forgets the failure once it has cooled off', async () => {
+    const store = new LayeredGuidanceStore<string>(null);
+    await assert.rejects(() => store.fetch('k', async () => { throw new Error('x'); }));
+    // Eleven minutes on, it is allowed to try again.
+    assert.equal(store.failedRecently('k', Date.now() + 11 * 60 * 1000), false);
+  });
+
+  /*
+   * Deliberately not "recovers on the very next attempt". An immediate retry is
+   * what the polling app does by itself, several times a minute, and honouring
+   * it is the loop this cooldown exists to break. The cost of that choice is
+   * that a genuinely transient failure waits — which is why the message the app
+   * shows says it could not find out, rather than inviting an instant retry.
+   */
+  it('recovers once the cooldown has passed, not before', async () => {
     const store = new LayeredGuidanceStore<string>(null);
     await assert.rejects(() => store.fetch('k', async () => { throw new Error('down'); }));
 
+    // Straight away: refused without producing anything.
+    let produced = 0;
+    await assert.rejects(() =>
+      store.fetch('k', async () => {
+        produced += 1;
+        return 'now it works';
+      })
+    );
+    assert.equal(produced, 0);
+
+    // Eleven minutes on, it is willing again.
+    assert.equal(store.failedRecently('k', Date.now() + 11 * 60 * 1000), false);
     const result = await store.fetch('k', async () => 'now it works');
     assert.equal(result.value, 'now it works');
   });

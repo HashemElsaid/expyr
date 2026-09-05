@@ -269,6 +269,19 @@ export const ROUTES: Record<string, Route> = {
       }
 
       /*
+       * Told plainly rather than answered with another "working on it", so the
+       * app stops asking. A polled route that keeps saying "working" about
+       * something that will not work is how one unanswerable question spends a
+       * day's search budget.
+       */
+      if (guidanceCache.failedRecently(key)) {
+        ctx.note({ note: `key=${key} failed-recently` });
+        throw unavailable(
+          'Expyr could not find out how this one is renewed where you are. It will keep the date and remind you in time.'
+        );
+      }
+
+      /*
        * Started, not awaited — and this is the whole shape of the route.
        *
        * Researching a jurisdiction takes the better part of a minute, during

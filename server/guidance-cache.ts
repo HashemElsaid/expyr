@@ -146,10 +146,34 @@ export class FileGuidanceStore<T> implements GuidanceStore<T> {
  * for it. With it, the first starts one and the other nine wait on the same
  * promise.
  */
+/**
+ * How long a jurisdiction that failed to generate is left alone.
+ *
+ * This exists because of how the route is polled. A phone asks every few
+ * seconds until an answer appears, so a key that fails reliably — a search that
+ * finds nothing, a jurisdiction with no authority to find — would start a fresh
+ * web search on every single ask. The daily ceiling would eventually stop it,
+ * having spent the whole day's budget on one question nobody can answer.
+ *
+ * Ten minutes is long enough to break that loop and short enough that a
+ * genuinely transient failure costs one wait rather than an afternoon.
+ */
+const FAILURE_COOLDOWN_MS = 10 * 60 * 1000;
+
+/** Raised when a key failed recently and is not being retried yet. */
+export class RecentlyFailed extends Error {
+  constructor() {
+    super('That look-up failed recently and is not being retried yet.');
+    this.name = 'RecentlyFailed';
+  }
+}
+
 export class LayeredGuidanceStore<T> implements GuidanceStore<T> {
   private readonly memory: MemoryGuidanceStore<T>;
   private readonly disk: GuidanceStore<T> | null;
   private readonly inFlight = new Map<string, Promise<T>>();
+  /** Keys whose last generation threw, and when. See FAILURE_COOLDOWN_MS. */
+  private readonly failures = new Map<string, number>();
 
   constructor(disk: GuidanceStore<T> | null) {
     this.memory = new MemoryGuidanceStore<T>();
@@ -175,6 +199,15 @@ export class LayeredGuidanceStore<T> implements GuidanceStore<T> {
    * The cached value if it is fresh, otherwise `produce()` — run once however
    * many callers arrive while it is running.
    */
+  /** Whether this key failed recently enough that it should be left alone. */
+  failedRecently(key: string, now = Date.now()): boolean {
+    const at = this.failures.get(key);
+    if (at === undefined) return false;
+    if (now - at < FAILURE_COOLDOWN_MS) return true;
+    this.failures.delete(key);
+    return false;
+  }
+
   async fetch(key: string, produce: () => Promise<T>): Promise<{ value: T; cached: boolean }> {
     const existing = await this.get(key);
     /*
@@ -189,6 +222,16 @@ export class LayeredGuidanceStore<T> implements GuidanceStore<T> {
     if (running) return { value: await running, cached: true };
 
     /*
+     * Nothing fresh, nothing running, and it failed a moment ago. Producing
+     * again is how a polled route turns one unanswerable question into a day's
+     * worth of web searches.
+     */
+    if (this.failedRecently(key)) {
+      if (stale) return { value: stale.value, cached: true };
+      throw new RecentlyFailed();
+    }
+
+    /*
      * Deliberately not tied to the request that started it. A phone that gives
      * up waiting — a slow connection, a cold host, an app backgrounded — leaves
      * this running, and the answer still lands in the cache. So the retry that
@@ -198,7 +241,12 @@ export class LayeredGuidanceStore<T> implements GuidanceStore<T> {
     const work = produce()
       .then(async (value) => {
         await this.set(key, value);
+        this.failures.delete(key);
         return value;
+      })
+      .catch((reason: unknown) => {
+        this.failures.set(key, Date.now());
+        throw reason;
       })
       .finally(() => this.inFlight.delete(key));
 

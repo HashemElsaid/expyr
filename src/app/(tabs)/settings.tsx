@@ -147,6 +147,7 @@ export default function SettingsScreen() {
               icon="lightning-bolt-outline"
               title="Expyr AI credits"
               subtitle={`${formatCredits(settings.credits.balance)} · about ${documentsLeft(settings.credits, 14)} more document${documentsLeft(settings.credits, 14) === 1 ? '' : 's'}`}
+              action={{ label: 'Top up', onPress: () => router.push('/top-up') }}
             />
           </Section>
 

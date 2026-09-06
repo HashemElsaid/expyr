@@ -25,7 +25,7 @@ import { useUrgency } from '@/hooks/use-urgency';
 import { dayMonth, daysUntil, longDate, shortDate, verdictPhrase } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
-import { FREE_READ_LIMIT, useSettings } from '@/store/settings';
+import { useSettings } from '@/store/settings';
 import { TrackedDocument } from '@/types';
 
 /** Reminder dates derived from the schedule — no extra state to keep in sync. */
@@ -51,7 +51,6 @@ export default function DocumentDetailScreen() {
   const [sending, setSending] = useState(false);
   const [pointsOpen, setPointsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const outOfReads = !settings.premium && settings.readsUsed >= FREE_READ_LIMIT;
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
   /*
@@ -59,7 +58,8 @@ export default function DocumentDetailScreen() {
    * their own hook — it was the most intricate thing this screen did and had
    * nothing to do with drawing it.
    */
-  const { brief, readable, stage, progress, readNow, retrySummary } = useDocumentReading(doc);
+  const { brief, readable, stage, progress, readNow, retrySummary, shortOfCredits } =
+    useDocumentReading(doc);
   const days = doc ? daysUntil(doc.expiryDate) : 0;
   const { color } = useUrgency(days);
 
@@ -467,27 +467,16 @@ export default function DocumentDetailScreen() {
          * the moment the feature is worth paying for, so it says what it would
          * do rather than hiding that anything exists.
          */}
-        {doc.files.length > 0 && !brief && !readable && outOfReads && (
-          <Pressable onPress={() => router.push('/paywall')} accessibilityRole="button">
-            {({ pressed }) => (
-              <View
-                style={[styles.readPrompt, { borderColor: theme.border }, pressed && styles.dim]}>
-                <MaterialCommunityIcons name="text-search" size={20} color={theme.textTertiary} />
-                <View style={styles.flex}>
-                  <ThemedText type="bodyMedium">Read this document</ThemedText>
-                  <ThemedText type="small" themeColor="textTertiary">
-                    You have read your {FREE_READ_LIMIT} free documents. Unlock Expyr to read the
-                    rest and ask them anything.
-                  </ThemedText>
-                </View>
-              </View>
-            )}
-          </Pressable>
-        )}
-
-        {doc.files.length > 0 && !brief && !(outOfReads && !readable) && (
+        {doc.files.length > 0 && !brief && (
           <Pressable
-            onPress={readable ? retrySummary : readNow}
+            onPress={
+              /*
+               * A refusal that leads somewhere. Running out mid-document is a
+               * thing to fix, not an error to sit under, so the card that says
+               * so is also the way to the top-up.
+               */
+              shortOfCredits ? () => router.push('/top-up') : readable ? retrySummary : readNow
+            }
             disabled={stage !== null}
             accessibilityRole="button">
             {({ pressed }) => (
@@ -504,9 +493,11 @@ export default function DocumentDetailScreen() {
                       ? 'Reading it…'
                       : stage === 'summarising'
                         ? 'Working out what it says…'
-                        : readable
-                          ? 'Summarise this document'
-                          : 'Read this document'}
+                        : shortOfCredits
+                          ? 'Not enough credits to read this'
+                          : readable
+                            ? 'Summarise this document'
+                            : 'Read this document'}
                   </ThemedText>
                   <ThemedText type="small" themeColor="textTertiary">
                     {stage === 'transcribing'

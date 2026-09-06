@@ -32,9 +32,27 @@ export default function OnboardingScreen() {
    * strip the guides from the users we built them for. So this step is the only
    * one that will not let you past without an answer.
    */
-  const blocked = step === 'location' && country === null;
   /** Held here so the primary button can open the picker it is waiting on. */
   const [pickingCountry, setPickingCountry] = useState(false);
+  /** Briefly outlines the emirate list when the button is waiting on it. */
+  const [nudgeEmirate, setNudgeEmirate] = useState(false);
+
+  const needsCountry = step === 'location' && country === null;
+
+  /**
+   * The emirate is not a nicety in the UAE.
+   *
+   * Without it `portalFor` returns nothing, so the "Renew at TAMM" button — the
+   * primary action on a driving licence, a Mulkiya and a residence visa —
+   * simply is not there, and the "Where" row falls back to something generic.
+   * Skipping this step quietly removed the most useful thing the app does, and
+   * nothing on screen said so.
+   *
+   * It is also one tap, from a list already visible. So it is asked for rather
+   * than assumed: guessing somebody's emirate would send them to the wrong
+   * authority, which is worse than asking.
+   */
+  const needsEmirate = step === 'location' && usesEmirates(country) && emirate === null;
 
   function finish() {
     update({ onboarded: true, country, emirate });
@@ -110,7 +128,11 @@ export default function OnboardingScreen() {
                           style={[
                             styles.option,
                             {
-                              borderColor: selected ? theme.accent : theme.border,
+                              borderColor: selected
+                                ? theme.accent
+                                : nudgeEmirate
+                                  ? theme.urgentSoft
+                                  : theme.border,
                               backgroundColor: selected
                                 ? theme.backgroundSelected
                                 : theme.backgroundElement,
@@ -126,8 +148,11 @@ export default function OnboardingScreen() {
                       </Pressable>
                     );
                   })}
-                  <ThemedText type="small" themeColor="textTertiary">
-                    Vehicles and licences are run by each emirate, not federally.
+                  <ThemedText
+                    type="small"
+                    themeColor={nudgeEmirate ? 'urgentSoft' : 'textTertiary'}>
+                    Vehicles and licences are run by each emirate, not federally — Expyr needs
+                    this to send you to the right one.
                   </ThemedText>
                 </View>
               )}
@@ -184,9 +209,21 @@ export default function OnboardingScreen() {
             */}
           <Pressable
             onPress={() => {
-              if (blocked) {
+              if (needsCountry) {
                 tapFeedback();
                 setPickingCountry(true);
+                return;
+              }
+              if (needsEmirate) {
+                /*
+                 * Nothing to open — the list is already on screen — so the
+                 * button points at it instead. A label that names what is
+                 * missing and a moment of colour where it lives beats a button
+                 * that goes quiet, which is what this screen used to do.
+                 */
+                tapFeedback();
+                setNudgeEmirate(true);
+                setTimeout(() => setNudgeEmirate(false), 1600);
                 return;
               }
               if (step === 'welcome') setStep('location');
@@ -202,11 +239,13 @@ export default function OnboardingScreen() {
                   (pressed || asking) && styles.dim,
                 ]}>
                 <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
-                  {blocked
+                  {needsCountry
                     ? 'Choose your country'
-                    : step === 'reminders'
-                      ? 'Allow reminders'
-                      : 'Continue'}
+                    : needsEmirate
+                      ? 'Choose your emirate'
+                      : step === 'reminders'
+                        ? 'Allow reminders'
+                        : 'Continue'}
                 </ThemedText>
               </View>
             )}

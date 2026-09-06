@@ -269,7 +269,17 @@ export default function HomeScreen() {
                 </Pressable>
               )}
 
-              {documents.length >= 8 && (
+              {/*
+                * Roughly where the list stops fitting on one screen.
+                *
+                * Was eight, which is a number rather than a reason: somebody
+                * with seven items was already scrolling past things and had no
+                * way to jump to one. A header carrying a permanent search field
+                * for a person with three items is worse, so it still appears
+                * rather than always being there — just at the point scrolling
+                * actually starts.
+                */}
+              {documents.length >= 6 && (
                 <View
                   style={[
                     styles.search,

@@ -120,7 +120,11 @@ work removed.
 
 ## 9. The things a listing needs — YOU, with ME where useful
 
-- [ ] **App icon**, 1024×1024, no transparency, no alpha
+- [x] **App icon** — already exists at `assets/images/icon.png`: a sheet of
+      paper with the corner turned, deep green on warm off-white, built from
+      the design system on 31 August. Android adaptive and splash variants too.
+      Worth one check at home-screen size, where the fold may be too fine to
+      read, but this is not an outstanding item
 - [ ] **Screenshots**, 6.7" and 6.5". Guideline 2.3.3 rejects title art and
       splash screens; show the app in use
 - [ ] Attach `assets/review/sample-insurance-certificate.jpg` so a reviewer can

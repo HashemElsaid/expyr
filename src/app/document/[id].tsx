@@ -254,6 +254,19 @@ export default function DocumentDetailScreen() {
             {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}.
           </ThemedText>
 
+          {/*
+            * Said plainly, because the screen below no longer offers a button
+            * to confirm the renewal — and an absence explains nothing on its
+            * own. Somebody who expected to confirm it needs to be told they
+            * do not have to, or they will assume the app forgot.
+            */}
+          {isSubscription(doc) && (
+            <ThemedText type="small" themeColor="textTertiary">
+              This renews itself. Expyr moves the date on each time, so there is nothing
+              for you to confirm.
+            </ThemedText>
+          )}
+
           {period && (
             <View style={styles.runway}>
               <View style={[styles.runwayLine, { backgroundColor: theme.border }]} />
@@ -754,27 +767,38 @@ export default function DocumentDetailScreen() {
         )}
 
         <View style={styles.actions}>
-          {portal ? (
+          {isSubscription(doc) ? (
+            /*
+             * A subscription needs no confirming. rollForwardAll() in the
+             * document store already moves it past its date on every launch
+             * and every return to the foreground, so a button asking the user
+             * to report the renewal asks them to keep the app's books for it —
+             * every month, for every service they pay.
+             *
+             * What they know and the app cannot work out is that they stopped
+             * paying. Nothing in a date can tell us that, so that is the one
+             * thing worth a button. It archives rather than deletes: the
+             * reminders stop, the record and its history stay, and the archive
+             * screen puts it back in one tap if they were wrong.
+             */
+            <PrimaryAction
+              icon="close-circle-outline"
+              label="I cancelled this"
+              onPress={toggleArchive}
+            />
+          ) : portal ? (
             <>
               <PrimaryAction icon="open-in-new" label={`Renew at ${portal.name}`} onPress={openPortal} />
               <SecondaryAction
                 icon="check-circle-outline"
-                label={isSubscription(doc) ? 'It renewed' : 'I have renewed this'}
+                label="I have renewed this"
                 onPress={markRenewed}
               />
             </>
           ) : (
-            /*
-             * Nobody renews a subscription — it renews itself, which is the
-             * whole reason it needs watching. Offering "I have renewed this"
-             * as the primary action asks for credit for something the user did
-             * not do, and quietly implies they had a choice.
-             */
             <PrimaryAction
               icon="check-circle-outline"
-              label={
-                canRoll ? (isSubscription(doc) ? 'It renewed' : 'I have renewed this') : 'Update the date'
-              }
+              label={canRoll ? 'I have renewed this' : 'Update the date'}
               onPress={markRenewed}
             />
           )}

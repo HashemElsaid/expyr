@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSubscription, migrateDocument, rollForward, rollForwardAll } from '@/domain/documents';
+import {
+  expiryVerb,
+  isSubscription,
+  migrateDocument,
+  rollForward,
+  rollForwardAll,
+} from '@/domain/documents';
 import { makeDocument } from '@/test/factories';
 
 /**
@@ -180,5 +186,42 @@ describe('rollForwardAll', () => {
     expect(next).not.toBe(docs);
     expect(next[0]).toBe(docs[0]);
     expect(next[1].expiryDate).toBe('2026-09-15');
+  });
+});
+
+/**
+ * The wording shipped wrong once: the notification builder had its own copy of
+ * this choice, so a banner and the screen it opened could describe the same
+ * subscription in contradictory terms. These pin the two callers to one answer.
+ */
+describe('expiryVerb', () => {
+  it('says a document expires', () => {
+    expect(expiryVerb(makeDocument('passport'))).toBe('expires');
+  });
+
+  it('says a document expired, in the past', () => {
+    expect(expiryVerb(makeDocument('passport'), true)).toBe('expired');
+  });
+
+  it('says a subscription charges you, because it does not expire', () => {
+    const netflix = { ...makeDocument('membership'), renewsEvery: 'month' as const };
+    expect(expiryVerb(netflix)).toBe('charges you');
+    expect(expiryVerb(netflix, true)).toBe('charged you');
+  });
+
+  /*
+   * The bug that made this function necessary. The notification builder keyed
+   * on renewsEvery alone, so a record written before the app asked how often a
+   * thing recurs said "expires" in the banner and showed cancellation guidance
+   * on the screen behind it.
+   */
+  it('treats a membership with no period as a subscription, like isSubscription does', () => {
+    const legacy = makeDocument('membership');
+    expect(isSubscription(legacy)).toBe(true);
+    expect(expiryVerb(legacy)).toBe('charges you');
+  });
+
+  it('defaults to the future tense', () => {
+    expect(expiryVerb(makeDocument('passport'))).toBe(expiryVerb(makeDocument('passport'), false));
   });
 });

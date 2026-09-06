@@ -297,7 +297,8 @@ See `APP-REVIEW.md` for the full compliance audit. The blocking items:
 - [ ] Real purchases wired, replacing the stubs in `src/lib/purchases.ts`
 - [ ] The product created in App Store Connect as a NON-CONSUMABLE at AED 149,
       Family Sharing enabled, matching `src/lib/purchases.ts`
-- [ ] Privacy policy and support URLs live and reachable
+- [x] Privacy policy and support URLs live and reachable —
+      https://hashemelsaid.github.io/expyr/privacy.html and /support.html
 - [ ] App icon (1024×1024, no transparency, no alpha channel)
 - [ ] Scanning service on a paid Render plan, `EXPO_PUBLIC_EXTRACT_URL` pointed
       at it, and confirmed responding from a cold start

@@ -30,7 +30,21 @@ list. Fix before submitting, not after.
 Store Connect, marked **Family Shareable**, at the price points already in
 `PRICE_POINTS`.
 
-### 1.2 No hosted privacy policy URL — Guideline 5.1.1(i)
+### 1.2 ~~No hosted privacy policy URL~~ — RESOLVED 6 September
+
+Live at **https://hashemelsaid.github.io/expyr/privacy.html**, served by GitHub
+Pages from the repository's own `docs/` folder. The repository was renamed to
+`expyr` and made public to allow it: Pages does not serve private repositories
+on a free plan, and serving the page from Render instead would have been worse
+— the free plan spins down, so a reviewer opening the privacy URL could meet a
+thirty-second cold start or a timeout, which is a rejection rather than a wait.
+
+Checked before going public: `.env` has never been tracked, and no secret-shaped
+string appears anywhere in the history or the working tree.
+
+The original finding follows.
+
+### 1.2a The finding, as written — Guideline 5.1.1(i)
 
 > "All apps must include a link to their privacy policy in the App Store
 > Connect metadata field **and** within the app in an easily accessible manner."
@@ -42,10 +56,10 @@ exist. App Store Connect will not accept a submission without a working URL.
 **Needed:** a public page. A GitHub Pages file or a single Render route is
 enough; it must be reachable without login and must match the in-app text.
 
-### 1.3 No support URL — Guideline 1.5
+### 1.3 ~~No support URL~~ — RESOLVED 6 September
 
-Required metadata. Same fix, same page is fine, as long as it offers a way to
-contact you.
+Live at **https://hashemelsaid.github.io/expyr/support.html**, alongside terms
+at `/terms.html`. The privacy page carries a contact address.
 
 ### 1.4 STORE.md contradicts the app — Guideline 2.3.1
 
@@ -158,10 +172,16 @@ instruction on a government process, that becomes a 2.3 problem.
 
 ## Order of work
 
-1. Test on a physical iPhone — notifications, camera, Face ID *(unrelated to
-   review, but 2.1 rejects crashes and none of this has run on iOS)*
-2. Wire StoreKit / RevenueCat — §1.1
-3. Host the privacy policy and support page — §1.2, §1.3
-4. Rewrite `STORE.md` — §1.4
-5. Decide the brand-icon question — §4.1
-6. Fill in App Store Connect — §3
+1. ~~Test on a physical iPhone~~ — done 6 September. Notifications verified:
+   scheduled by the global planner, survived overnight, fired at the reminder
+   hour with the correct countdown.
+2. ~~Host the privacy policy and support page~~ — done, §1.2 and §1.3.
+3. ~~Rewrite `STORE.md`~~ — done, §1.4.
+4. **Decide the Ask tab.** Contract reading is parked (see `PRICING.md` for why
+   its economics are the problem, not just its reliability). A parked feature
+   that still has a tab is a *visible feature that fails*, which is what 2.1
+   rejects — and is the same shape as a previous rejection. Parking it means
+   hiding it, not merely not fixing it.
+5. Wire StoreKit / RevenueCat — §1.1. Blocked on the Developer account.
+6. Decide the brand-icon question — §4.1.
+7. Fill in App Store Connect — §3.

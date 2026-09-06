@@ -97,6 +97,14 @@ This is the wall between here and credits surviving a new phone.
       app supports account creation. Expyr is exempt today because it has no
       accounts; adding sign-in ends that exemption
 - [ ] Decide what happens to unspent credits when somebody deletes
+- [ ] **Rewrite both privacy policies before sign-in ships, not after.** They
+      currently say, in these words, that there is "no account and no server
+      database". That is true today and becomes false the moment an Apple
+      subject identifier and a balance are held on the service. A privacy
+      policy that denies the thing the app does is worse than no policy: it is
+      a statement Apple can read, a user can rely on, and neither would
+      forgive. Both copies need it — `src/app/privacy.tsx` and
+      `docs/privacy.html`, which are kept identical on purpose
 
 ## 7. Make reading finish — ME, needs 3
 

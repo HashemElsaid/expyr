@@ -42,6 +42,20 @@ const SECTIONS: { title: string; body: string }[] = [
     title: 'Locking the app',
     body: 'Turning on the app lock requires Face ID, Touch ID or your device passcode to open Expyr. The check is performed by iOS; Expyr never sees your biometric data.',
   },
+  /*
+   * Both of these were on the hosted policy and not here, which meant the two
+   * documents Apple asks for did not say the same thing. Children matters for
+   * the age rating; the second is the promise that this page will not change
+   * quietly.
+   */
+  {
+    title: 'Children',
+    body: 'Expyr is not directed at children and does not knowingly collect anything from them. Because there is no account and no server database, we hold no personal data about any user to collect in the first place.',
+  },
+  {
+    title: 'Changes and questions',
+    body: 'If this policy changes in a way that affects what leaves your phone, the app will say so before it takes effect. Questions are welcome at hashim.elsaeed@gmail.com.',
+  },
 ];
 
 export default function PrivacyScreen() {

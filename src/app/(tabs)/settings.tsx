@@ -21,8 +21,8 @@ import { formatTime } from '@/lib/dates';
 import { countryLabel, type Country } from '@/data/countries';
 import { emirateLabel, type Emirate } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
-import { formatCredits, pagesLeft } from '@/domain/credits';
-import { useSettings, type ThemePreference } from '@/store/settings';
+import { EMPTY_LEDGER, formatCredits, pagesLeft, topUp } from '@/domain/credits';
+import { WELCOME_CREDITS, type ThemePreference, useSettings } from '@/store/settings';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -275,11 +275,20 @@ export default function SettingsScreen() {
               <Row
                 icon="refresh"
                 title="Reset the free allowances"
-                subtitle={`${settings.scansUsed} scans and ${settings.readsUsed} readings used.`}
+                subtitle={`${settings.scansUsed} scans used · ${formatCredits(settings.credits.balance)}`}
                 action={{
                   label: 'Reset',
                   onPress: () => {
-                    update({ scansUsed: 0, readsUsed: 0 });
+                    /*
+                     * Credits go back to the welcome balance rather than to
+                     * zero: a developer resetting the allowances wants a fresh
+                     * install, and a fresh install has thirty pages.
+                     */
+                    update({
+                      scansUsed: 0,
+                      readsUsed: 0,
+                      credits: topUp(EMPTY_LEDGER, WELCOME_CREDITS, 'Welcome credits', new Date(), 'reset'),
+                    });
                     successFeedback();
                   },
                 }}

@@ -42,8 +42,15 @@ export type Settings = {
    */
   scansUsed: number;
   /**
-   * Lifetime count of documents read in full. Kept for the record and for
-   * older installs; reading is gated by the credit balance now, not by this.
+   * Dead, and kept only so an existing install can be read correctly.
+   *
+   * It counted documents read while reading was capped at two per install.
+   * Nothing increments it now: reading costs credits, and the balance is the
+   * only thing that decides whether it may happen. The one job left is the
+   * migration, which subtracts what an old install already used from the
+   * welcome balance so updating neither confiscates nor gifts anything.
+   *
+   * Removable once no install predating credits is plausibly still out there.
    */
   readsUsed: number;
   /**
@@ -126,12 +133,14 @@ export const FREE_ITEM_LIMIT = 5;
 export const FREE_SCAN_LIMIT = 10;
 
 /**
- * Free documents read in full, for the lifetime of the install.
+ * How many free readings an install used to get, and no longer does.
  *
- * Two is enough to feel what it does. Somebody reads the tenancy contract they
- * signed without reading, finds the clause that renews it for another year on
- * its own, and the price argues itself. It is also the only per-document cost
- * in the app, so leaving it open would mean paying for people who never pay.
+ * Reading is paid for in credits now. This survives for one purpose: working
+ * out how much of the welcome balance an install that predates credits has
+ * already spent, so that updating the app neither takes away readings somebody
+ * used nor hands back readings they did not.
+ *
+ * Not a limit any more. Nothing checks it.
  */
 export const FREE_READ_LIMIT = 2;
 

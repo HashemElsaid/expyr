@@ -20,6 +20,12 @@ import {
 import { labelForId } from '@/data/document-types';
 import { longDate } from '@/lib/dates';
 import { useDocuments } from '@/store/documents';
+import {
+  canAfford,
+  chargeForQuestion,
+  CREDITS_PER_QUESTION,
+  formatCredits,
+} from '@/domain/credits';
 import { askAllowance, useSettings } from '@/store/settings';
 
 /**
@@ -147,6 +153,17 @@ export default function AskScreen() {
     const trimmed = text.trim();
     // A file with no readings in it can still answer when something expires.
     if (!trimmed || busy || (asking.length === 0 && records.length === 0)) return;
+    /*
+     * The balance is asked before the question is sent, not after it is
+     * answered. An answer that arrives and is then refused has already cost us
+     * the money it was refused for.
+     */
+    if (!canAfford(settings.credits, CREDITS_PER_QUESTION)) {
+      setError(
+        `Each question costs ${CREDITS_PER_QUESTION} credits and you have ${formatCredits(settings.credits.balance)}. Top up in Settings to keep asking.`
+      );
+      return;
+    }
     if (allowance.left === 0) {
       setError(
         `That is ${allowance.limit} questions today. Every one of them reads your documents afresh, so the count starts again tomorrow.`
@@ -167,8 +184,11 @@ export default function AskScreen() {
         saveTurns(scope, next);
         return next;
       });
-      // Only an answer is counted: a failure delivered nothing.
-      update(allowance.spend());
+      // Only an answer is counted: a failure delivered nothing, and is not charged for.
+      update({
+        ...allowance.spend(),
+        credits: chargeForQuestion(settings.credits, trimmed, new Date(), `${Date.now()}`),
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That did not work. Try again.');
     } finally {

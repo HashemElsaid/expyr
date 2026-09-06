@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { EMPTY_LEDGER, priceOfPages, topUp, type Ledger } from '@/domain/credits';
 import Constants from 'expo-constants';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
@@ -40,10 +42,20 @@ export type Settings = {
    */
   scansUsed: number;
   /**
-   * Lifetime count of documents read in full. Reading is the one thing here
-   * with a real cost per document rather than per tap — see FREE_READ_LIMIT.
+   * Lifetime count of documents read in full. Kept for the record and for
+   * older installs; reading is gated by the credit balance now, not by this.
    */
   readsUsed: number;
+  /**
+   * What Expyr AI has left to spend, and what it has spent.
+   *
+   * Reading a contract and answering questions about it costs real money every
+   * time, and a one-off purchase cannot fund an unbounded amount of it. The
+   * balance is the person's, it is visible, and it goes down as they use it —
+   * which is the point: it makes the cost legible to whoever is choosing to
+   * incur it.
+   */
+  credits: Ledger;
   /** Questions asked today, and the day they were asked — see askAllowance. */
   questionsAsked: number;
   questionsOn: string;
@@ -88,6 +100,7 @@ const DEFAULTS: Settings = {
   premium: false,
   scansUsed: 0,
   readsUsed: 0,
+  credits: EMPTY_LEDGER,
   questionsAsked: 0,
   questionsOn: '',
   lockOffered: false,
@@ -126,6 +139,43 @@ export const FREE_SCAN_LIMIT = 10;
  * in the app, so leaving it open would mean paying for people who never pay.
  */
 export const FREE_READ_LIMIT = 2;
+
+/**
+ * What a new install starts with: enough to read two ordinary documents.
+ *
+ * The free tier used to allow two readings and count them. Counting documents
+ * and counting credits are the same idea with different arithmetic, and two
+ * systems gating one feature is how a person ends up refused for a reason
+ * neither of them shows. So the allowance became an opening balance.
+ *
+ * Generous on purpose. Somebody has to be able to see what the thing does
+ * before deciding whether it is worth paying for.
+ */
+export const WELCOME_CREDITS = priceOfPages(14) * FREE_READ_LIMIT;
+
+/**
+ * Reads a stored ledger, or opens one.
+ *
+ * An install that already spent its free readings does not get them again:
+ * the welcome balance arrives already reduced by what was used, so upgrading
+ * the app neither takes anything away nor hands anything out.
+ */
+function readLedger(stored: unknown, readsAlreadyUsed: number): Ledger {
+  if (
+    stored &&
+    typeof stored === 'object' &&
+    typeof (stored as Ledger).balance === 'number' &&
+    Array.isArray((stored as Ledger).entries)
+  ) {
+    return stored as Ledger;
+  }
+
+  const spent = Math.min(readsAlreadyUsed, FREE_READ_LIMIT) * priceOfPages(14);
+  const opening = Math.max(0, WELCOME_CREDITS - spent);
+  if (opening === 0) return EMPTY_LEDGER;
+
+  return topUp(EMPTY_LEDGER, opening, 'Welcome credits', new Date(), 'welcome');
+}
 
 /**
  * Questions a day, free and paid.
@@ -196,6 +246,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           premium: parsed.premium ?? DEFAULTS.premium,
           scansUsed: parsed.scansUsed ?? DEFAULTS.scansUsed,
           readsUsed: parsed.readsUsed ?? DEFAULTS.readsUsed,
+          /*
+           * A ledger that will not parse is replaced rather than repaired. It
+           * is somebody's money, so a half-understood balance is worse than a
+           * fresh one plus the welcome credits — and an install old enough to
+           * have no ledger at all has never spent any.
+           */
+          credits: readLedger(parsed.credits, parsed.readsUsed ?? 0),
           questionsAsked: parsed.questionsAsked ?? DEFAULTS.questionsAsked,
           questionsOn: parsed.questionsOn ?? DEFAULTS.questionsOn,
           lockOffered: parsed.lockOffered ?? DEFAULTS.lockOffered,

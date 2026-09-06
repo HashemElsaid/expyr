@@ -255,6 +255,35 @@ export type ReadStage = 'transcribing' | 'summarising';
 export type ReadProgress = { page: number; of: number };
 
 /**
+ * Raised before a single page is fetched, when the balance will not cover the
+ * document. Its own type so the screen can offer a top-up rather than an
+ * apology: running out of credits is a thing to do something about, not a
+ * failure to report.
+ */
+export class NotEnoughCredits extends Error {
+  readonly pages: number;
+  constructor(pages: number) {
+    super('There are not enough credits to read this document.');
+    this.name = 'NotEnoughCredits';
+    this.pages = pages;
+  }
+}
+
+/**
+ * What the caller wants to know, and to decide, about the money.
+ *
+ * Reading is the only thing in the app with a cost per page rather than per
+ * tap, so it is the only thing that asks. Passed in rather than imported so
+ * this module stays free of the settings store and remains testable.
+ */
+export type ReadBudget = {
+  /** Answered once, after the page count is known and before anything is fetched. */
+  canAfford: (pages: number) => boolean;
+  /** Called with the pages of each batch as it lands, whether or not the rest do. */
+  onPagesRead: (pages: number) => void;
+};
+
+/**
  * Pages per request.
  *
  * There is no page range in the model's PDF support, so the service cuts a
@@ -333,7 +362,8 @@ export function isReading(documentId: string): boolean {
 export function readDocumentFully(
   documentId: string,
   file: Attachment,
-  onStage?: (stage: ReadStage, progress?: ReadProgress) => void
+  onStage?: (stage: ReadStage, progress?: ReadProgress) => void,
+  budget?: ReadBudget
 ): Promise<{ transcript: string; brief: Brief | null }> {
   const existing = inFlight.get(documentId);
   if (existing) {
@@ -342,7 +372,9 @@ export function readDocumentFully(
     return existing;
   }
 
-  const work = runRead(documentId, file, onStage).finally(() => inFlight.delete(documentId));
+  const work = runRead(documentId, file, onStage, budget).finally(() =>
+    inFlight.delete(documentId)
+  );
   inFlight.set(documentId, work);
   return work;
 }
@@ -377,7 +409,8 @@ export function readDocumentFully(
 async function readPdfInBatches(
   documentId: string,
   fileBase64: string,
-  onStage?: (stage: ReadStage, progress?: ReadProgress) => void
+  onStage?: (stage: ReadStage, progress?: ReadProgress) => void,
+  budget?: ReadBudget
 ): Promise<string> {
   /*
    * A service without /pages is one deployed before batching existed. Reading
@@ -401,7 +434,17 @@ async function readPdfInBatches(
     return whole.text;
   }
 
-  const previous = loadProgress(documentId);
+  /*
+   * Asked here, which is the one moment it can be asked honestly: the page
+   * count is known and nothing has been spent. Counting pages costs nothing —
+   * /pages is pdf-lib and no model — so this refusal is free, and it refuses
+   * the whole document rather than stopping halfway through one.
+   */
+  const alreadyHave = loadProgress(documentId);
+  const owed = total - Object.keys(alreadyHave?.parts ?? {}).length * PAGES_PER_BATCH;
+  if (budget && owed > 0 && !budget.canAfford(owed)) throw new NotEnoughCredits(owed);
+
+  const previous = alreadyHave;
   const parts: Record<string, string> =
     previous && previous.of === total ? { ...previous.parts } : {};
 
@@ -429,6 +472,8 @@ async function readPdfInBatches(
     onStage?.('transcribing', { page: readSoFar(), of: total });
     // Banked as it lands, so a failure elsewhere does not buy these pages again.
     saveProgress(documentId, { of: total, parts });
+    // Charged for what arrived, not for what was asked for.
+    budget?.onPagesRead(Math.min(PAGES_PER_BATCH, total - from + 1));
   }
 
   /*
@@ -475,7 +520,8 @@ async function readPdfInBatches(
 async function runRead(
   documentId: string,
   file: Attachment,
-  onStage?: (stage: ReadStage, progress?: ReadProgress) => void
+  onStage?: (stage: ReadStage, progress?: ReadProgress) => void,
+  budget?: ReadBudget
 ): Promise<{ transcript: string; brief: Brief | null }> {
   if (Platform.OS === 'web') throw new Error('Reading is only available on the phone app.');
 
@@ -490,7 +536,7 @@ async function runRead(
    */
   const text =
     file.type === 'pdf'
-      ? await readPdfInBatches(documentId, handle.base64Sync(), onStage)
+      ? await readPdfInBatches(documentId, handle.base64Sync(), onStage, budget)
       : (
           await post<{ text: string }>('/read', {
             fileBase64: handle.base64Sync(),

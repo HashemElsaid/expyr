@@ -6,6 +6,7 @@ import {
   hasReading,
   isReading,
   loadBrief,
+  NotEnoughCredits,
   readDocumentFully,
   readsOnArrival,
   summariseDocument,
@@ -13,7 +14,8 @@ import {
   type ReadProgress,
   type ReadStage,
 } from '@/lib/reading';
-import { FREE_READ_LIMIT, useSettings } from '@/store/settings';
+import { canAfford, chargeForPages, priceOfPages } from '@/domain/credits';
+import { useSettings } from '@/store/settings';
 import type { TrackedDocument } from '@/types';
 
 /**
@@ -41,6 +43,8 @@ export type DocumentReading = {
   readNow: () => Promise<void>;
   /** Retries only the summary, for a document already transcribed. */
   retrySummary: () => Promise<void>;
+  /** Set when a read stopped because the balance would not cover it. */
+  shortOfCredits: number | null;
 };
 
 export function useDocumentReading(doc: TrackedDocument | undefined): DocumentReading {
@@ -49,6 +53,41 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
   const [readable, setReadable] = useState(false);
   const [stage, setStage] = useState<ReadStage | null>(null);
   const [progress, setProgress] = useState<ReadProgress | null>(null);
+  const [shortOfCredits, setShortOfCredits] = useState<number | null>(null);
+
+  /**
+   * The money side of a read, in one place.
+   *
+   * Affordability is answered once, after the page count is known and before
+   * anything is fetched, so a refusal costs nothing and never leaves half a
+   * document. Pages are then counted as they land and charged for at the end,
+   * whether the read finished or gave up — because a batch that arrived was
+   * paid for by us either way, and a batch that did not was not.
+   */
+  function budgetFor(title: string) {
+    let pagesRead = 0;
+    return {
+      budget: {
+        canAfford: (pages: number) => canAfford(settings.credits, priceOfPages(pages)),
+        onPagesRead: (pages: number) => {
+          pagesRead += pages;
+        },
+      },
+      settle: () => {
+        if (pagesRead === 0) return;
+        const detail = `${title} · ${pagesRead} page${pagesRead === 1 ? '' : 's'}`;
+        update({
+          credits: chargeForPages(
+            settings.credits,
+            pagesRead,
+            detail,
+            new Date(),
+            `${Date.now()}`
+          ),
+        });
+      },
+    };
+  }
 
   /* One callback for both, so a caller cannot set a stage and forget the count. */
   function report(next: ReadStage, at?: ReadProgress) {
@@ -76,19 +115,17 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
      * "reading it" until the screen is opened again.
      */
     const joined = isReading(doc.id);
-    // An already-read document costs nothing to revisit; a new one does.
-    const fresh = !hasReading(doc.id);
-    if (!joined && !settings.premium && fresh && settings.readsUsed >= FREE_READ_LIMIT) return;
 
     let live = true;
-    readDocumentFully(doc.id, first, (next, at) => live && report(next, at))
+    const money = budgetFor(doc.title);
+    readDocumentFully(doc.id, first, (next, at) => live && report(next, at), money.budget)
       .then((result) => {
         if (!live) return;
         setReadable(true);
         setBrief(result.brief);
-        if (!settings.premium && fresh && !joined) update({ readsUsed: settings.readsUsed + 1 });
       })
       .catch((error) => {
+        if (live && error instanceof NotEnoughCredits) setShortOfCredits(error.pages);
         /*
          * Offered as a button instead, rather than an alert nobody asked for.
          *
@@ -103,6 +140,8 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
         );
       })
       .finally(() => {
+        // Settled whether it finished or not: the pages that landed are ours to pay for.
+        if (!joined) money.settle();
         if (!live) return;
         setStage(null);
         setProgress(null);
@@ -122,20 +161,28 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
     if (!first) return;
 
     tapFeedback();
-    // Only a document being read for the first time spends one of the free reads.
-    const fresh = !hasReading(doc.id);
+    setShortOfCredits(null);
+    const money = budgetFor(doc.title);
     try {
-      const result = await readDocumentFully(doc.id, first, report);
+      const result = await readDocumentFully(doc.id, first, report, money.budget);
       setReadable(true);
       setBrief(result.brief);
-      if (!settings.premium && fresh) update({ readsUsed: settings.readsUsed + 1 });
       successFeedback();
     } catch (error) {
-      Alert.alert(
-        'Could not read that',
-        error instanceof Error ? error.message : 'Something went wrong.'
-      );
+      if (error instanceof NotEnoughCredits) {
+        /*
+         * Not an error to apologise for. The screen offers a top-up, so this
+         * only records how short the balance was.
+         */
+        setShortOfCredits(error.pages);
+      } else {
+        Alert.alert(
+          'Could not read that',
+          error instanceof Error ? error.message : 'Something went wrong.'
+        );
+      }
     } finally {
+      money.settle();
       setStage(null);
       setProgress(null);
     }
@@ -158,5 +205,5 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
     }
   }
 
-  return { brief, readable, stage, progress, readNow, retrySummary };
+  return { brief, readable, stage, progress, readNow, retrySummary, shortOfCredits };
 }

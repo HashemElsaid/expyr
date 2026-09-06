@@ -185,6 +185,20 @@ export function deleteReading(documentId: string) {
 
 export type ReadStage = 'transcribing' | 'summarising';
 
+/** How far through a long document the reading has got. */
+export type ReadProgress = { page: number; of: number };
+
+/**
+ * Pages per request.
+ *
+ * There is no page range in the model's PDF support, so the service cuts a
+ * real sub-document for each batch. Four is where two costs meet: few enough
+ * that a batch finishes in the time a phone will hold a connection, and that
+ * its transcript clears the response ceiling comfortably; many enough that a
+ * fourteen-page contract is four requests rather than fourteen.
+ */
+const PAGES_PER_BATCH = 4;
+
 /**
  * Which documents are worth reading unprompted.
  *
@@ -236,7 +250,7 @@ export function isReading(documentId: string): boolean {
 export function readDocumentFully(
   documentId: string,
   file: Attachment,
-  onStage?: (stage: ReadStage) => void
+  onStage?: (stage: ReadStage, progress?: ReadProgress) => void
 ): Promise<{ transcript: string; brief: Brief | null }> {
   const existing = inFlight.get(documentId);
   if (existing) {
@@ -250,10 +264,56 @@ export function readDocumentFully(
   return work;
 }
 
+/**
+ * A long PDF, read a few pages at a time.
+ *
+ * One request for a fourteen-page tenancy contract was tens of thousands of
+ * tokens of generation: over two minutes, past the response ceiling, and past
+ * the point the phone had given up — all behind a spinner that said nothing.
+ * Cut into batches, each request finishes in the time a phone will wait, the
+ * work is visible while it happens, and a failure costs one batch instead of
+ * the document.
+ *
+ * The file goes up with every batch. That is the deliberately wasteful half of
+ * the design: the service could hold it between calls and save the bandwidth,
+ * but then it would be holding somebody's tenancy contract, and the app
+ * promises in writing that it does not.
+ */
+async function readPdfInBatches(
+  fileBase64: string,
+  onStage?: (stage: ReadStage, progress?: ReadProgress) => void
+): Promise<string> {
+  const parts: string[] = [];
+  let from = 1;
+  let total = 0;
+
+  for (;;) {
+    const to = from + PAGES_PER_BATCH - 1;
+    const batch = await post<{ text: string; pageCount?: number }>('/read', {
+      fileBase64,
+      mediaType: 'application/pdf',
+      pages: { from, to },
+    });
+
+    /*
+     * No count means a service too old to split, which ignored the range and
+     * read the whole document. What came back is all of it.
+     */
+    if (typeof batch.pageCount !== 'number') return batch.text;
+
+    total = batch.pageCount;
+    parts.push(batch.text);
+    onStage?.('transcribing', { page: Math.min(to, total), of: total });
+
+    if (to >= total) return parts.join('\n\n');
+    from = to + 1;
+  }
+}
+
 async function runRead(
   documentId: string,
   file: Attachment,
-  onStage?: (stage: ReadStage) => void
+  onStage?: (stage: ReadStage, progress?: ReadProgress) => void
 ): Promise<{ transcript: string; brief: Brief | null }> {
   if (Platform.OS === 'web') throw new Error('Reading is only available on the phone app.');
 
@@ -261,10 +321,20 @@ async function runRead(
   if (!handle.exists) throw new Error('That attachment is missing from this phone.');
 
   onStage?.('transcribing');
-  const { text } = await post<{ text: string }>('/read', {
-    fileBase64: handle.base64Sync(),
-    mediaType: file.type === 'pdf' ? 'application/pdf' : 'image/jpeg',
-  });
+
+  /*
+   * An image is one page by definition, and already downscaled on the way into
+   * storage, so it goes as it always did. Only a PDF has pages to divide.
+   */
+  const text =
+    file.type === 'pdf'
+      ? await readPdfInBatches(handle.base64Sync(), onStage)
+      : (
+          await post<{ text: string }>('/read', {
+            fileBase64: handle.base64Sync(),
+            mediaType: 'image/jpeg',
+          })
+        ).text;
 
   if (!text || text.trim().length < 40) {
     throw new Error('There was not enough readable text in that document.');

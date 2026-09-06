@@ -59,7 +59,7 @@ export default function DocumentDetailScreen() {
    * their own hook — it was the most intricate thing this screen did and had
    * nothing to do with drawing it.
    */
-  const { brief, readable, stage, readNow, retrySummary } = useDocumentReading(doc);
+  const { brief, readable, stage, progress, readNow, retrySummary } = useDocumentReading(doc);
   const days = doc ? daysUntil(doc.expiryDate) : 0;
   const { color } = useUrgency(days);
 
@@ -510,7 +510,15 @@ export default function DocumentDetailScreen() {
                   </ThemedText>
                   <ThemedText type="small" themeColor="textTertiary">
                     {stage === 'transcribing'
-                      ? 'A long contract can take half a minute. It only happens once.'
+                      ? /*
+                         * A count when there is one, because the honest number
+                         * for fourteen pages is minutes rather than the half a
+                         * minute this used to promise — and a progressing count
+                         * is the difference between waiting and wondering.
+                         */
+                        progress
+                        ? `Page ${progress.page} of ${progress.of}. It only happens once.`
+                        : 'This can take a minute. It only happens once.'
                       : stage === 'summarising'
                         ? 'Almost there.'
                         : readable

@@ -10,6 +10,7 @@ import {
   readsOnArrival,
   summariseDocument,
   type Brief,
+  type ReadProgress,
   type ReadStage,
 } from '@/lib/reading';
 import { FREE_READ_LIMIT, useSettings } from '@/store/settings';
@@ -34,6 +35,8 @@ export type DocumentReading = {
   readable: boolean;
   /** What it is doing now, or null when it is doing nothing. */
   stage: ReadStage | null;
+  /** How far through a long document it has got, when there is more than one page. */
+  progress: ReadProgress | null;
   /** Reads it, on request. Safe to call while one is already running. */
   readNow: () => Promise<void>;
   /** Retries only the summary, for a document already transcribed. */
@@ -45,6 +48,13 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
   const [brief, setBrief] = useState<Brief | null>(null);
   const [readable, setReadable] = useState(false);
   const [stage, setStage] = useState<ReadStage | null>(null);
+  const [progress, setProgress] = useState<ReadProgress | null>(null);
+
+  /* One callback for both, so a caller cannot set a stage and forget the count. */
+  function report(next: ReadStage, at?: ReadProgress) {
+    setStage(next);
+    setProgress(at ?? null);
+  }
 
   /*
    * Reading normally starts the moment a contract is saved. Picking it up again
@@ -71,7 +81,7 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
     if (!joined && !settings.premium && fresh && settings.readsUsed >= FREE_READ_LIMIT) return;
 
     let live = true;
-    readDocumentFully(doc.id, first, (next) => live && setStage(next))
+    readDocumentFully(doc.id, first, (next, at) => live && report(next, at))
       .then((result) => {
         if (!live) return;
         setReadable(true);
@@ -92,7 +102,11 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
           error instanceof Error ? error.message : String(error)
         );
       })
-      .finally(() => live && setStage(null));
+      .finally(() => {
+        if (!live) return;
+        setStage(null);
+        setProgress(null);
+      });
 
     return () => {
       live = false;
@@ -111,7 +125,7 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
     // Only a document being read for the first time spends one of the free reads.
     const fresh = !hasReading(doc.id);
     try {
-      const result = await readDocumentFully(doc.id, first, setStage);
+      const result = await readDocumentFully(doc.id, first, report);
       setReadable(true);
       setBrief(result.brief);
       if (!settings.premium && fresh) update({ readsUsed: settings.readsUsed + 1 });
@@ -123,6 +137,7 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
       );
     } finally {
       setStage(null);
+      setProgress(null);
     }
   }
 
@@ -143,5 +158,5 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
     }
   }
 
-  return { brief, readable, stage, readNow, retrySummary };
+  return { brief, readable, stage, progress, readNow, retrySummary };
 }

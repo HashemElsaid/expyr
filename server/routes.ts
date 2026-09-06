@@ -5,6 +5,7 @@ import { extractFromImage } from './extract.ts';
 import { FileGuidanceStore, isFresh, LayeredGuidanceStore } from './guidance-cache.ts';
 import { generateGuidance, type Guidance } from './guidance.ts';
 import { canIssueTokens, issueInstallToken } from './install-token.ts';
+import { pdfPageCount, pdfPages } from './pdf.ts';
 import type { LogFields } from './log.ts';
 import {
   AskRequest,
@@ -196,11 +197,29 @@ export const ROUTES: Record<string, Route> = {
     metered: true,
     costs: true,
     handle: async (ctx) => {
-      const { fileBase64, mediaType } = parse(FileRequest, ctx.body);
-      const text = await readDocument({ fileBase64, mediaType });
-      // The length, not the text. The text is the document.
-      ctx.note({ n_chars: text.length });
-      return json({ text });
+      const { fileBase64, mediaType, pages } = parse(FileRequest, ctx.body);
+
+      /*
+       * Only a PDF has pages to count, and only a PDF ever needed splitting:
+       * an image is one page by definition and already arrives downscaled.
+       *
+       * The count goes back on every batch, not just the first, because it is
+       * how the phone learns how many batches there are — and a phone that
+       * gets no count is talking to a service old enough not to split, which
+       * means the text it just received is the whole document.
+       */
+      let payload = fileBase64;
+      let pageCount: number | undefined;
+
+      if (mediaType === 'application/pdf') {
+        pageCount = await pdfPageCount(fileBase64);
+        if (pages) payload = await pdfPages(fileBase64, pages.from, pages.to);
+      }
+
+      const text = await readDocument({ fileBase64: payload, mediaType });
+      // Lengths and counts, never the text. The text is the document.
+      ctx.note({ n_chars: text.length, ...(pageCount === undefined ? {} : { n_pages: pageCount }) });
+      return json({ text, pageCount });
     },
   },
 

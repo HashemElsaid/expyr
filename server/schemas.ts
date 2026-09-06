@@ -34,6 +34,12 @@ const mediaType = z
  * contract and still a refusal for anything that looks like a paste attack.
  */
 const MAX_TEXT_CHARS = 400_000;
+
+/**
+ * The model's own hard ceiling for a single PDF. A range beyond it could never
+ * name a real page, so it is rejected at the edge rather than carried inward.
+ */
+const MAX_PDF_PAGES = 100;
 const MAX_QUESTION_CHARS = 2_000;
 /** At most this many documents in one question, so a large file cannot stall. */
 const MAX_ASK_DOCUMENTS = 12;
@@ -67,6 +73,20 @@ export type ExtractRequest = z.infer<typeof ExtractRequest>;
 export const FileRequest = z.object({
   fileBase64: z.string().min(1),
   mediaType,
+  /**
+   * Which pages to read, counted from 1 and including both ends.
+   *
+   * Optional, and deliberately: a phone updates when somebody opens the App
+   * Store and this service updates when somebody deploys it. A build that
+   * predates batching sends no range and still gets the whole document read,
+   * exactly as it did before.
+   */
+  pages: z
+    .object({
+      from: z.number().int().min(1).max(MAX_PDF_PAGES),
+      to: z.number().int().min(1).max(MAX_PDF_PAGES),
+    })
+    .optional(),
 });
 export type FileRequest = z.infer<typeof FileRequest>;
 

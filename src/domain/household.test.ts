@@ -164,6 +164,7 @@ describe('personSummary', () => {
     items: [],
     urgent: 0,
     empty: false,
+    unnamed: false,
     ...over,
   });
 
@@ -173,6 +174,19 @@ describe('personSummary', () => {
 
   it('says so plainly when there is nothing to do', () => {
     expect(personSummary(person({ urgent: 0 }))).toBe('All clear');
+  });
+
+  /*
+   * The card that produced two of somebody on one screen: an empty "Mine"
+   * beside a full card with their own name on it, and nothing saying the app
+   * was waiting to be told they are the same person.
+   */
+  it('asks an unnamed own-card for a name', () => {
+    expect(personSummary(person({ unnamed: true, empty: true }))).toBe('Tap to add your name');
+  });
+
+  it('does not ask while something needs attention', () => {
+    expect(personSummary(person({ unnamed: true, urgent: 2 }))).toBe('2 need you');
   });
 
   it('counts, and gets the verb right for one', () => {

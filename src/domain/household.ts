@@ -61,6 +61,16 @@ export type Person = {
   urgent: number;
   /** True when they were added by name and have nothing filed yet. */
   empty: boolean;
+  /**
+   * The phone's owner, on a phone that has never been told their name.
+   *
+   * It matters because the app cannot work it out. iOS stopped handing apps
+   * the device name in iOS 16, so an unnamed card stays "Mine" until somebody
+   * says otherwise — and until then, anybody who files a document under their
+   * own name gets two cards: an empty "Mine" and a full one with their name
+   * on it, which reads as a bug rather than a question.
+   */
+  unnamed: boolean;
 };
 
 /** Two names are the same person if only case or surrounding space differ. */
@@ -117,6 +127,7 @@ export function buildHousehold(
       const sorted = [...items].sort((a, b) => daysUntil(a.expiryDate) - daysUntil(b.expiryDate));
       return {
         name,
+        unnamed: name === MINE && !mine,
         label: name || mine || 'Mine',
         items: sorted,
         urgent: sorted.filter((doc) => daysUntil(doc.expiryDate) <= 30).length,
@@ -134,9 +145,18 @@ export function buildHousehold(
     });
 }
 
-/** The line under a person's name. */
+/**
+ * The line under a person's name.
+ *
+ * Urgency first, always: somebody with a licence expiring on Tuesday does not
+ * need to be asked what they are called. After that, an unnamed own-card asks,
+ * because the alternative is a card labelled "Mine" sitting beside one with
+ * their own name on it and no hint that the two are meant to be the same
+ * person, or that the app is waiting to be told.
+ */
 export function personSummary(person: Person): string {
+  if (person.urgent > 0) return `${person.urgent} need${person.urgent === 1 ? 's' : ''} you`;
+  if (person.unnamed) return 'Tap to add your name';
   if (person.empty) return 'Nothing tracked yet';
-  if (person.urgent === 0) return 'All clear';
-  return `${person.urgent} need${person.urgent === 1 ? 's' : ''} you`;
+  return 'All clear';
 }

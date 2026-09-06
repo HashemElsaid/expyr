@@ -315,6 +315,18 @@ export default function HouseholdScreen() {
               width={cardWidth}
               onOpenPerson={() => {
                 tapFeedback();
+                /*
+                 * An unnamed own-card with nothing under it opens the one
+                 * thing worth doing to it. Its timeline is empty by
+                 * definition, so sending somebody there answers a question
+                 * they did not ask and hides the one the card just put to
+                 * them.
+                 */
+                if (person.unnamed && person.empty) {
+                  setDraft(settings.ownName);
+                  setRenaming(person);
+                  return;
+                }
                 router.push(personHref(person));
               }}
               onMenu={(at) => {

@@ -11,7 +11,18 @@ import type { TrackedDocument } from '@/types';
  * for having been ignored.
  */
 
-/** Six months out: far enough to be plausible, near enough to be worth editing. */
+/**
+ * Where the picker starts when nothing is known yet.
+ *
+ * Six months out, and — this is the important part — the form does not treat it
+ * as an answer. It used to: a hand-typed passport opened on "Saturday, 6 March
+ * 2027", which is a real-looking date nobody chose, sitting in the one field the
+ * whole app is built on. Tap Start tracking without noticing and Expyr would
+ * remind you, confidently, on a date it made up.
+ *
+ * So this is only where the wheel opens. `add.tsx` tracks whether a date has
+ * actually been chosen and will not save until one has.
+ */
 export function defaultExpiry(now: Date = new Date()): Date {
   const date = new Date(now);
   date.setMonth(date.getMonth() + 6);

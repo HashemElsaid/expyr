@@ -197,9 +197,17 @@ export default function AskScreen() {
             ) : (
               !nothingRead && (
                 <ThemedText type="label" themeColor="textTertiary">
+                  {/*
+                    * "0 of 6 read" was a status report on the app's own
+                    * plumbing. What a person wants to know is what they can ask
+                    * about, and being told a contract is readable is only worth
+                    * saying when one actually is.
+                    */}
                   {allowance.left <= 5
                     ? `${allowance.left} question${allowance.left === 1 ? '' : 's'} left today`
-                    : `${pool.length} of ${records.length} read`}
+                    : pool.length > 0
+                      ? `${records.length} tracked · ${pool.length} read in full`
+                      : `${records.length} item${records.length === 1 ? '' : 's'} tracked`}
                 </ThemedText>
               )
             )}
@@ -218,13 +226,21 @@ export default function AskScreen() {
                   size={28}
                   color={theme.textTertiary}
                 />
+                {/*
+                  * This appears when there is nothing tracked at all, not when
+                  * nothing has been read — the condition is the count of items.
+                  * It used to say "Nothing read yet" and tell people to attach a
+                  * contract, which reads as a broken feature to somebody who has
+                  * simply not added anything, and is wrong twice over: dates can
+                  * be answered from what Expyr already knows, with nothing read.
+                  */}
                 <ThemedText type="headline" style={styles.centered}>
-                  Nothing read yet
+                  Nothing to ask about yet
                 </ThemedText>
                 <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                  Attach a photo of a contract to any item and Expyr reads it on the spot. After
-                  that you can ask it anything, and the answer comes back with the clause it came
-                  from.
+                  Add something and you can ask about it here — when it expires, what it cost,
+                  who it belongs to. Attach a contract and Expyr reads it too, so you can ask what
+                  it actually says and get the clause back.
                 </ThemedText>
                 <Pressable onPress={() => router.push('/add')} accessibilityRole="button">
                   {({ pressed }) => (

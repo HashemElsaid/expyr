@@ -73,10 +73,24 @@ export default function DocumentDetailScreen() {
       remove();
       return;
     }
-    Alert.alert('Stop tracking?', `“${doc.title}” and its reminders will be removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: remove },
-    ]);
+    /*
+     * Archiving is offered here rather than only in the menu above it.
+     *
+     * Deleting takes the photo of somebody's passport and everything read from
+     * it, permanently, and the only other option was three taps away under a
+     * different word. Somebody who has finished with a document almost always
+     * means "archive" — they want it out of the list, not gone — and the moment
+     * they are about to lose it is the moment to say so.
+     */
+    Alert.alert(
+      'Stop tracking?',
+      `Deleting “${doc.title}” also removes its photos and anything Expyr read from them. That cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Archive instead', onPress: toggleArchive },
+        { text: 'Delete', style: 'destructive', onPress: remove },
+      ]
+    );
   }
 
   async function toggleArchive() {

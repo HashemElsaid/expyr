@@ -42,10 +42,10 @@ export default function PersonScreen() {
 
   const person = useMemo(
     () =>
-      buildHousehold(documents, settings.people).find(
+      buildHousehold(documents, settings.people, settings.ownName).find(
         (candidate) => candidate.name.toLowerCase() === owner.toLowerCase()
       ),
-    [documents, settings.people, owner]
+    [documents, settings.people, settings.ownName, owner]
   );
 
   const sections = useMemo(() => buildSections(person?.items ?? []), [person]);
@@ -134,8 +134,14 @@ export default function PersonScreen() {
             </ThemedText>
             <SecondaryAction
               icon="camera-outline"
-              label="Add something"
-              onPress={() => router.push('/add')}
+              label={person.name === MINE ? 'Add something' : `Add something for ${person.label}`}
+              onPress={() =>
+                router.push(
+                  person.name === MINE
+                    ? { pathname: '/add' }
+                    : { pathname: '/add', params: { owner: person.name } }
+                )
+              }
             />
           </View>
         }

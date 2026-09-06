@@ -39,12 +39,27 @@ function sectionsFor(query: string): { title: string; data: Row[] }[] {
 export function CountrySelect({
   value,
   onChange,
+  open: openProp,
+  onOpenChange,
 }: {
   value: Country | null;
   onChange: (country: Country) => void;
+  /**
+   * Optional. Left out, the control opens and closes itself; supplied, the
+   * parent decides — which onboarding needs so that its primary button can be
+   * the thing that opens this, rather than a button that refuses in silence.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
+  const [openSelf, setOpenSelf] = useState(false);
+  const open = openProp ?? openSelf;
+
+  const setOpen = (next: boolean) => {
+    setOpenSelf(next);
+    onOpenChange?.(next);
+  };
   const [query, setQuery] = useState('');
   const sections = useMemo(() => sectionsFor(query), [query]);
 

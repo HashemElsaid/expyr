@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { CountrySelect } from '@/components/country-select';
+import { tapFeedback } from '@/lib/haptics';
 import { countryLabel, hasGuidance, usesEmirates, type Country } from '@/data/countries';
 import { EMIRATES, type Emirate } from '@/data/regions';
 import { useTheme } from '@/hooks/use-theme';
@@ -32,6 +33,8 @@ export default function OnboardingScreen() {
    * one that will not let you past without an answer.
    */
   const blocked = step === 'location' && country === null;
+  /** Held here so the primary button can open the picker it is waiting on. */
+  const [pickingCountry, setPickingCountry] = useState(false);
 
   function finish() {
     update({ onboarded: true, country, emirate });
@@ -84,6 +87,8 @@ export default function OnboardingScreen() {
               </ThemedText>
 
               <CountrySelect
+                open={pickingCountry}
+                onOpenChange={setPickingCountry}
                 value={country}
                 onChange={(next) => {
                   setCountry(next);
@@ -164,22 +169,44 @@ export default function OnboardingScreen() {
         </ScrollView>
 
         <View style={styles.footer}>
+          {/*
+            * The button is never dead.
+            *
+            * It used to be disabled until a country was chosen, and the only
+            * sign of that was sixty percent opacity — which on a dark green
+            * button reads as *pressed*, not as unavailable. So somebody who had
+            * not noticed the dropdown tapped Continue, nothing happened, and
+            * nothing said why. That is the first screen of the app behaving
+            * like a broken one.
+            *
+            * Now it says what it needs instead of refusing silently, and
+            * tapping it opens the very thing it is waiting for.
+            */}
           <Pressable
             onPress={() => {
+              if (blocked) {
+                tapFeedback();
+                setPickingCountry(true);
+                return;
+              }
               if (step === 'welcome') setStep('location');
               else if (step === 'location') setStep('reminders');
               else askForReminders();
             }}
-            disabled={asking || blocked}>
+            disabled={asking}>
             {({ pressed }) => (
               <View
                 style={[
                   styles.primary,
                   { backgroundColor: theme.accent },
-                  (pressed || asking || blocked) && styles.dim,
+                  (pressed || asking) && styles.dim,
                 ]}>
                 <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
-                  {step === 'reminders' ? 'Allow reminders' : 'Continue'}
+                  {blocked
+                    ? 'Choose your country'
+                    : step === 'reminders'
+                      ? 'Allow reminders'
+                      : 'Continue'}
                 </ThemedText>
               </View>
             )}

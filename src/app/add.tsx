@@ -43,7 +43,10 @@ export default function AddDocumentScreen() {
   const scheme = useColorScheme();
   const { documents, addDocument, updateDocument } = useDocuments();
   const { settings, update } = useSettings();
-  const params = useLocalSearchParams<{ id?: string; renew?: string }>();
+  const params = useLocalSearchParams<{ id?: string; renew?: string; owner?: string }>();
+
+  /** Set when you arrived from a person, so the form already knows whose this is. */
+  const forOwner = typeof params.owner === 'string' ? params.owner : undefined;
 
   const editing = params.id ? documents.find((d) => d.id === params.id) : undefined;
   const renewing = params.renew === '1' && !!editing;
@@ -54,11 +57,23 @@ export default function AddDocumentScreen() {
   const [step, setStep] = useState<Step>(editing ? 'form' : 'choose');
   const [typeId, setTypeId] = useState<DocumentTypeId | null>(editing?.typeId ?? null);
   const [title, setTitle] = useState(editing?.title ?? '');
+  /**
+   * Whether the date on screen is one somebody chose, or just where the wheel
+   * opened. Editing an item or renewing one both arrive with a real date; a
+   * blank form does not, and must not be saveable until it does.
+   */
+  const [dateChosen, setDateChosen] = useState(Boolean(editing));
+
   const [expiry, setExpiry] = useState<Date>(() =>
     editing ? startingExpiry(editing, params.renew === '1') : defaultExpiry()
   );
   const [documentNumber, setDocumentNumber] = useState(editing?.documentNumber ?? '');
-  const [owner, setOwner] = useState(editing?.owner ?? '');
+  /*
+   * Prefilled when you got here from somebody — their card, their page, their
+   * menu. Tapping "Add something for them" and then having to say who they are
+   * is the app forgetting what you just told it.
+   */
+  const [owner, setOwner] = useState(editing?.owner ?? forOwner ?? '');
   const [namingOwner, setNamingOwner] = useState(false);
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [showNotes, setShowNotes] = useState(Boolean(editing?.notes));
@@ -117,10 +132,34 @@ export default function AddDocumentScreen() {
   const type = useMemo(() => (typeId ? getDocumentType(typeId) : null), [typeId]);
   const numberField = type ? numberFieldFor(type, settings.country) : undefined;
 
-  const knownOwners = useMemo(
-    () => [...new Set(documents.map((d) => d.owner).filter((o): o is string => !!o))].slice(0, 5),
-    [documents]
-  );
+  /**
+   * Everyone this could belong to.
+   *
+   * Was the owners already written on documents, and nobody else — so somebody
+   * added on the Household page owned nothing, therefore did not exist here,
+   * and had to be typed in again. Type it slightly differently and you had two
+   * of them. The two screens are about the same people and now read from the
+   * same place.
+   */
+  const knownOwners = useMemo(() => {
+    const mine = settings.ownName.trim().toLowerCase();
+    const seen = new Set<string>();
+    const names: string[] = [];
+
+    for (const name of [
+      ...documents.map((d) => d.owner ?? ''),
+      ...settings.people,
+    ]) {
+      const trimmed = name.trim();
+      const key = trimmed.toLowerCase();
+      // Your own name is the "Mine" chip; it must not appear twice.
+      if (!trimmed || key === mine || seen.has(key)) continue;
+      seen.add(key);
+      names.push(trimmed);
+    }
+
+    return names.slice(0, 6);
+  }, [documents, settings.people, settings.ownName]);
 
   const reminderAt = formatTime(REMINDER_TIME.hour, REMINDER_TIME.minute);
 
@@ -144,7 +183,10 @@ export default function AddDocumentScreen() {
     setTitle(result.title || labelFor(scannedType, settings.country));
     if (result.expiryDate) {
       const parsed = new Date(`${result.expiryDate}T00:00:00`);
-      if (!Number.isNaN(parsed.getTime())) setExpiry(parsed);
+      if (!Number.isNaN(parsed.getTime())) {
+        setExpiry(parsed);
+        setDateChosen(true);
+      }
     }
     setDocumentNumber(scannedType.numberField ? result.documentNumber : '');
     setLeadDays(scannedType.defaultLeadDays);
@@ -263,6 +305,18 @@ export default function AddDocumentScreen() {
 
   async function persist() {
     if (!typeId || saving) return;
+
+    /*
+     * Said out loud rather than refused in silence. The button stays live and
+     * explains what is missing — a disabled control that gives no reason is
+     * indistinguishable from an app that has stopped working.
+     */
+    if (!dateChosen) {
+      setError('Choose the date this expires. Expyr cannot remind you without it.');
+      return;
+    }
+
+    setError(null);
     setSaving(true);
     const draft = {
       typeId,
@@ -551,8 +605,15 @@ export default function AddDocumentScreen() {
 
         <Field label="Expires">
           <View style={[styles.ruledRow, { borderBottomColor: theme.border }]}>
-            <ThemedText type="fieldValue" style={styles.flex}>
-              {longDate(toISODate(expiry))}
+            {/*
+              * Blank rather than plausible. A date nobody chose, printed in the
+              * same type as one they did, is indistinguishable from an answer.
+              */}
+            <ThemedText
+              type="fieldValue"
+              themeColor={dateChosen ? 'text' : 'textTertiary'}
+              style={styles.flex}>
+              {dateChosen ? longDate(toISODate(expiry)) : 'Not set yet'}
             </ThemedText>
             {Platform.OS === 'ios' ? (
               <DateTimePicker
@@ -561,7 +622,11 @@ export default function AddDocumentScreen() {
                 display="compact"
                 themeVariant={scheme}
                 accentColor={theme.accent}
-                onChange={(_, date) => date && setExpiry(date)}
+                onChange={(_, date) => {
+                  if (!date) return;
+                  setExpiry(date);
+                  setDateChosen(true);
+                }}
               />
             ) : (
               <Pressable
@@ -583,7 +648,9 @@ export default function AddDocumentScreen() {
               display="default"
               onChange={(_, date) => {
                 setShowAndroidPicker(false);
-                if (date) setExpiry(date);
+                if (!date) return;
+                setExpiry(date);
+                setDateChosen(true);
               }}
             />
           )}
@@ -592,8 +659,10 @@ export default function AddDocumentScreen() {
               value={toISODate(expiry)}
               onChangeText={(next) => {
                 const parsed = new Date(`${next}T00:00:00`);
-                if (/^\d{4}-\d{2}-\d{2}$/.test(next) && !Number.isNaN(parsed.getTime()))
+                if (/^\d{4}-\d{2}-\d{2}$/.test(next) && !Number.isNaN(parsed.getTime())) {
                   setExpiry(parsed);
+                  setDateChosen(true);
+                }
               }}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={theme.textTertiary}
@@ -604,7 +673,14 @@ export default function AddDocumentScreen() {
 
         <Field label="Whose is it">
           <View style={styles.chipRow}>
-            <Chip label="Mine" active={!owner} onPress={() => { setOwner(''); setNamingOwner(false); }} />
+            <Chip
+              label={settings.ownName || 'Mine'}
+              active={!owner}
+              onPress={() => {
+                setOwner('');
+                setNamingOwner(false);
+              }}
+            />
             {knownOwners.map((name) => (
               <Chip
                 key={name}

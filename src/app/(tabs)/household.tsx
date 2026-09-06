@@ -53,6 +53,13 @@ import { useSettings } from '@/store/settings';
  * apostrophe in their name. "mine" travels as a literal because a route
  * parameter cannot be empty and the phone's owner is stored with no name.
  */
+/** Adding something, already knowing whose it is. */
+function addForHref(person: Person) {
+  return person.name === MINE
+    ? ({ pathname: '/add' as const })
+    : ({ pathname: '/add' as const, params: { owner: person.name } });
+}
+
 function personHref(person: Person) {
   return {
     pathname: '/person/[name]' as const,
@@ -251,9 +258,9 @@ export default function HouseholdScreen() {
         run: () => router.push(personHref(person)),
       },
       {
-        label: 'Add something for them',
+        label: person.name === MINE ? 'Add something' : `Add something for ${person.label}`,
         icon: 'camera-outline',
-        run: () => router.push('/add'),
+        run: () => router.push(addForHref(person)),
       },
       {
         label: person.name === MINE ? 'Change my name' : 'Rename',

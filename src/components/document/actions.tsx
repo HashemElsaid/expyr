@@ -1,11 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, shadow } from '@/constants/theme';
+import { MENU_WIDTH, placeMenu } from '@/components/document/menu-placement';
 import { useTheme } from '@/hooks/use-theme';
 
 /** The one thing the screen most wants you to do, in the accent. */
@@ -96,6 +97,8 @@ export function ActionMenu({
   const theme = useTheme();
   // The card hangs below the navigation bar, whose height starts at the notch.
   const insets = useSafeAreaInsets();
+  // Needed to keep the card on screen, whichever corner the button is in.
+  const screen = useWindowDimensions();
 
   /*
    * Gone the instant the screen behind it is.
@@ -120,7 +123,7 @@ export function ActionMenu({
   if (!focused) return null;
 
   const placement = anchor
-    ? { paddingTop: anchor.top, paddingRight: anchor.right }
+    ? placeMenu(anchor, screen, actions.length, insets.bottom)
     : { paddingTop: insets.top + 46 };
 
   return (
@@ -218,7 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.18)',
   },
   card: {
-    minWidth: 224,
+    minWidth: MENU_WIDTH,
     borderRadius: Radius.medium,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',

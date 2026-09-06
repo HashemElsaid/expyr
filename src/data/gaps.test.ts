@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { inSentence } from '@/data/document-types';
 
 import { findGaps, gapSummary } from '@/data/gaps';
 import { findBlockers } from '@/data/prerequisites';
@@ -126,5 +127,26 @@ describe('gapSummary', () => {
 
   it('returns nothing when there is nothing to say', () => {
     expect(gapSummary([])).toBeUndefined();
+  });
+});
+
+describe('how a document type reads inside a sentence', () => {
+  it('lowercases ordinary words', () => {
+    expect(inSentence('Passport')).toBe('passport');
+    expect(inSentence('Car Insurance')).toBe('car insurance');
+  });
+
+  /*
+   * The bug. Lowercasing everything turned "Emirates ID" into "emirates id"
+   * and "UAE Driving Licence" into "uae driving licence" on the household
+   * page, which is the kind of thing that makes an app look unfinished.
+   */
+  it('leaves an initialism alone', () => {
+    expect(inSentence('Emirates ID')).toBe('Emirates ID');
+    expect(inSentence('UAE Driving Licence')).toBe('UAE Driving Licence');
+  });
+
+  it('copes with an empty label', () => {
+    expect(inSentence('')).toBe('');
   });
 });

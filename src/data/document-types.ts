@@ -338,3 +338,18 @@ export function numberFieldFor(
   if (country && country !== 'ae' && type.genericNumberField) return type.genericNumberField;
   return type.numberField;
 }
+
+/**
+ * A document type's name, ready to sit inside a sentence.
+ *
+ * Lowercased only when the whole label is ordinary words: "Passport" becomes
+ * "passport", "Car Insurance" becomes "car insurance". A label carrying an
+ * initialism is left exactly as it is, because lowercasing it produces
+ * "emirates id" and "uae driving licence", which is how the gaps on the
+ * household page used to read.
+ */
+export function inSentence(label: string): string {
+  const words = label.split(' ').filter(Boolean);
+  const hasInitialism = words.some((word) => word.length > 1 && word === word.toUpperCase());
+  return hasInitialism ? label : label.toLowerCase();
+}

@@ -1,5 +1,5 @@
 import { hasGuidance, type Country } from '@/data/countries';
-import { labelForId } from '@/data/document-types';
+import { inSentence, labelForId } from '@/data/document-types';
 import { findBlockers, PREREQUISITES } from '@/data/prerequisites';
 import { DocumentTypeId, TrackedDocument } from '@/types';
 
@@ -63,10 +63,9 @@ export function findGaps(
     namedAlready.add(rule.requires);
     gaps.push({
       severity: 'missing',
-      text: `No ${labelForId(rule.requires, country).toLowerCase()} is tracked, and ${labelForId(
-        rule.dependent,
-        country
-      ).toLowerCase()} cannot be renewed without one.`,
+      text: `No ${inSentence(labelForId(rule.requires, country))} is tracked, and ${inSentence(
+        labelForId(rule.dependent, country)
+      )} cannot be renewed without one.`,
     });
   }
 

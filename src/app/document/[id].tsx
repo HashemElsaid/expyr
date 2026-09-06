@@ -508,7 +508,9 @@ export default function DocumentDetailScreen() {
                          * is the difference between waiting and wondering.
                          */
                         progress
-                        ? `Page ${progress.page} of ${progress.of}. It only happens once.`
+                        ? progress.total > progress.of
+                          ? `Page ${progress.page} of ${progress.of}, the first ${progress.of} of ${progress.total}.`
+                          : `Page ${progress.page} of ${progress.of}. It only happens once.`
                         : 'This can take a minute. It only happens once.'
                       : stage === 'summarising'
                         ? 'Almost there.'

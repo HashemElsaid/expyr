@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
+import { pagesToRead } from '@/domain/reading-limits';
 import { postJson } from '@/lib/http';
 import { Attachment, DocumentTypeId } from '@/types';
 
@@ -251,8 +252,14 @@ export function deleteReading(documentId: string) {
 
 export type ReadStage = 'transcribing' | 'summarising';
 
-/** How far through a long document the reading has got. */
-export type ReadProgress = { page: number; of: number };
+/**
+ * How far through a long document the reading has got.
+ *
+ * `of` is how many pages will be read; `total` is how many the document has.
+ * They differ when a document is longer than the cap, and the screen says so
+ * rather than counting to thirty and stopping without explanation.
+ */
+export type ReadProgress = { page: number; of: number; total: number };
 
 /**
  * Raised before a single page is fetched, when the balance will not cover the
@@ -441,21 +448,22 @@ async function readPdfInBatches(
    * the whole document rather than stopping halfway through one.
    */
   const alreadyHave = loadProgress(documentId);
-  const owed = total - Object.keys(alreadyHave?.parts ?? {}).length * PAGES_PER_BATCH;
+  const owed = pagesToRead(total) - Object.keys(alreadyHave?.parts ?? {}).length * PAGES_PER_BATCH;
   if (budget && owed > 0 && !budget.canAfford(owed)) throw new NotEnoughCredits(owed);
 
   const previous = alreadyHave;
+  /* Everything below counts in pages that will be read, not pages that exist. */
+  const reading = pagesToRead(total);
   const parts: Record<string, string> =
     previous && previous.of === total ? { ...previous.parts } : {};
 
   const starts: number[] = [];
-  for (let from = 1; from <= total; from += PAGES_PER_BATCH) starts.push(from);
+  for (let from = 1; from <= reading; from += PAGES_PER_BATCH) starts.push(from);
 
   /* Pages banked so far, whichever batches they came from. */
-  const readSoFar = () =>
-    Math.min(total, Object.keys(parts).length * PAGES_PER_BATCH);
+  const readSoFar = () => Math.min(reading, Object.keys(parts).length * PAGES_PER_BATCH);
 
-  onStage?.('transcribing', { page: readSoFar(), of: total });
+  onStage?.('transcribing', { page: readSoFar(), of: reading, total });
 
   const pending = starts.filter((from) => parts[String(from)] === undefined);
   let next = 0;
@@ -465,15 +473,15 @@ async function readPdfInBatches(
     const batch = await post<{ text: string; pageCount?: number }>('/read', {
       fileBase64,
       mediaType: 'application/pdf',
-      pages: { from, to: from + PAGES_PER_BATCH - 1 },
+      pages: { from, to: Math.min(from + PAGES_PER_BATCH - 1, reading) },
     });
 
     parts[String(from)] = batch.text;
-    onStage?.('transcribing', { page: readSoFar(), of: total });
+    onStage?.('transcribing', { page: readSoFar(), of: reading, total });
     // Banked as it lands, so a failure elsewhere does not buy these pages again.
     saveProgress(documentId, { of: total, parts });
-    // Charged for what arrived, not for what was asked for.
-    budget?.onPagesRead(Math.min(PAGES_PER_BATCH, total - from + 1));
+    // Charged for what arrived, and the last batch is short when it meets the cap.
+    budget?.onPagesRead(Math.min(PAGES_PER_BATCH, reading - from + 1));
   }
 
   /*
@@ -514,6 +522,17 @@ async function readPdfInBatches(
 
   const transcript = starts.map((from) => parts[String(from)] ?? '').join('\n\n');
   clearProgress(documentId);
+
+  /*
+   * Said inside the transcript, not only on screen, because the transcript is
+   * what answers questions. Without it a question about page forty comes back
+   * as "the contract does not mention that", which is worse than no answer:
+   * it is a wrong one, delivered confidently, about a document somebody is
+   * making a decision on.
+   */
+  if (reading < total) {
+    return `${transcript}\n\n[Only the first ${reading} pages of this ${total}-page document were read. Anything after page ${reading} is not in this text and cannot be answered from it.]`;
+  }
   return transcript;
 }
 

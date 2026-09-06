@@ -7,7 +7,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
 
@@ -29,6 +28,16 @@ import { tapFeedback } from '@/lib/haptics';
 
 /** Firm and quick. A tab is a button, not a door swinging shut. */
 const SETTLE = { damping: 18, stiffness: 260, mass: 0.6 } as const;
+
+/**
+ * Sized to the icon, deliberately wider than tall.
+ *
+ * A circle around a 24-point glyph looks like a badge; a capsule a little wider
+ * than the thing it holds reads as a place the icon is sitting in, which is the
+ * shape every bar that feels right uses.
+ */
+const PILL_WIDTH = 56;
+const PILL_HEIGHT = 32;
 
 export function TabButton({
   children,
@@ -74,7 +83,9 @@ export function TabButton({
    * the app, so the pill is the same colour the label turns, faintly.
    */
   const pill = useAnimatedStyle(() => ({
-    opacity: settled.value * 0.12,
+    // A little stronger than before: the shape is smaller now, so the same
+    // wash of colour over less area reads as fainter than it did.
+    opacity: settled.value * 0.14,
     transform: [{ scale: 0.88 + settled.value * 0.12 }],
   }));
 
@@ -112,10 +123,18 @@ export function TabButton({
       }}
       style={styles.slot}>
       <View style={styles.stack}>
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.pill, { backgroundColor: theme.accent }, pill]}
-        />
+        {/*
+         * A capsule around the glyph, not a box around the glyph and its word.
+         *
+         * The highlight used to span both, which on a two-line stack makes a
+         * squarish rounded rectangle — and next to Instagram, where the shape
+         * hugs a single icon and is fully rounded, ours read as a box somebody
+         * had drawn rather than a control. The label sits below it, outside,
+         * and is not enclosed by anything.
+         */}
+        <View style={styles.pillRow} pointerEvents="none">
+          <Animated.View style={[styles.pill, { backgroundColor: theme.accent }, pill]} />
+        </View>
         <Animated.View style={[styles.content, content]}>{children}</Animated.View>
       </View>
     </Pressable>
@@ -137,17 +156,28 @@ const styles = StyleSheet.create({
    * — four tabs whose labels differ in length would otherwise get four
    * differently shaped pills, and the eye reads that as four different states.
    */
-  pill: {
+  /*
+   * Full width so the capsule inside it centres on the icon exactly, whatever
+   * the label beneath happens to be. Pinned to the top of the stack, which is
+   * where the glyph is — the word sits below and outside it.
+   */
+  pillRow: {
     position: 'absolute',
     /*
-     * Asymmetric on purpose. The bar sits on the bottom edge of the screen, so
-     * an even inset puts the pill's lower curve underneath the home indicator
-     * where it gets clipped — it has to breathe upwards instead.
+     * Measured, not guessed. At -5 the capsule sat three points above the
+     * glyph's centre, which is not enough to name and exactly enough to make
+     * the whole bar look slightly off. This puts the two centres on top of
+     * each other.
      */
-    top: -8,
-    bottom: -1,
-    left: 5,
-    right: 5,
-    borderRadius: Radius.medium,
+    top: -2,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  pill: {
+    width: PILL_WIDTH,
+    height: PILL_HEIGHT,
+    // Half the height: a capsule, not a rounded square.
+    borderRadius: PILL_HEIGHT / 2,
   },
 });

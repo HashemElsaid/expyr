@@ -28,11 +28,19 @@ const ASK_TIMEOUT_MS = 20_000;
 
 /**
  * How long to keep asking before giving up on a jurisdiction nobody has looked
- * up yet. Researching one takes about fifty seconds; this leaves room for a
- * cold host in front of it without leaving somebody watching a spinner into a
- * second minute.
+ * up yet.
+ *
+ * Was a hundred seconds, and measured against production it was two seconds
+ * short: a Netflix lookup landed at a hundred and two, because the free-plan
+ * host had spun down and its twenty-two second wake-up came out of the same
+ * budget as the fifty seconds of research. Giving up immediately before the
+ * answer arrives is the worst possible place to stop.
+ *
+ * The wait is not wasted either way — the service finishes and caches
+ * regardless of who is still listening — but being told to try again when the
+ * answer is already there is a bad way to find that out.
  */
-const PATIENCE_MS = 100_000;
+const PATIENCE_MS = 150_000;
 
 /** Between asks. Long enough not to hammer, short enough to feel prompt. */
 const POLL_EVERY_MS = 4_000;

@@ -103,8 +103,18 @@ This is the wall between here and credits surviving a new phone.
       subject identifier and a balance are held on the service. A privacy
       policy that denies the thing the app does is worse than no policy: it is
       a statement Apple can read, a user can rely on, and neither would
-      forgive. Both copies need it — `src/app/privacy.tsx` and
-      `docs/privacy.html`, which are kept identical on purpose
+      forgive.
+
+      Six places say it, and all six have to change together:
+
+      - `src/app/privacy.tsx` line 11 and line 53
+      - `docs/privacy.html` line 27 and line 72
+      - `docs/index.html` line 37
+      - `src/app/data.tsx` line 72, "Nothing is kept on a server."
+
+      The App Privacy labels in App Store Connect have to change with them:
+      an identifier and a balance held server-side is data collection, and a
+      label saying otherwise contradicts both the policy and the traffic
 
 ## 7. Make reading finish — ME, needs 3
 

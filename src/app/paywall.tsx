@@ -18,7 +18,7 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { plans, purchase, restore } from '@/lib/purchases';
-import { FREE_ITEM_LIMIT, FREE_READ_LIMIT, FREE_SCAN_LIMIT } from '@/store/settings';
+import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT } from '@/store/settings';
 
 /** Shorter than the word, and it reads the same in any language. */
 const UNLIMITED = '∞';
@@ -31,7 +31,6 @@ const UNLIMITED = '∞';
 const COMPARISON: { label: string; free: string }[] = [
   { label: 'Items you track', free: String(FREE_ITEM_LIMIT) },
   { label: 'Photos scanned', free: String(FREE_SCAN_LIMIT) },
-  { label: 'Contracts read and answered', free: String(FREE_READ_LIMIT) },
 ];
 
 export default function PaywallScreen() {
@@ -135,7 +134,8 @@ export default function PaywallScreen() {
             </View>
 
             <ThemedText type="small" themeColor="textTertiary" style={styles.footnote}>
-              Reminders, renewal steps, fees and backups are on both.
+              Reminders, renewal steps, fees and backups are on both. Expyr AI, which reads a
+              contract and answers questions about it, is bought separately in credits.
             </ThemedText>
           </Enter>
 

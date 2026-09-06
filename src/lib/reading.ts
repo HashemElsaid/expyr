@@ -560,36 +560,19 @@ async function runRead(
   }
 }
 
-/**
- * Reads a newly saved contract without being asked, and without the person
- * waiting on it. Saving must not hang or fail because a network call did, so
- * anything that goes wrong here is left for the document screen to offer again.
+/*
+ * readInBackground() used to live here: a contract started being read the
+ * moment it was saved, so the answers were usually waiting by the time anyone
+ * went looking for them.
+ *
+ * It could not survive credits. It carried no balance to check and nothing to
+ * charge, so saving a contract spent money and billed nobody — and because
+ * reads in flight are shared, the document screen would join that read and
+ * skip its own charge as well, making the next one free too.
+ *
+ * The document screen owns reading now: it has the balance, the charging, and
+ * somewhere to say no.
  */
-export function readInBackground(
-  documentId: string,
-  typeId: DocumentTypeId,
-  files: Attachment[],
-  onRead?: () => void
-): void {
-  if (Platform.OS === 'web') return;
-  if (!readsOnArrival(typeId)) return;
-  if (files.length === 0) return;
-  if (inFlight.has(documentId) || hasReading(documentId)) return;
-
-  readDocumentFully(documentId, files[0])
-    // Only a reading that produced something counts against the allowance. A
-    // failure delivered nothing, so it should not be charged for.
-    .then(() => onRead?.())
-    .catch((error) => {
-      // Silent on purpose. Nobody asked for this yet, so nobody should be
-      // interrupted when it fails — but it still says so where a developer
-      // can see it. The message only; never the document.
-      console.warn(
-        '[reading] background read failed:',
-        error instanceof Error ? error.message : String(error)
-      );
-    });
-}
 
 /** Retries only the summary, for a document already transcribed. */
 export async function summariseDocument(documentId: string): Promise<Brief> {

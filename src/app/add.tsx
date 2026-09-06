@@ -28,8 +28,7 @@ import { newAttachmentKey } from '@/lib/files';
 import { REMINDER_TIME } from '@/lib/notifications';
 import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
-import { readInBackground } from '@/lib/reading';
-import { FREE_ITEM_LIMIT, FREE_READ_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
+import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 import { Attachment, DocumentType, DocumentTypeId, ExtractedField, TrackedDocument } from '@/types';
 
 type Step = 'choose' | 'type' | 'form' | 'scansSpent';
@@ -349,13 +348,19 @@ export default function AddDocumentScreen() {
     const created = await addDocument(draft);
     successFeedback();
 
-    // A contract starts being read the moment it is saved, so the answers are
-    // usually waiting by the time anyone goes looking for them.
-    if (settings.premium || settings.readsUsed < FREE_READ_LIMIT) {
-      readInBackground(created.id, created.typeId, created.files, () => {
-        if (!settings.premium) update({ readsUsed: settings.readsUsed + 1 });
-      });
-    }
+    /*
+     * Reading used to start here, the moment a contract was saved, so the
+     * answers were usually waiting by the time anyone went looking.
+     *
+     * It cannot start here any more. Reading costs credits now, and this call
+     * carried no balance to check and nothing to charge: saving a contract
+     * spent money and billed nobody. Worse, because reads in flight are shared,
+     * the document screen would join this one and skip its own charge too, so
+     * one unbudgeted read made the next one free as well.
+     *
+     * The document screen owns reading now. It has the balance, the charging
+     * and somewhere to say no. The cost is a few seconds of head start.
+     */
 
     // The first item is the moment to show the promise being kept: the
     // countdown, the reminder dates and what renewing actually involves.

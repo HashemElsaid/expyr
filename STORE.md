@@ -41,7 +41,10 @@ Free plan, enforced in code:
 |---|---|
 | Items tracked | **5** |
 | Photos scanned | **10** |
-| Contracts read and answered | **2** |
+
+Expyr AI is separate, and paid for in credits rather than capped: ten credits
+reads a page, twenty answers a question, and a new install starts with thirty
+pages' worth. See `PRICING.md`.
 
 Five items is deliberate: it fits one person's own papers, so the wall lands on
 the sixth item, which is almost always someone else's.
@@ -207,10 +210,20 @@ in the background and none are required to use the app.
 
 THE BUSINESS MODEL, IN FULL
 
-Expyr is free for 5 tracked items, 10 scans, and 2 contract readings.
-Unlocking it removes all three limits.
+Expyr is free for 5 tracked items and 10 scans. Unlocking it removes both
+limits.
 
-- There is ONE product: a non-consumable in-app purchase, AED 149, paid once.
+Expyr AI, which reads a document in full and answers questions about it, is
+paid for separately in credits, because it costs us money every time it is
+used rather than once.
+
+- There is ONE non-consumable in-app purchase: AED 149, paid once, which
+  removes the two limits above.
+- There are THREE consumable in-app purchases: credit packs, which are spent
+  as Expyr AI is used. Ten credits reads a page; twenty answers a question. A
+  new install is given thirty pages' worth so it can be tried before it is
+  bought.
+- Credits are spent, not subscribed to. Nothing renews.
 - It is NOT a subscription. Nothing auto-renews and there is nothing to cancel.
 - There is no other way to pay. No external payment, no web checkout, no link
   out to a website, no Stripe, no coupon, no third-party billing of any kind.

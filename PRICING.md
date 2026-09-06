@@ -50,48 +50,74 @@ having read *all* of it.
 
 ## The decision
 
-### Expyr Pro — AED 149, once
+### Expyr Pro, AED 149, once
 
-Unchanged. Removes the three ceilings on the tracker: items, scans, and
-document readings. Not a subscription, for the reason settled in September —
-the app is built to be silent, and renting silence invites "what am I paying
-for?" at every renewal.
+Unchanged. Takes the ceilings off the tracker: items and scans. Not a
+subscription, for the reason settled in September. The app is built to be
+silent, and renting silence invites "what am I paying for?" at every renewal.
 
-### Expyr AI — sold by the document, not by the month
+### Expyr AI, paid for in credits
 
-**Twenty document reads included with Pro. Top-up packs when they run out.**
+**Credits, bought in packs, spent as they are used.** Ten credits reads a page,
+twenty answers a question. A new install starts with thirty pages' worth so
+somebody can see what it does before deciding whether it is worth paying for.
 
-Questions about a document already read are **free and unlimited**. The read is
-the unit that is paid for; asking is the thing that was bought.
+| Pack | Credits | Pages | USD |
+|---|---|---|---|
+| Small | 1,500 | 150 | $2.99 |
+| Medium | 3,000 | 300 | $4.99 |
+| Large | 6,500 | 650 | $9.99 |
 
-### Why not a subscription
+Pages rather than documents, and this is not a presentational choice. Documents
+needs an assumed length, which makes the number a guess presented as a fact:
+at fourteen pages each, 3,000 credits was advertised as twenty-one documents,
+and somebody whose tenancy contract runs to thirty would have got ten. A credit
+is a tenth of a page by definition, so pages are arithmetic. And a page is
+something anybody can count before they buy.
 
-$3/month nets $2.10 after Apple's cut — about twenty-five questions. One
-curious user is underwater in the first week.
+Each pack holds a little under seventy percent of its price in credits. That is
+not a markup. It is the price minus Apple's thirty percent, which is the money
+that actually arrives: sell five dollars of credits for five dollars and every
+top-up loses a dollar fifty. Every pack clears its own cost by 49 cents, and
+the rate per credit improves with size. Both are asserted in
+`src/lib/credit-packs.test.ts`, which caught the large pack being worse value
+per credit than the medium one before it shipped.
 
-$5/month nets $3.50, or $4.25 under the **App Store Small Business Program**
-(15% instead of 30% for developers under $1M a year — worth enrolling in
-regardless, it nearly doubles the margin on everything). Survivable, but
-unlimited use against a fixed monthly fee is the same unbounded liability that
-made the one-off purchase risky, wearing a different hat.
+The local prices in the code are placeholders written from memory. Apple has
+had no fixed tiers since 2023: you set a base price and it generates the other
+174 storefronts. Replace them with what App Store Connect produces, and delete
+the table entirely once StoreKit returns the storefront's own formatted price.
 
-### Why not a visible money balance
+### Why credits rather than a subscription
 
-A credit balance denominated in dollars was considered and rejected, on
-evidence gathered the hard way: watching a balance fall from $1.28 to $1.13
-produced the immediate reaction *"I will keep losing money like this with
-nothing in return."*
+$3/month nets $2.10 after Apple's cut, which is about twenty-five questions.
+One curious user is underwater in the first week. $5/month nets $3.50, or $4.25
+under the **App Store Small Business Program** (15% instead of 30% for
+developers under $1M a year; apply the day the Developer Program admits you,
+before setting any prices).
 
-That is exactly what a user would feel, and it is fatal for this feature in
-particular. A draining balance makes people ration. Every question becomes a
-purchase decision, and hesitation before each question destroys the thing being
-sold.
+Neither survives the real problem, which is that a fixed monthly fee against
+unbounded use is the same unbounded liability that made a one-off purchase
+risky, wearing a different hat. Credits map cost to revenue exactly, so there
+is no amount of use that turns a customer into a loss.
 
-**Count documents, not money.** "17 of your 20 reads left" is concrete, feels
-generous, and nobody does arithmetic before asking a question. "$4.20
-remaining" is a meter running. Identical economics; opposite psychology.
+### Why credits are counted, not shown as money
 
----
+A balance in dollars was considered and rejected, on evidence gathered the hard
+way. Watching a credit balance fall from $1.28 to $1.13 produced the immediate
+reaction *"I will keep losing money like this with nothing in return."*
+
+That is what a user would feel, and it is fatal for this feature: a draining
+balance makes people ration, every question becomes a purchase decision, and
+hesitation before each question destroys the thing being sold.
+
+It is also arithmetic. Apple takes thirty percent, so a five dollar top-up
+cannot buy five dollars of anything. Denominating in credits prices a product,
+which is honest; denominating in dollars reports a dollar that is not a dollar,
+which is not.
+
+The rationing effect is still wanted, and still there. It just arrives as
+"140 credits left, enough for 14 more pages" rather than as a meter.
 
 ## What bounds the downside
 
@@ -104,12 +130,23 @@ Four things already in the code:
    repeatedly-failing read converges instead of multiplying.
 2. **A finished read is cached on the phone.** Re-opening the document is free
    forever.
-3. **Only a successful read counts** against the allowance. A failure delivers
-   nothing and is charged for nothing.
+3. **Only pages that arrived are charged for.** A read is charged per page as
+   each batch lands, so a failure delivers nothing and costs nothing, and a
+   resumed read buys only the pages it adds.
 4. **Questions are bounded** by `ASK_TEXT_BUDGET` regardless of library size.
+5. **The balance is checked before a page is fetched**, after the free page
+   count comes back, so a refusal costs nothing and never leaves half a
+   document.
 
 Still to do:
 
+- **Move enforcement to the server.** The balance is currently held on the
+  phone, which means it is a number the owner of the phone can edit. It is
+  honest with honest users and trivially bypassed by anyone else.
+  `server/credit-ledger.ts` is the one that cannot be edited, and `/read` and
+  `/ask` do not debit it yet. It also needs a durable store, which the free
+  Render plan cannot provide, and the ledger correctly refuses to sell into a
+  store that forgets.
 - **Cap pages per document at 30.** A 50-page contract is ~$0.40 with no
   ceiling today. Thirty pages bounds the worst case at ~$0.25 and is honest —
   say "read the first 30 pages of 52" rather than truncating quietly.
@@ -121,10 +158,13 @@ Still to do:
 
 - A free user costs **under a cent**, for good.
 - A Pro user who never touches Expyr AI costs **under a cent**, for good.
-- A Pro user who reads all twenty included documents and asks freely costs
-  **about $3.50** — against a AED 149 (~$40) purchase.
+- A new install's thirty welcome pages cost **about 24 cents**, once.
+- Everything after that is bought before it is spent, so no amount of use by
+  one person can cost more than they have paid.
 - Hosting is **$7/month** once the service moves off Render's free plan, which
   is required before submission anyway.
 
-The tracker funds itself many times over. Expyr AI is the part that needs
-watching, and twenty documents is the number that keeps it watched.
+The tracker funds itself many times over. Expyr AI cannot lose money by
+design, because nothing is spent that was not bought first. What it can still
+do is fail while somebody is paying attention, which is why the reading has to
+work before any of this is sold.

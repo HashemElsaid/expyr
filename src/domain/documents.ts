@@ -89,6 +89,26 @@ export function isSubscription(doc: Pick<TrackedDocument, 'renewsEvery' | 'typeI
 }
 
 /**
+ * What the date on a document actually does when it arrives.
+ *
+ * A subscription does not expire, it charges you. Saying "expires" of a
+ * Snapchat renewal invites exactly the wrong response — waiting for it to
+ * lapse, when what actually happens is that the money leaves.
+ *
+ * This lived inside the notification builder, so the banner said "charges you"
+ * and the screen it opened said "expires" about the same subscription. One
+ * sentence disagreeing with itself across a tap is worse than either wording,
+ * so both now read from here.
+ */
+export function expiryVerb(
+  doc: Pick<TrackedDocument, 'renewsEvery' | 'typeId'>,
+  past = false
+): string {
+  if (isSubscription(doc)) return past ? 'charged you' : 'charges you';
+  return past ? 'expired' : 'expires';
+}
+
+/**
  * Moves a subscription's date past today, one period at a time, remembering
  * the dates it has been.
  *

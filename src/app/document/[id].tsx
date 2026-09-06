@@ -8,7 +8,7 @@ import { DataRow } from '@/components/document/data-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { isSubscription } from '@/domain/documents';
+import { expiryVerb, isSubscription } from '@/domain/documents';
 import { displayFields } from '@/domain/fields';
 import { provenanceNote, worthShowing } from '@/domain/renewal-guidance';
 import { runningLateFee } from '@/domain/late-fee';
@@ -250,8 +250,8 @@ export default function DocumentDetailScreen() {
             {verdictPhrase(days)}
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary">
-            {/* It did not expire in the future. */}
-            {doc.title} {days < 0 ? 'expired' : 'expires'} {longDate(doc.expiryDate)}.
+            {/* It did not expire in the future, and a subscription never expires. */}
+            {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}.
           </ThemedText>
 
           {period && (
@@ -748,7 +748,7 @@ export default function DocumentDetailScreen() {
         {doc.history && doc.history.length > 0 && (
           <DataRow
             label="Renewed"
-            value={`${doc.history.length} time${doc.history.length === 1 ? '' : 's'} · last expired ${shortDate(doc.history[doc.history.length - 1])}`}
+            value={`${doc.history.length} time${doc.history.length === 1 ? '' : 's'} · last ${isSubscription(doc) ? 'charged' : 'expired'} ${shortDate(doc.history[doc.history.length - 1])}`}
             bordered
           />
         )}
@@ -759,14 +759,22 @@ export default function DocumentDetailScreen() {
               <PrimaryAction icon="open-in-new" label={`Renew at ${portal.name}`} onPress={openPortal} />
               <SecondaryAction
                 icon="check-circle-outline"
-                label="I have renewed this"
+                label={isSubscription(doc) ? 'It renewed' : 'I have renewed this'}
                 onPress={markRenewed}
               />
             </>
           ) : (
+            /*
+             * Nobody renews a subscription — it renews itself, which is the
+             * whole reason it needs watching. Offering "I have renewed this"
+             * as the primary action asks for credit for something the user did
+             * not do, and quietly implies they had a choice.
+             */
             <PrimaryAction
               icon="check-circle-outline"
-              label={canRoll ? 'I have renewed this' : 'Update the date'}
+              label={
+                canRoll ? (isSubscription(doc) ? 'It renewed' : 'I have renewed this') : 'Update the date'
+              }
               onPress={markRenewed}
             />
           )}

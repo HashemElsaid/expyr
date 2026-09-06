@@ -1,5 +1,6 @@
 import { hasGuidance, type Country } from '@/data/countries';
 import { getDocumentType, labelFor } from '@/data/document-types';
+import { expiryVerb } from '@/domain/documents';
 import { daysUntil, dueIn, longDate, toISODate } from '@/lib/dates';
 import { upcoming } from '@/lib/recurrence';
 import type { TrackedDocument } from '@/types';
@@ -102,12 +103,8 @@ function contentFor(
   const fee = hasGuidance(country) ? type.guide.lateFee : '';
   const lateFee = fee.startsWith('AED') ? fee : '';
 
-  /*
-   * A subscription does not expire, it charges you. Saying "expires" of a
-   * Netflix renewal invites exactly the wrong response — waiting for it to
-   * lapse, when what actually happens is that the money leaves.
-   */
-  const verb = doc.renewsEvery ? 'charges you' : 'expires';
+  /* Shared with the detail screen, so a tap cannot change the wording. */
+  const verb = expiryVerb(doc);
 
   return {
     /*

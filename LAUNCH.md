@@ -1,142 +1,159 @@
-# Expyr — launch checklist
+# Expyr, launch checklist
 
-In dependency order. Nothing below step 1 can start until step 1 is done.
+Current as of 6 September 2026, in dependency order. Nothing in a step can
+start before the step above it is done.
 
-**YOU** = only you can do it (payment, identity, Apple account, decisions).
-**ME** = ask Claude and it gets done.
+**YOU** means only you can do it: payment, identity, an Apple account, a
+decision. **ME** means ask Claude and it gets done.
 
----
-
-## 1. Enrol in the Apple Developer Program — YOU
-
-- [ ] Enrol as an **Individual** at developer.apple.com/programs/enroll — $99/year
-- [ ] Have ready: Apple ID with two-factor on, a payment card, government photo ID
-- [ ] Approval usually takes 24–48 hours
-
-Blocks everything else. Start today.
-
-## 2. Apply to the Small Business Program — YOU
-
-- [ ] Apply once enrolment is approved
-
-Drops Apple's commission from 30% to **15% from day one**, on one-off purchases
-and subscriptions alike. Takes a few days to approve, so start it early.
-
-## 3. Publish the web pages — YOU (2 minutes)
-
-- [ ] Make the GitHub repo **public** (required for free GitHub Pages)
-- [ ] Optional: rename the repo `renewly` → `expyr`, then update the git remote
-- [ ] Settings → Pages → Source: `main` branch, `/docs` folder
-- [ ] Confirm `…/privacy.html` and `…/support.html` both load
-
-Apple asks for both URLs at submission. The pages are already written and committed.
-
-## 4. Decide the price — YOU, then ME
-
-- [ ] Decide, then tell Claude to update `src/lib/purchases.ts`
-
-Currently AED 129/year + AED 399 lifetime. Recommendation after finding Expiro
-at AED 119.99 one-time: **single one-off at AED 149, no subscription.**
-
-Must be settled before step 6 — the products have to match exactly.
-
-## 5. Create the app in App Store Connect — YOU
-
-- [ ] New App → reserve the name **Expyr**
-- [ ] Bundle ID `com.expyr.app`
-- [ ] Primary language English, SKU anything
-
-Reserve the name early. If "Expyr" has gone, everything downstream changes.
-
-## 6. Create the in-app purchase products — YOU
-
-- [ ] Create products matching step 4's prices exactly
-- [ ] Tick **Family Sharing** on each
-
-Family Sharing is what stops a household pooling onto one phone — Apple caps a
-family at six and limits how often anyone can switch.
-
-## 7. First EAS build — ME
-
-- [ ] Ask Claude to run it once you are enrolled
-
-`eas.json` is already configured. EAS handles certificates automatically and
-builds iOS from Windows — no Mac needed. This is where Expo Go stops and a real
-app begins.
-
-## 8. Test on your actual phone — YOU
-
-Nothing has ever run outside Expo Go. The important one:
-
-- [ ] Add a document
-- [ ] Set a reminder a few minutes out
-- [ ] **Close the app completely**
-- [ ] Wait for the notification, then tap it
-- [ ] It should open that document
-
-That cold-start path was broken until 31 Aug and can only be verified on a real
-build.
-
-- [ ] Also check: camera scan, PDF upload, Face ID lock, backup and restore
-
-## 9. Screenshots — YOU + ME
-
-- [ ] 6.7" iPhone only (iPad support is switched off)
-- [ ] Five or six, from the real app, with realistic documents
-
-## 10. Upgrade Render to `starter` — YOU
-
-- [ ] Change the plan in the Render dashboard (~$7/month)
-
-Must happen before real users. On the free plan the service sleeps and
-cold-starts in ~50 seconds, so the first scan of the day times out and looks
-broken — including to a reviewer.
-
-- [ ] Also set an Anthropic spend limit and billing alerts
-
-## 11. Wire real purchases — ME
-
-- [ ] Ask Claude once step 6 exists
-
-Replaces the deliberate stub in `src/lib/purchases.ts` with StoreKit/RevenueCat.
-
-## 12. App Store Connect paperwork — YOU
-
-- [ ] Paste the full review notes from `STORE.md` into App Review Information
-- [ ] Attach a sample document image so the reviewer can test scanning
-- [ ] Privacy labels: declare that scans go to our server and on to Anthropic
-- [ ] Age rating questionnaire
-- [ ] Export compliance (encryption) declaration
-- [ ] Leave the Beta App Review sign-in fields blank; there is no account
-
-Reviewers reject what they cannot test. `STORE.md` also lists the five reasons
-the previous app was rejected and what was changed here to avoid each one.
-
-## 13. TestFlight — YOU
-
-- [ ] Push the build, add a few testers, let it run about a week
-
-## 14. Submit
-
-- [ ] Submit for review
+Two documents sit under this one. `APP-REVIEW.md` is the App Store compliance
+audit and why each item is there. `PRICING.md` is what everything costs to run
+and how the credits are priced. `STORE.md` is the listing copy and the review
+notes to paste into App Store Connect.
 
 ---
 
-## Running in parallel, not blocking
+## Where it stands
 
-- [ ] The e-Trader licence question — settle before money actually moves
-- [ ] Confirm how Apple pays into a UAE bank account in your name
+**The tracker is finished.** Photograph a document, it reads the date, it
+reminds you, it tells you how to renew. Notifications were verified on a real
+iPhone on 6 September: scheduled by the planner, survived overnight, fired at
+the right hour with the right countdown. 265 tests on the app, 108 on the
+service.
+
+**Expyr AI is built but cannot yet be sold or relied on.** The credit ledger,
+the top-up screen, the Apple identity verification and the account linking all
+exist and are tested. Three things stop it working: it cannot take payments,
+the balance is held on the phone where it is editable, and reading a long PDF
+still does not reliably finish.
+
+---
+
+## 1. Apple admits you — YOU, in progress
+
+- [x] Enrol as an **Individual**, $99, paid 6 September
+- [ ] Wait. The first two attempts were rejected for a name mismatch, fixed on
+      the third
+- [ ] If nothing arrives in a few days, call rather than email:
+      Mon–Fri, **12:00 to 21:00 Dubai**, from developer.apple.com/contact
+
+## 2. The day you are admitted — YOU
+
+- [ ] **Enrol in the App Store Small Business Program, before setting any
+      prices.** Apple's cut drops from 30% to 15% for the year. Free, and it
+      roughly doubles the margin on everything
+- [ ] Create the app record in App Store Connect, bundle id `com.expyr.app`
+- [ ] Create **one non-consumable**: Expyr Pro, AED 149, Family Shareable
+- [ ] Create **three consumables**: `credits.small`, `credits.medium`,
+      `credits.large`. Set a base price and let Apple generate the other 174
+      storefronts. **The local prices in `src/lib/credit-packs.ts` are
+      placeholders written from memory.** Replace them with what Apple
+      generates
+
+## 3. Upgrade Render to the $7 plan — YOU
+
+Not optional any more, and it buys three things at once:
+
+- The credit ledger needs a **persistent disk**. Without one it falls back to
+  memory and refuses to sell, which is correct and also means credits cannot
+  work at all
+- The **22 second cold start** goes. App Review would read that as a broken app
+- It is the leading remaining explanation for **reading not finishing**: a
+  tenth of a shared CPU parsing multi-megabyte PDFs
+
+- [ ] Upgrade the instance
+- [ ] Attach a disk and set `EXPYR_CREDITS_DIR` to a path on it
+- [ ] Set `EXPYR_GUIDANCE_DIR` too, so the guidance cache survives a deploy
+
+## 4. A development build — ME, needs 1
+
+Sign in with Apple needs a native entitlement and **does not run in Expo Go**.
+This is the wall between here and credits surviving a new phone.
+
+- [ ] `eas build` for a development client
+- [ ] Install it on your iPhone in place of Expo Go
+
+## 5. Make the money work — ME, needs 2 and 3
+
+- [ ] Wire StoreKit: `purchase()` and `restore()` in `src/lib/purchases.ts`
+      currently return `ok: false`, which is a guaranteed rejection under
+      Guideline 2.1
+- [ ] Grant credits on a completed consumable purchase, in the one place
+      `top-up.tsx` reserves for it
+- [ ] Move spending to the server. `/read` and `/ask` still trust the balance
+      the phone reports, and a balance in local storage is a number its owner
+      can edit
+- [ ] Sign in with Apple on the phone. The whole server half is done and tested
+
+## 6. What accounts oblige you to add — ME, needs 5
+
+- [ ] **In-app account deletion.** Guideline 5.1.1(v) requires it the moment an
+      app supports account creation. Expyr is exempt today because it has no
+      accounts; adding sign-in ends that exemption
+- [ ] Decide what happens to unspent credits when somebody deletes
+
+## 7. Make reading finish — ME, needs 3
+
+Still the one feature that does not work. A 14-page contract reached 12 pages
+and gave up. Everything cheap has been tried: parallel batches, a page count
+that costs nothing, streaming, per-batch banking, a retry pass, half the server
+work removed.
+
+- [ ] Try again on the paid plan, which is the last untested variable
+- [ ] Cap a document at **30 pages**. A 50-page contract is unbounded in both
+      time and cost. Say "read the first 30 pages of 52" rather than truncating
+      quietly
+
+## 8. Decisions still open — YOU
+
+- [ ] **Brand icons.** Subscription logos come from Google's undocumented
+      favicon endpoint, which is awkward against Guideline 5.2.2's "specifically
+      permitted under the service's terms". Bundling a small set of your own
+      would remove the question and a network call
+- [ ] **The summary model.** The brief runs on Sonnet 5 at roughly twice the
+      price of everything around it. Worth comparing Haiku on a real contract
+- [ ] **Your name.** The app shows "Mine" and "Hashim" as two cards because it
+      cannot tell they are the same person. iOS stopped giving apps the device
+      name in iOS 16, so it cannot be inferred. Sign in with Apple would supply
+      it for paying users; everybody else needs to be asked, or the rename on
+      the Mine card needs to set it
+
+## 9. The things a listing needs — YOU, with ME where useful
+
+- [ ] **App icon**, 1024×1024, no transparency, no alpha
+- [ ] **Screenshots**, 6.7" and 6.5". Guideline 2.3.3 rejects title art and
+      splash screens; show the app in use
+- [ ] Attach `assets/review/sample-insurance-certificate.jpg` so a reviewer can
+      test scanning without owning a UAE document
+- [ ] **App Privacy labels.** Declare that images and document text are sent
+      for processing, not retained, not linked to identity, not used for
+      tracking. Declaring "no data collected" would contradict the privacy
+      policy and the observable network traffic
+- [ ] **Age rating.** Answer the AI and chatbot questions honestly. Do not
+      assume 4+ any more
+- [ ] Paste the review notes from `STORE.md`, including the section stating all
+      three AI features plainly
+
+## 10. Submit
+
+- [ ] Test everything on the development build, not Expo Go
+- [ ] Confirm the scanning service answers from cold
+- [ ] Set an Anthropic spend limit for production traffic. Currently $20/month
+      with a $10 notification, sized for one developer rather than an audience
 
 ---
 
 ## Already done
 
-- Product code complete, both packages typecheck
-- Named Expyr, renamed throughout
-- App icon drawn and wired in, no alpha channel
-- Privacy, support and terms pages written in `docs/`
-- Free tier: 10 items, 15 scans
-- Country gate — guidance shown only where it has been verified
-- Data model prepared for family sync
-- Cold-start reminder tap fixed
-- iPad support switched off
+Kept so nothing gets redone by accident.
+
+- Notifications, verified on a real iPhone
+- Privacy manifest and export compliance declared in `app.json`
+- Privacy policy, support and terms pages live at
+  hashemelsaid.github.io/expyr, and set as the App Store Connect URLs
+- Permission strings written to Guideline 5.1.1(ii)'s standard
+- The credit ledger, the top-up screen, per-page charging, resumable reads
+- Apple identity verification and account linking on the service
+- Every React Native 0.86 deprecation cleared
+- Anthropic spending capped three ways: $10 notification, $20 limit,
+  auto-reload off

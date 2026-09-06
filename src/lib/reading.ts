@@ -258,11 +258,14 @@ const PAGES_PER_BATCH = 4;
 /**
  * How many batches are in the air together.
  *
- * Four, because a fourteen-page contract is four batches and should therefore
- * take about as long as one. Higher would not help much: every batch re-sends
- * the whole file, so the phone's uplink saturates before the service does.
+ * Three, not four. Four was chosen so a fourteen-page contract would be one
+ * round of batches, which was the right idea measured against the wrong thing:
+ * every batch re-sends the whole file, so four at once means four uploads
+ * sharing one uplink, and the slowest of them times out having spent its
+ * budget on bytes rather than pages. Three leaves the connection room, and
+ * anything that still fails is retried alone.
  */
-const BATCH_CONCURRENCY = 4;
+const BATCH_CONCURRENCY = 3;
 
 /**
  * Which documents are worth reading unprompted.
@@ -398,34 +401,56 @@ async function readPdfInBatches(
 
   const pending = starts.filter((from) => parts[String(from)] === undefined);
   let next = 0;
+  const failed: number[] = [];
+
+  async function fetchBatch(from: number) {
+    const batch = await post<{ text: string; pageCount?: number }>('/read', {
+      fileBase64,
+      mediaType: 'application/pdf',
+      pages: { from, to: from + PAGES_PER_BATCH - 1 },
+    });
+
+    parts[String(from)] = batch.text;
+    onStage?.('transcribing', { page: readSoFar(), of: total });
+    // Banked as it lands, so a failure elsewhere does not buy these pages again.
+    saveProgress(documentId, { of: total, parts });
+  }
 
   /*
-   * Four at a time. Each batch carries the whole file — the cost of not letting
-   * the service keep it — so the phone's uplink, not the model, is what more
-   * concurrency would run into.
+   * Three at a time, and a batch that fails does not take the others with it.
+   *
+   * Observed on a fourteen-page contract: three batches landed and the fourth
+   * timed out. Nothing was wrong with those two pages — every batch carries the
+   * whole file, so four uploads share one phone's uplink, and the last one to
+   * get its bytes out has spent most of its ninety seconds before the model
+   * sees anything. Concurrency was helping the model and hurting the upload.
    */
   async function worker() {
     for (;;) {
       const index = next++;
       if (index >= pending.length) return;
       const from = pending[index];
-
-      const batch = await post<{ text: string; pageCount?: number }>('/read', {
-        fileBase64,
-        mediaType: 'application/pdf',
-        pages: { from, to: from + PAGES_PER_BATCH - 1 },
-      });
-
-      parts[String(from)] = batch.text;
-      onStage?.('transcribing', { page: readSoFar(), of: total });
-      // Banked as it lands, so a failure elsewhere does not buy these pages again.
-      saveProgress(documentId, { of: total, parts });
+      try {
+        await fetchBatch(from);
+      } catch {
+        // Collected, not thrown: the batches still in flight are worth having.
+        failed.push(from);
+      }
     }
   }
 
   await Promise.all(
     Array.from({ length: Math.min(BATCH_CONCURRENCY, pending.length) }, worker)
   );
+
+  /*
+   * The second pass runs them one at a time, which is the whole point: a batch
+   * that lost the race for the uplink gets it to itself. Only a batch that
+   * fails alone, with nothing to compete against, is a real failure.
+   */
+  for (const from of failed) {
+    await fetchBatch(from);
+  }
 
   const transcript = starts.map((from) => parts[String(from)] ?? '').join('\n\n');
   clearProgress(documentId);

@@ -297,6 +297,13 @@ See `APP-REVIEW.md` for the full compliance audit. The blocking items:
 - [ ] Real purchases wired, replacing the stubs in `src/lib/purchases.ts`
 - [ ] The product created in App Store Connect as a NON-CONSUMABLE at AED 149,
       Family Sharing enabled, matching `src/lib/purchases.ts`
+- [ ] Three CONSUMABLE credit packs created: credits.small, credits.medium and
+      credits.large, at the USD prices in `src/lib/credit-packs.ts`. Apple has
+      no fixed tiers any more, so set the base price and let it generate the
+      other 174 storefronts. **The local prices in that file are placeholders
+      written from memory, not looked up.** Replace them with what App Store
+      Connect actually generates, and delete the table entirely once StoreKit
+      returns the storefront's own formatted price.
 - [x] Privacy policy and support URLs live and reachable —
       https://hashemelsaid.github.io/expyr/privacy.html and /support.html
 - [ ] App icon (1024×1024, no transparency, no alpha channel)

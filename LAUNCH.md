@@ -100,9 +100,11 @@ that costs nothing, streaming, per-batch banking, a retry pass, half the server
 work removed.
 
 - [ ] Try again on the paid plan, which is the last untested variable
-- [ ] Cap a document at **30 pages**. A 50-page contract is unbounded in both
-      time and cost. Say "read the first 30 pages of 52" rather than truncating
-      quietly
+- [x] Cap a document at **30 pages** — done. The worst case is now 300 credits
+      and one round of batches. Said on screen ("Page 12 of 30, the first 30 of
+      52") and inside the transcript, so a question about page forty is
+      answered with "that part was not read" rather than "the contract does not
+      mention it"
 
 ## 8. Decisions still open — YOU
 

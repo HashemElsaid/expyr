@@ -274,6 +274,16 @@ function AppShell() {
           name="paywall"
           options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
         />
+        {/*
+          * Same treatment as the paywall: its own close, and no navigation bar
+          * above it. Left to the default it grew a title reading "top-up" and a
+          * back chevron beside the screen's own close, which is two ways out and
+          * a strip of dead space to hold them.
+          */}
+        <Stack.Screen
+          name="top-up"
+          options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
+        />
       </Stack>
 
       {/*

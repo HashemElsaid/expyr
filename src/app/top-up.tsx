@@ -1,18 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import {
-  CREDITS_PER_PAGE,
-  CREDITS_PER_QUESTION,
-  documentsLeft,
-  formatCredits,
-} from '@/domain/credits';
+import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, documentsLeft } from '@/domain/credits';
 import { useTheme } from '@/hooks/use-theme';
 import { documentsIn, PACKS, TYPICAL_PAGES, type Pack } from '@/lib/credit-packs';
 import { tapFeedback } from '@/lib/haptics';
@@ -21,19 +16,20 @@ import { useSettings } from '@/store/settings';
 /**
  * Buying more of what Expyr AI runs on.
  *
- * Reading a contract and answering questions about it costs real money every
- * time, and unlike everything else in the app that cost does not stop. Credits
- * exist so the person choosing to spend it can see it — which is also why this
- * screen leads with what they have rather than with what they could buy.
+ * One screenful, no scrolling. Somebody here is doing one thing, and a page
+ * that explains itself at length before letting them do it is a page that
+ * doubts whether the thing is worth buying.
  *
- * The packs are sold at close to what the credits cost us. The profit is in
- * Expyr Pro; this is the meter, not the margin.
+ * Pick a pack, press the button. The packs are rows because rows compare; the
+ * button is a button because a bordered box is not one.
  */
 export default function TopUpScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings } = useSettings();
-  const [busy, setBusy] = useState<Pack['id'] | null>(null);
+  /** The middle pack, which is the one most people should take. */
+  const [chosen, setChosen] = useState<Pack>(PACKS[1]);
+  const [busy, setBusy] = useState(false);
 
   const balance = settings.credits.balance;
   const left = documentsLeft(settings.credits, TYPICAL_PAGES);
@@ -43,32 +39,29 @@ export default function TopUpScreen() {
     else router.replace('/settings');
   }
 
-  async function buy(pack: Pack) {
+  async function buy() {
     tapFeedback();
-    setBusy(pack.id);
-
+    setBusy(true);
     /*
-     * Nothing is charged and nothing is granted until StoreKit is wired: a
-     * screen that handed out credits on a tap would be a way to read documents
-     * for free, and the pretence would have to be unpicked later anyway.
-     *
-     * When it is wired, the grant belongs here and nowhere else: one place
-     * that turns a completed purchase into a topUp() entry on the ledger.
+     * Nothing is granted until StoreKit is wired. A screen that handed out
+     * credits on a tap would be a way to read documents for free, and the
+     * pretence would have to be unpicked later anyway. When it is wired, the
+     * grant belongs here and nowhere else.
      */
-    setBusy(null);
+    setBusy(false);
     Alert.alert(
       'Not available yet',
-      'Top-ups need an Apple Developer account and products set up in App Store Connect. Everything else about credits already works.'
+      'Buying credits needs App Store Connect. Everything else works.'
     );
   }
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.closeRow}>
+        <View style={styles.top}>
           <Pressable
             onPress={close}
-            hitSlop={12}
+            hitSlop={16}
             accessibilityRole="button"
             accessibilityLabel="Close">
             {({ pressed }) => (
@@ -81,33 +74,28 @@ export default function TopUpScreen() {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {/*
-            * What they have, before what they could buy. Somebody arriving here
-            * because a read was refused already knows they want more; somebody
-            * arriving from Settings mostly wants to know where they stand.
-            */}
-          <View style={styles.hero}>
+        <View style={styles.body}>
+          <View>
             <ThemedText type="display" style={styles.balance}>
               {balance.toLocaleString('en-US')}
             </ThemedText>
             <ThemedText type="body" themeColor="textSecondary">
-              credits left — about {left} more document{left === 1 ? '' : 's'}.
+              credits left, about {left} more document{left === 1 ? '' : 's'}
             </ThemedText>
           </View>
 
           <View style={[styles.rates, { borderColor: theme.border }]}>
             <View style={styles.rateRow}>
               <ThemedText type="body" style={styles.flex}>
-                Reading a page
+                Read a page
               </ThemedText>
               <ThemedText type="numeral" themeColor="textSecondary">
                 {CREDITS_PER_PAGE}
               </ThemedText>
             </View>
-            <View style={[styles.rateRow, { borderTopColor: theme.border, borderTopWidth: 1 }]}>
+            <View style={[styles.rateRow, { borderTopWidth: 1, borderTopColor: theme.border }]}>
               <ThemedText type="body" style={styles.flex}>
-                Asking a question
+                Ask a question
               </ThemedText>
               <ThemedText type="numeral" themeColor="textSecondary">
                 {CREDITS_PER_QUESTION}
@@ -115,54 +103,73 @@ export default function TopUpScreen() {
             </View>
           </View>
 
-          <ThemedText type="small" themeColor="textTertiary" style={styles.footnote}>
-            A {TYPICAL_PAGES}-page contract costs {TYPICAL_PAGES * CREDITS_PER_PAGE} credits to
-            read, once. After that you can ask it anything, and only the questions cost.
-          </ThemedText>
-
           <View style={styles.packs}>
-            {PACKS.map((pack) => (
-              <Pressable
-                key={pack.id}
-                onPress={() => buy(pack)}
-                disabled={busy !== null}
-                accessibilityRole="button"
-                accessibilityLabel={`Buy ${formatCredits(pack.credits)} for ${pack.price}`}>
-                {({ pressed }) => (
-                  <View
-                    style={[
-                      styles.pack,
-                      { borderColor: theme.border },
-                      (pressed || busy === pack.id) && styles.dim,
-                    ]}>
-                    <View style={styles.flex}>
-                      <ThemedText type="bodyMedium">{formatCredits(pack.credits)}</ThemedText>
-                      <ThemedText type="small" themeColor="textTertiary">
-                        About {documentsIn(pack)} documents
-                      </ThemedText>
+            {PACKS.map((pack) => {
+              const picked = pack.id === chosen.id;
+              return (
+                <Pressable
+                  key={pack.id}
+                  onPress={() => {
+                    tapFeedback();
+                    setChosen(pack);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: picked }}
+                  accessibilityLabel={`${pack.credits} credits for ${pack.price}`}>
+                  {({ pressed }) => (
+                    <View
+                      style={[
+                        styles.pack,
+                        {
+                          borderColor: picked ? theme.accent : theme.border,
+                          backgroundColor: picked ? theme.backgroundSelected : 'transparent',
+                        },
+                        pressed && styles.dim,
+                      ]}>
+                      <MaterialCommunityIcons
+                        name={picked ? 'circle-slice-8' : 'circle-outline'}
+                        size={20}
+                        color={picked ? theme.accent : theme.textTertiary}
+                      />
+                      <View style={styles.flex}>
+                        <ThemedText type="bodyMedium">
+                          {pack.credits.toLocaleString('en-US')} credits
+                        </ThemedText>
+                        <ThemedText type="small" themeColor="textTertiary">
+                          {documentsIn(pack)} documents
+                        </ThemedText>
+                      </View>
+                      <ThemedText type="numeral">{pack.price}</ThemedText>
                     </View>
-                    <ThemedText type="numeral">{pack.price}</ThemedText>
-                  </View>
-                )}
-              </Pressable>
-            ))}
+                  )}
+                </Pressable>
+              );
+            })}
           </View>
 
-          {/*
-            * Guideline 3.1.2 wants the title, price and terms of a purchase on
-            * the screen where it is made. These are consumables: they are spent,
-            * they do not renew, and — the part people are caught out by — Apple
-            * does not restore them, so saying so here is the honest thing rather
-            * than the small print.
-            */}
-          <View style={[styles.legal, { borderTopColor: theme.border }]}>
-            <ThemedText type="small" themeColor="textTertiary">
-              Credits are a one-off purchase, charged to your Apple Account at confirmation. They do
-              not renew and there is nothing to cancel. They are spent as you use Expyr AI, they do
-              not expire, and any unused balance stays on this phone.
+          <View style={styles.foot}>
+            <Pressable onPress={buy} disabled={busy} accessibilityRole="button">
+              {({ pressed }) => (
+                <View
+                  style={[
+                    styles.primary,
+                    { backgroundColor: theme.accent },
+                    (pressed || busy) && styles.dim,
+                  ]}>
+                  <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                    {busy ? 'One moment' : `Buy for ${chosen.price}`}
+                  </ThemedText>
+                </View>
+              )}
+            </Pressable>
+
+            {/* Guideline 3.1.2 wants the terms where the purchase is made. */}
+            <ThemedText type="small" themeColor="textTertiary" style={styles.legal}>
+              One off purchase, charged to your Apple Account. Nothing renews. Credits do not
+              expire.
             </ThemedText>
           </View>
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </ThemedView>
   );
@@ -173,25 +180,24 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   flex: { flex: 1 },
   dim: { opacity: 0.6 },
-  closeRow: { alignItems: 'flex-end', paddingHorizontal: Spacing.four, paddingTop: Spacing.two },
-  content: {
+  top: { alignItems: 'flex-end', paddingHorizontal: Spacing.four, paddingTop: Spacing.two },
+  body: {
+    flex: 1,
     paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.six,
+    paddingBottom: Spacing.two,
     maxWidth: MaxContentWidth,
     width: '100%',
     alignSelf: 'center',
-    gap: Spacing.four,
+    gap: Spacing.three,
   },
-  hero: { gap: 4, paddingTop: Spacing.two },
-  balance: { fontSize: 52, lineHeight: 54 },
+  balance: { fontSize: 52, lineHeight: 56 },
   rates: { borderWidth: 1, borderRadius: Radius.medium, overflow: 'hidden' },
   rateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.two,
   },
-  footnote: { marginTop: -Spacing.two },
   packs: { gap: Spacing.two },
   pack: {
     flexDirection: 'row',
@@ -200,7 +206,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radius.medium,
     paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  /* Pushed to the bottom so the button sits where a thumb already is. */
+  foot: { marginTop: 'auto', gap: Spacing.two },
+  primary: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.pill,
     paddingVertical: Spacing.three,
   },
-  legal: { borderTopWidth: 1, paddingTop: Spacing.three },
+  legal: { textAlign: 'center' },
 });

@@ -149,11 +149,16 @@ work removed.
       breakage to matter
 - [ ] **The summary model.** The brief runs on Sonnet 5 at roughly twice the
       price of everything around it. Worth comparing Haiku on a real contract
-- [ ] **Your name.** The app shows "Mine" and "Hashim" as two cards because it
-      cannot tell they are the same person. iOS stopped giving apps the device
-      name in iOS 16, so it cannot be inferred. Sign in with Apple would supply
-      it for paying users; everybody else needs to be asked, or the rename on
-      the Mine card needs to set it
+- [x] **Your name** — handled, and it needed no new decision. Renaming "Mine"
+      already set ownName and buildHousehold already folded a matching person
+      into the owner's card; nothing said so. The card now reads "Tap to add
+      your name" when there is nothing more urgent to say, and tapping it opens
+      the rename rather than an empty timeline. Sign in with Apple can still
+      pre-fill it later for anybody who signs in
+- [ ] **The glow in dark mode.** Shadows are tinted with `theme.text`, which is
+      near-white in dark mode, so the camera button wears a halo rather than a
+      shadow. Longstanding rather than new, and a taste question: shadows are
+      usually dark in both themes. Worth a look on the phone before deciding
 
 ## 9. The things a listing needs — YOU, with ME where useful
 

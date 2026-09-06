@@ -545,6 +545,23 @@ export async function summariseDocument(documentId: string): Promise<Brief> {
  */
 const MAX_ASK_DOCUMENTS = 12;
 
+/**
+ * How much document text one question may carry.
+ *
+ * Reading a contract is paid for once. Asking about it is paid for every time,
+ * and the whole transcript of every read document went with each question — so
+ * somebody with a dozen contracts read was sending roughly a hundred and eighty
+ * thousand tokens to ask when their visa expires. Questions quietly cost more
+ * than the reading did.
+ *
+ * Eighty thousand characters is about twenty thousand tokens: comfortably more
+ * than any single contract, so the common case — a question asked from a
+ * document's own screen — is untouched. It is the library-wide question that
+ * gets trimmed, and it is trimmed by dropping whole documents rather than
+ * cutting one off mid-sentence.
+ */
+const ASK_TEXT_BUDGET = 80_000;
+
 /** Which of these documents have been read, and can therefore be asked. */
 export function readable<T extends { id: string }>(documents: T[]): T[] {
   return documents.filter((doc) => hasReading(doc.id));
@@ -566,10 +583,24 @@ export async function askDocuments(
    */
   records: string[] = []
 ): Promise<Answer> {
-  const documents = entries
+  const available = entries
     .slice(0, MAX_ASK_DOCUMENTS)
     .map((entry) => ({ title: entry.title, text: loadTranscript(entry.id) }))
     .filter((doc): doc is { title: string; text: string } => Boolean(doc.text));
+
+  /*
+   * Kept in the order the caller gave them, which is the order that matters:
+   * a question asked from a document's own screen arrives with that document
+   * alone, and a library-wide question keeps as many as the budget allows
+   * rather than half of each.
+   */
+  const documents: { title: string; text: string }[] = [];
+  let spent = 0;
+  for (const doc of available) {
+    if (documents.length > 0 && spent + doc.text.length > ASK_TEXT_BUDGET) break;
+    documents.push(doc);
+    spent += doc.text.length;
+  }
 
   if (documents.length === 0 && records.length === 0) {
     throw new Error('There is nothing to ask about yet.');

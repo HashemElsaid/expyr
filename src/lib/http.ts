@@ -148,6 +148,21 @@ export async function postJson<T>(
     throw new ServiceError(relayable ? reported : say.refused, response.status);
   } catch (error) {
     if (error instanceof ServiceError) throw error;
+
+    /*
+     * Ask the signal, not the error.
+     *
+     * The web spec says an aborted fetch rejects with an AbortError, and in the
+     * browser preview it does. Expo's native fetch on iOS rejects with
+     * FetchRequestCanceledException instead — a different name, from Swift —
+     * so a name check passes every test on a laptop and matches nothing on a
+     * phone. Every request that ran out of time surfaced a raw native
+     * exception rather than the sentence written for it, which is how a read
+     * that had simply taken too long came to look like an app that had frozen.
+     *
+     * The controller knows whether it fired. Nothing else has to agree.
+     */
+    if (controller.signal.aborted) throw new ServiceError(say.timedOut, 0);
     if (error instanceof Error && error.name === 'AbortError') {
       throw new ServiceError(say.timedOut, 0);
     }

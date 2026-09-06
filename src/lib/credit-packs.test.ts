@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CREDIT_COST_USD } from '@/domain/credits';
-import { costToHonour, documentsIn, PACKS, revenueFrom } from '@/lib/credit-packs';
+import { costToHonour, PACKS, pagesIn, revenueFrom } from '@/lib/credit-packs';
 
 /**
  * These are the tests that stop a price change losing money quietly.
@@ -32,16 +32,22 @@ describe('bigger packs are better value', () => {
   });
 });
 
-describe('what a pack is worth in documents', () => {
-  it('counts whole documents of a typical length', () => {
-    // 14 pages is 140 credits, so 3,000 covers twenty-one of them.
-    expect(documentsIn(PACKS[0])).toBe(21);
+describe('what a pack is worth in pages', () => {
+  /*
+   * The number on the screen has to be one the app can keep. It used to say
+   * documents, worked out by assuming fourteen pages each — which is a guess,
+   * and one that overpromises to exactly the people with long contracts. A
+   * credit is a tenth of a page by definition, so this is arithmetic.
+   */
+  it('is exact, not an estimate', () => {
+    expect(pagesIn(PACKS[0])).toBe(150);
+    expect(pagesIn(PACKS[1])).toBe(300);
+    expect(pagesIn(PACKS[2])).toBe(650);
   });
 
-  it('rounds down, so the number is never a promise we miss', () => {
+  it('never promises more pages than the credits cover', () => {
     for (const pack of PACKS) {
-      expect(Number.isInteger(documentsIn(pack))).toBe(true);
-      expect(documentsIn(pack) * 140).toBeLessThanOrEqual(pack.credits);
+      expect(pagesIn(pack) * 10).toBeLessThanOrEqual(pack.credits);
     }
   });
 });

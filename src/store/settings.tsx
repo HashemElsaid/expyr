@@ -136,7 +136,7 @@ export const FREE_SCAN_LIMIT = 10;
 export const FREE_READ_LIMIT = 2;
 
 /**
- * What a new install starts with: enough to read two ordinary documents.
+ * What a new install starts with: thirty pages, which is a couple of contracts.
  *
  * The free tier used to allow two readings and count them. Counting documents
  * and counting credits are the same idea with different arithmetic, and two
@@ -146,7 +146,7 @@ export const FREE_READ_LIMIT = 2;
  * Generous on purpose. Somebody has to be able to see what the thing does
  * before deciding whether it is worth paying for.
  */
-export const WELCOME_CREDITS = priceOfPages(14) * FREE_READ_LIMIT;
+export const WELCOME_CREDITS = priceOfPages(30);
 
 /**
  * Reads a stored ledger, or opens one.

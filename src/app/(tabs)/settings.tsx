@@ -21,7 +21,7 @@ import { formatTime } from '@/lib/dates';
 import { countryLabel, type Country } from '@/data/countries';
 import { emirateLabel, type Emirate } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
-import { documentsLeft, formatCredits } from '@/domain/credits';
+import { formatCredits, pagesLeft } from '@/domain/credits';
 import { useSettings, type ThemePreference } from '@/store/settings';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -146,7 +146,7 @@ export default function SettingsScreen() {
             <Row
               icon="lightning-bolt-outline"
               title="Expyr AI credits"
-              subtitle={`${formatCredits(settings.credits.balance)} · about ${documentsLeft(settings.credits, 14)} more document${documentsLeft(settings.credits, 14) === 1 ? '' : 's'}`}
+              subtitle={`${formatCredits(settings.credits.balance)} · ${pagesLeft(settings.credits)} pages`}
               action={{ label: 'Top up', onPress: () => router.push('/top-up') }}
             />
           </Section>

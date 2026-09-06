@@ -7,9 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, documentsLeft } from '@/domain/credits';
+import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, pagesLeft } from '@/domain/credits';
 import { useTheme } from '@/hooks/use-theme';
-import { documentsIn, PACKS, TYPICAL_PAGES, type Pack } from '@/lib/credit-packs';
+import { pagesIn, PACKS, type Pack } from '@/lib/credit-packs';
 import { tapFeedback } from '@/lib/haptics';
 import { useSettings } from '@/store/settings';
 
@@ -32,7 +32,7 @@ export default function TopUpScreen() {
   const [busy, setBusy] = useState(false);
 
   const balance = settings.credits.balance;
-  const left = documentsLeft(settings.credits, TYPICAL_PAGES);
+  const left = pagesLeft(settings.credits);
 
   function close() {
     if (router.canGoBack()) router.back();
@@ -80,7 +80,7 @@ export default function TopUpScreen() {
               {balance.toLocaleString('en-US')}
             </ThemedText>
             <ThemedText type="body" themeColor="textSecondary">
-              credits left, about {left} more document{left === 1 ? '' : 's'}
+              credits left, enough for {left} more page{left === 1 ? '' : 's'}
             </ThemedText>
           </View>
 
@@ -136,7 +136,7 @@ export default function TopUpScreen() {
                           {pack.credits.toLocaleString('en-US')} credits
                         </ThemedText>
                         <ThemedText type="small" themeColor="textTertiary">
-                          {documentsIn(pack)} documents
+                          {pagesIn(pack).toLocaleString('en-US')} pages
                         </ThemedText>
                       </View>
                       <ThemedText type="numeral">{pack.price}</ThemedText>

@@ -177,11 +177,13 @@ export function formatCredits(credits: Credits): string {
 }
 
 /**
- * Roughly how many more documents of this length the balance covers. Rounded
- * down, because promising four and delivering three is worse than saying three.
+ * How many pages the balance still covers.
+ *
+ * Pages rather than documents on purpose. Documents reads better and is a
+ * guess: it has to assume a length, and somebody whose contract is longer than
+ * the assumption has been quietly promised more than they will get. A page is
+ * exact, and it is a thing people can count.
  */
-export function documentsLeft(ledger: Ledger, pagesEach: number): number {
-  const each = priceOfPages(pagesEach);
-  if (each <= 0) return 0;
-  return Math.floor(ledger.balance / each);
+export function pagesLeft(ledger: Ledger): number {
+  return Math.floor(Math.max(0, ledger.balance) / CREDITS_PER_PAGE);
 }

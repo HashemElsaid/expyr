@@ -8,10 +8,10 @@ import {
   chargeForQuestion,
   CREDITS_PER_PAGE,
   CREDITS_PER_QUESTION,
-  documentsLeft,
   EMPTY_LEDGER,
   formatCredits,
   MAX_ENTRIES,
+  pagesLeft,
   priceOfPages,
   refund,
   topUp,
@@ -144,14 +144,18 @@ describe('showing it to somebody', () => {
     expect(asMoney(140)).toBe('$0.14');
   });
 
-  it('counts whole documents, rounding down', () => {
-    const ledger = ledgerWith(1000);
-    // 14 pages is 140 credits, so 1000 covers seven of them and change.
-    expect(documentsLeft(ledger, 14)).toBe(7);
+  /*
+   * Pages, not documents. Documents needed an assumed length, which made the
+   * number a guess presented as a fact: somebody with a thirty-page contract
+   * was told twenty-one documents and would have got ten.
+   */
+  it('counts pages exactly, since a credit is a tenth of one', () => {
+    expect(pagesLeft(ledgerWith(1000))).toBe(100);
+    expect(pagesLeft(ledgerWith(1505))).toBe(150);
   });
 
-  it('says none rather than dividing by zero', () => {
-    expect(documentsLeft(ledgerWith(1000), 0)).toBe(0);
+  it('never reports pages from a balance below zero', () => {
+    expect(pagesLeft({ balance: -50, entries: [] })).toBe(0);
   });
 });
 

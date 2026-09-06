@@ -1,4 +1,4 @@
-import { CREDIT_COST_USD, priceOfPages, type Credits } from '@/domain/credits';
+import { CREDIT_COST_USD, CREDITS_PER_PAGE, type Credits } from '@/domain/credits';
 
 /**
  * What a top-up costs, and what it buys.
@@ -33,9 +33,9 @@ export type Pack = {
  * test suite asserts it so a future price change cannot quietly go underwater.
  */
 export const PACKS: Pack[] = [
-  { id: 'credits.small', credits: 3_000, price: '$4.99', usd: 4.99 },
-  { id: 'credits.medium', credits: 6_500, price: '$9.99', usd: 9.99 },
-  { id: 'credits.large', credits: 13_500, price: '$19.99', usd: 19.99 },
+  { id: 'credits.small', credits: 1_500, price: '$2.99', usd: 2.99 },
+  { id: 'credits.medium', credits: 3_000, price: '$4.99', usd: 4.99 },
+  { id: 'credits.large', credits: 6_500, price: '$9.99', usd: 9.99 },
 ];
 
 /** Apple's largest share, and so the one every pack has to survive. */
@@ -52,13 +52,16 @@ export function revenueFrom(pack: Pack): number {
 }
 
 /**
- * Roughly how many ordinary documents a pack reads.
+ * How many pages a pack reads, which is a fact rather than a guess.
  *
- * Fourteen pages is the length of the tenancy contract this was all built
- * around, and a fair stand-in for the paperwork people actually keep.
+ * This used to say documents, worked out by assuming every document is
+ * fourteen pages. It reads better and it is not true: somebody whose tenancy
+ * contract runs to thirty pages was told twenty-one documents and would have
+ * got ten. A number the app cannot keep is worse than a duller one it can.
+ *
+ * A credit is a tenth of a page by definition, so this is arithmetic. And a
+ * page is a thing anybody can count before they buy.
  */
-export const TYPICAL_PAGES = 14;
-
-export function documentsIn(pack: Pack): number {
-  return Math.floor(pack.credits / priceOfPages(TYPICAL_PAGES));
+export function pagesIn(pack: Pack): number {
+  return Math.floor(pack.credits / CREDITS_PER_PAGE);
 }

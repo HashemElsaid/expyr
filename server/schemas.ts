@@ -70,6 +70,16 @@ export const ExtractRequest = z.object({
 });
 export type ExtractRequest = z.infer<typeof ExtractRequest>;
 
+/**
+ * A Sign in with Apple identity token, unverified. Everything that makes it
+ * trustworthy happens in apple-identity.ts; this only says it is a string of a
+ * plausible size, so a megabyte of nonsense is refused before any crypto runs.
+ */
+export const IdentityRequest = z.object({
+  identityToken: z.string().min(1).max(8_192),
+});
+export type IdentityRequest = z.infer<typeof IdentityRequest>;
+
 export const FileRequest = z.object({
   fileBase64: z.string().min(1),
   mediaType,

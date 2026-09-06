@@ -186,7 +186,12 @@ const server = createServer(async (req, res) => {
 
     // Deliberately never logged — these are people's ID documents and contracts.
     const body = req.method === 'POST' ? await readBody(req) : '';
-    const ctx: RequestContext = { body, query: url.searchParams, note };
+    const ctx: RequestContext = {
+      body,
+      query: url.searchParams,
+      note,
+      install: install?.id ?? null,
+    };
 
     const result = await route.handle(ctx);
     const status = result.kind === 'json' ? (result.status ?? 200) : 200;

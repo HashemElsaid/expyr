@@ -4,6 +4,15 @@ import { invalid, ServiceError, unavailable } from './errors.ts';
 import { extractFromImage } from './extract.ts';
 import { FileGuidanceStore, isFresh, LayeredGuidanceStore } from './guidance-cache.ts';
 import { generateGuidance, type Guidance } from './guidance.ts';
+import { accountKeyFor, appleKeys, verifyAppleIdentityToken } from './apple-identity.ts';
+import {
+  balanceOf,
+  FileCreditStore,
+  link,
+  MemoryCreditStore,
+  sellable,
+  type CreditStore,
+} from './credit-ledger.ts';
 import { canIssueTokens, issueInstallToken } from './install-token.ts';
 import { openPdf, pagesOf, pdfPageCount } from './pdf.ts';
 import type { LogFields } from './log.ts';
@@ -12,9 +21,10 @@ import {
   ExtractRequest,
   FileRequest,
   GuidanceRequest,
+  IdentityRequest,
+  TextRequest,
   guidanceKey,
   parse,
-  TextRequest,
 } from './schemas.ts';
 import { readSubscriptions } from './subscriptions.ts';
 
@@ -39,6 +49,12 @@ export type RequestContext = {
    * anything that came out of the body. See the note in log.ts.
    */
   note: (fields: Partial<LogFields>) => void;
+  /**
+   * Which install is asking, when it presented a credential this service
+   * signed. Null for an older build that has none. Credits belong to somebody,
+   * so the routes that touch them need to know who.
+   */
+  install: string | null;
 };
 
 /** What a handler gives back: parsed JSON, or bytes with a content type. */
@@ -73,6 +89,26 @@ export type Route = {
  * every request after the first until the process ends. Either way a miss costs
  * one regeneration, never a wrong answer.
  */
+/**
+ * Where balances live.
+ *
+ * Configured with a directory or not at all, and the difference decides
+ * whether this service may sell credits: `grant` refuses outright when the
+ * store is not durable, so a deployment with no disk cannot take money for
+ * something it will forget. Render's free plan has no persistent disk, which
+ * is exactly the case that rule exists for.
+ */
+const creditsDir = process.env.EXPYR_CREDITS_DIR;
+export const creditStore: CreditStore = creditsDir
+  ? new FileCreditStore(creditsDir)
+  : new MemoryCreditStore();
+
+/**
+ * The bundle identifier every genuine Apple identity token is issued for. A
+ * token for a different app is a valid Apple token and nothing to do with us.
+ */
+const BUNDLE_ID = process.env.EXPYR_BUNDLE_ID ?? 'com.expyr.app';
+
 const guidanceDir = process.env.EXPYR_GUIDANCE_DIR;
 const guidanceDisk = guidanceDir ? new FileGuidanceStore<Guidance>(guidanceDir) : null;
 export const guidanceCache = new LayeredGuidanceStore<Guidance>(guidanceDisk);
@@ -199,6 +235,53 @@ export const ROUTES: Record<string, Route> = {
    * before any of the others could start. This is pdf-lib alone — no model, no
    * cost, and back in the time it takes to parse the file.
    */
+  /**
+   * Signing in, so credits outlive the phone that bought them.
+   *
+   * Apple keeps no record of spent consumables and the keychain does not
+   * survive a device wipe, so a balance tied to an install is a balance that
+   * ends with the install. This is the only route that establishes who
+   * somebody is, and everything about that verification is in
+   * apple-identity.ts rather than here.
+   *
+   * Linking moves whatever the install had onto the account, once. Somebody who
+   * bought credits and then signed in keeps them; signing in a second time
+   * moves nothing, because the alternative is an app that invents money every
+   * time a request is retried.
+   */
+  '/account/link': {
+    method: 'POST',
+    auth: true,
+    metered: true,
+    costs: false,
+    handle: async (ctx) => {
+      const { identityToken } = parse(IdentityRequest, ctx.body);
+      if (!ctx.install) throw invalid('this build cannot be identified');
+
+      const identity = await verifyAppleIdentityToken(identityToken, BUNDLE_ID, appleKeys);
+      const account = accountKeyFor(identity);
+      const balance = await link(creditStore, ctx.install, account);
+
+      // The account key is a hash, not a person. Safe to log, and useful.
+      ctx.note({ note: `linked account=${account} sellable=${sellable(creditStore)}` });
+      return json({ account, balance, sellable: sellable(creditStore) });
+    },
+  },
+
+  /** What this account has left, for a phone that has just been set up. */
+  '/account/balance': {
+    method: 'POST',
+    auth: true,
+    metered: true,
+    costs: false,
+    handle: async (ctx) => {
+      const { identityToken } = parse(IdentityRequest, ctx.body);
+      const identity = await verifyAppleIdentityToken(identityToken, BUNDLE_ID, appleKeys);
+      const account = accountKeyFor(identity);
+      return json({ account, balance: await balanceOf(creditStore, account) });
+    },
+  },
+
   '/pages': {
     method: 'POST',
     auth: true,

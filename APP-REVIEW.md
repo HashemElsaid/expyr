@@ -122,22 +122,22 @@ Nothing here is code. All of it is required.
 
 ## 4. Judgment calls — real risk, not certain
 
-### 4.1 Brand icons — Guideline 5.2.2
+### 4.1 Brand icons — moved to `LAUNCH.md`
 
-`server/brand-icon.ts` fetches subscription logos from Google's
-`s2/favicons` endpoint and DuckDuckGo's `ip3`.
+Subscription logos come from Google's undocumented favicon endpoint, which
+cannot be squared with 5.2.2's "specifically permitted under the service's
+terms of use" because there are no terms to point at.
 
-> 5.2.2: "If your app uses, accesses, monetizes access to, or displays content
-> from a third-party service, ensure that you are specifically permitted to do
-> so under the service's terms of use."
+It was listed here and should not have been. App Review cannot see it: the
+phone calls this app's own service, and where that service fetches an icon
+from leaves no trace a reviewer could follow. Nothing about it is a rejection
+risk, and filing it beside the things that are gave it weight it does not
+earn.
 
-Google's favicon endpoint is undocumented and not a published API, so "specifically
-permitted" is hard to argue. The privacy reasoning for proxying it is sound and
-worth keeping — the exposure is the *source*, not the design.
-
-Low likelihood of being caught, non-trivial cost if it is. Cheapest de-risk:
-bundle a small set of your own icons for the common services and fall back to a
-lettermark, which also removes a network dependency and a cold-start delay.
+The risk it does carry is Google withdrawing or rate-limiting an endpoint
+nobody promised, which would stop icons loading for everyone at once. That is
+an operational decision, not a compliance one, and it now sits under
+"Decisions still open" in `LAUNCH.md`.
 
 ### 4.2 Not looking official — Guideline 4.1, 5.2.5
 

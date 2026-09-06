@@ -6,6 +6,12 @@ start before the step above it is done.
 **YOU** means only you can do it: payment, identity, an Apple account, a
 decision. **ME** means ask Claude and it gets done.
 
+**This file is updated as work is finished, in the same commit as the work.**
+Not as a courtesy: three documents in this repository have already described a
+design that had been replaced, and the tests that catch that for pricing
+arithmetic cannot catch it for prose. If something here is ticked, it is done;
+if it is open, it is not.
+
 Two documents sit under this one. `APP-REVIEW.md` is the App Store compliance
 audit and why each item is there. `PRICING.md` is what everything costs to run
 and how the credits are priced. `STORE.md` is the listing copy and the review
@@ -108,10 +114,21 @@ work removed.
 
 ## 8. Decisions still open — YOU
 
-- [ ] **Brand icons.** Subscription logos come from Google's undocumented
-      favicon endpoint, which is awkward against Guideline 5.2.2's "specifically
-      permitted under the service's terms". Bundling a small set of your own
-      would remove the question and a network call
+- [ ] **Brand icons, and it is Google you are exposed to rather than Apple.**
+      Subscription logos come from Google's undocumented `s2/favicons`
+      endpoint. App Review cannot see this: the phone calls our own service,
+      and where that service fetches an icon leaves no trace on the device. It
+      is not a rejection risk.
+
+      What it is, is a dependency on something nobody promised. An undocumented
+      endpoint can change, rate-limit or disappear without notice, and when it
+      does every subscription icon stops loading at once and you hear about it
+      from a review rather than a deploy.
+
+      Bundling a dozen of the common services, with a lettermark for the rest,
+      removes the dependency, a network call and a cold-start delay. Not a
+      blocker, and worth doing before there are enough users for a quiet
+      breakage to matter
 - [ ] **The summary model.** The brief runs on Sonnet 5 at roughly twice the
       price of everything around it. Worth comparing Haiku on a real contract
 - [ ] **Your name.** The app shows "Mine" and "Hashim" as two cards because it

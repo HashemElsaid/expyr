@@ -10,6 +10,7 @@ import {
   FileCreditStore,
   grant,
   InsufficientCredits,
+  link,
   MemoryCreditStore,
   refund,
   sellable,
@@ -146,6 +147,74 @@ test('fractional and negative amounts cannot conjure credits', async () => {
     assert.equal(await balanceOf(store, 'a'), 100);
     await grant(store, 'a', -50);
     assert.equal(await balanceOf(store, 'a'), 100);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('signing in moves the credits bought before signing in', async () => {
+  const dir = temporaryDir();
+  try {
+    const store = new FileCreditStore(dir);
+    await grant(store, 'install-1', 3000);
+    assert.equal(await link(store, 'install-1', 'apple_abc'), 3000);
+    assert.equal(await balanceOf(store, 'apple_abc'), 3000);
+    assert.equal(await balanceOf(store, 'install-1'), 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/*
+ * The phone retrying a request it did not hear the answer to. Paying twice for
+ * that would be the app inventing money.
+ */
+test('linking twice does not pay twice', async () => {
+  const dir = temporaryDir();
+  try {
+    const store = new FileCreditStore(dir);
+    await grant(store, 'install-1', 3000);
+    await link(store, 'install-1', 'apple_abc');
+    await link(store, 'install-1', 'apple_abc');
+    await link(store, 'install-1', 'apple_abc');
+    assert.equal(await balanceOf(store, 'apple_abc'), 3000);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('linking adds to a balance the account already had', async () => {
+  const dir = temporaryDir();
+  try {
+    const store = new FileCreditStore(dir);
+    await grant(store, 'apple_abc', 500);
+    await grant(store, 'install-2', 1500);
+    assert.equal(await link(store, 'install-2', 'apple_abc'), 2000);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('an install with nothing on it links harmlessly', async () => {
+  const dir = temporaryDir();
+  try {
+    const store = new FileCreditStore(dir);
+    assert.equal(await link(store, 'install-3', 'apple_abc'), 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('one person signing in cannot drain another person’s install', async () => {
+  const dir = temporaryDir();
+  try {
+    const store = new FileCreditStore(dir);
+    await grant(store, 'install-1', 3000);
+    await link(store, 'install-1', 'apple_thief');
+    // Already spent on the thief, so the rightful owner gets nothing more.
+    // The real defence is that only this phone can present its own install
+    // token; this asserts the ledger does not hand it out a second time.
+    assert.equal(await link(store, 'install-1', 'apple_owner'), 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

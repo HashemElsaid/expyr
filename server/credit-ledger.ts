@@ -21,6 +21,11 @@ export type Account = {
   balance: number;
   /** Milliseconds. Used only to expire accounts that never bought anything. */
   seenAt: number;
+  /**
+   * Set on an install once its balance has been moved to a signed-in account.
+   * Its only job is to stop the move happening twice.
+   */
+  linkedTo?: string;
 };
 
 export interface CreditStore {
@@ -86,7 +91,13 @@ export class FileCreditStore implements CreditStore {
     try {
       const parsed = JSON.parse(readFileSync(path, 'utf8')) as Account;
       if (typeof parsed?.balance !== 'number' || !Number.isFinite(parsed.balance)) return null;
-      return { id, balance: Math.max(0, Math.floor(parsed.balance)), seenAt: parsed.seenAt ?? 0 };
+      return {
+        id,
+        balance: Math.max(0, Math.floor(parsed.balance)),
+        seenAt: parsed.seenAt ?? 0,
+        // Carried through, or the guard against linking twice never sees it.
+        ...(typeof parsed.linkedTo === 'string' ? { linkedTo: parsed.linkedTo } : {}),
+      };
     } catch {
       /*
        * Unreadable. Returning null would silently zero somebody's balance and
@@ -182,4 +193,45 @@ export async function refund(
   const balance = (existing?.balance ?? 0) + amount;
   await store.write({ id, balance, seenAt: now });
   return balance;
+}
+
+/**
+ * Moves an install's balance to the person who just signed in.
+ *
+ * Somebody buys credits before signing in, then signs in. Those credits are
+ * theirs and have to follow them, or signing in to protect a balance would be
+ * the thing that lost it.
+ *
+ * Done twice it must not pay twice, so the install records where it went and a
+ * second attempt does nothing. That covers the ordinary case, which is the
+ * phone retrying a request it did not hear the answer to.
+ *
+ * The target is credited before the install is emptied. Two writes cannot be
+ * one here, so there is a window, and this is the direction to fall in: a
+ * crash inside it credits somebody twice rather than taking credits they paid
+ * for. A store with transactions would close it, and this one does not have
+ * them, so the choice is which way to be wrong.
+ */
+export async function link(
+  store: CreditStore,
+  installId: string,
+  accountId: string,
+  now = Date.now()
+): Promise<number> {
+  if (installId === accountId) return balanceOf(store, accountId, now);
+
+  const install = await store.read(installId);
+  const target = await store.read(accountId);
+  const alreadyThere = target?.balance ?? 0;
+
+  if (!install || install.linkedTo || install.balance <= 0) {
+    // Nothing to move, or it has moved already.
+    if (!target) await store.write({ id: accountId, balance: alreadyThere, seenAt: now });
+    return alreadyThere;
+  }
+
+  const moved = alreadyThere + install.balance;
+  await store.write({ id: accountId, balance: moved, seenAt: now });
+  await store.write({ id: installId, balance: 0, seenAt: now, linkedTo: accountId });
+  return moved;
 }

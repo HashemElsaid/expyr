@@ -5,7 +5,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /** The one thing the screen most wants you to do, in the accent. */
@@ -132,7 +132,7 @@ export function ActionMenu({
             {
               backgroundColor: theme.backgroundElement,
               borderColor: theme.border,
-              shadowColor: theme.text,
+              boxShadow: shadow(theme.text, 8, 16, 0.16),
             },
           ]}>
           {actions.map((action, index) => (
@@ -222,9 +222,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.medium,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
     elevation: 8,
   },
   item: {

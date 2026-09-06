@@ -3,7 +3,7 @@ import { LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
 
@@ -78,10 +78,13 @@ export function Segmented<T extends string>({
       style={[styles.track, { backgroundColor: theme.backgroundSelected }]}
       accessibilityRole="tablist">
       <Animated.View
-        pointerEvents="none"
         style={[
           styles.thumb,
-          { backgroundColor: theme.backgroundElement, shadowColor: theme.text },
+          { pointerEvents: 'none' },
+          {
+            backgroundColor: theme.backgroundElement,
+            boxShadow: shadow(theme.text, 1, 3, 0.1),
+          },
           thumb,
         ]}
       />
@@ -136,9 +139,6 @@ const styles = StyleSheet.create({
     left: PADDING,
     borderRadius: Radius.small - 2,
     // Lifted just enough to read as sitting on top of the track, not in it.
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
     elevation: 2,
   },
   slot: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 7 },

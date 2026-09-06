@@ -67,3 +67,41 @@ export const Radius = {
 } as const;
 
 export const MaxContentWidth = 800;
+
+/**
+ * A hex colour at a given opacity.
+ *
+ * Needed because the shadow props React Native removed carried colour and
+ * opacity separately, and `boxShadow` takes one colour that already has its
+ * alpha in it. Accepts the three and six digit forms the palette uses; hands
+ * back anything else untouched rather than guessing, so a mistake shows up as
+ * a shadow that is too dark instead of one that is invisible.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const hex = color.trim().replace('#', '');
+  const full =
+    hex.length === 3
+      ? hex
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : hex;
+  if (full.length !== 6 || /[^0-9a-fA-F]/.test(full)) return color;
+
+  const value = parseInt(full, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * A drop shadow, in the one form React Native still supports.
+ *
+ * shadowColor, shadowOffset, shadowOpacity and shadowRadius were removed in
+ * 0.86 in favour of boxShadow, which is a single string. Everything in the app
+ * casts straight down, so only the vertical offset is a parameter.
+ */
+export function shadow(color: string, y: number, blur: number, opacity: number): string {
+  return `0px ${y}px ${blur}px ${withAlpha(color, opacity)}`;
+}

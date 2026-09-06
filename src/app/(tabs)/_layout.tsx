@@ -3,7 +3,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { TabButton } from '@/components/tab-button';
-import { Fonts } from '@/constants/theme';
+import { Fonts, shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
 
@@ -98,7 +98,7 @@ function CameraButton() {
   const router = useRouter();
 
   return (
-    <View style={styles.slot} pointerEvents="box-none">
+    <View style={[styles.slot, { pointerEvents: 'box-none' }]}>
       <Pressable
         onPress={() => {
           tapFeedback();
@@ -111,14 +111,14 @@ function CameraButton() {
           <View
             style={[
               styles.button,
-              { backgroundColor: theme.accent, shadowColor: theme.text },
+              { backgroundColor: theme.accent, boxShadow: shadow(theme.text, 4, 8, 0.12) },
               pressed && styles.pressed,
             ]}>
             {/*
              * Viewfinder corners around the lens: the frame you line a document
              * up inside, shrunk onto the button that opens it.
              */}
-            <View style={styles.frame} pointerEvents="none">
+            <View style={[styles.frame, { pointerEvents: 'none' }]}>
               {(['tl', 'tr', 'bl', 'br'] as const).map((corner) => (
                 <View
                   key={corner}
@@ -152,9 +152,6 @@ const styles = StyleSheet.create({
      * on the phone, which is the one thing it was meant to avoid. The button
      * sits on its own shadow instead, kept soft and low.
      */
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
     elevation: 4,
   },
   pressed: { opacity: 0.85, transform: [{ scale: 0.96 }] },

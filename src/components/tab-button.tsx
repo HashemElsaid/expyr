@@ -132,7 +132,7 @@ export function TabButton({
          * had drawn rather than a control. The label sits below it, outside,
          * and is not enclosed by anything.
          */}
-        <View style={styles.pillRow} pointerEvents="none">
+        <View style={[styles.pillRow, { pointerEvents: 'none' }]}>
           <Animated.View style={[styles.pill, { backgroundColor: theme.accent }, pill]} />
         </View>
         <Animated.View style={[styles.content, content]}>{children}</Animated.View>

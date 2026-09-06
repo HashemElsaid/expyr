@@ -34,8 +34,7 @@ export function SaveWarning() {
 
   return (
     <View
-      style={[styles.wrap, { top: insets.top + Spacing.two }]}
-      pointerEvents="box-none"
+      style={[styles.wrap, { top: insets.top + Spacing.two, pointerEvents: 'box-none' }]}
       accessibilityLiveRegion="assertive">
       <View
         style={[
@@ -103,9 +102,8 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     gap: Spacing.two,
     // Lifted off the screen behind it, so it reads as an interruption.
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
+    // Black at 16%, which is what the removed shadow props defaulted to.
+    boxShadow: '0px 6px 14px rgba(0, 0, 0, 0.16)',
     elevation: 8,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },

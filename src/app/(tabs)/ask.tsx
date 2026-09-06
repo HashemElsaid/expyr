@@ -26,7 +26,7 @@ import {
   CREDITS_PER_QUESTION,
   formatCredits,
 } from '@/domain/credits';
-import { askAllowance, useSettings } from '@/store/settings';
+import { useSettings } from '@/store/settings';
 
 /**
  * People open a chat box and cannot think of a question. These are the ones
@@ -53,7 +53,6 @@ export default function AskScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { documents, archived } = useDocuments();
   const { settings, update } = useSettings();
-  const allowance = askAllowance(settings);
   const scroller = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
 
@@ -164,12 +163,6 @@ export default function AskScreen() {
       );
       return;
     }
-    if (allowance.left === 0) {
-      setError(
-        `That is ${allowance.limit} questions today. Every one of them reads your documents afresh, so the count starts again tomorrow.`
-      );
-      return;
-    }
     tapFeedback();
     setQuestion('');
     setError(null);
@@ -186,7 +179,6 @@ export default function AskScreen() {
       });
       // Only an answer is counted: a failure delivered nothing, and is not charged for.
       update({
-        ...allowance.spend(),
         credits: chargeForQuestion(settings.credits, trimmed, new Date(), `${Date.now()}`),
       });
     } catch (e) {
@@ -239,8 +231,14 @@ export default function AskScreen() {
                     * about, and being told a contract is readable is only worth
                     * saying when one actually is.
                     */}
-                  {allowance.left <= 5
-                    ? `${allowance.left} question${allowance.left === 1 ? '' : 's'} left today`
+                  {/*
+                    * The balance appears once it is worth thinking about. Told
+                    * to somebody with plenty, it is a meter running for no
+                    * reason; told to somebody with five questions left, it is
+                    * the thing they need to know before they spend one.
+                    */}
+                  {settings.credits.balance <= CREDITS_PER_QUESTION * 5
+                    ? formatCredits(settings.credits.balance)
                     : pool.length > 0
                       ? `${records.length} tracked · ${pool.length} read in full`
                       : `${records.length} item${records.length === 1 ? '' : 's'} tracked`}

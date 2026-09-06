@@ -56,9 +56,6 @@ export type Settings = {
    * incur it.
    */
   credits: Ledger;
-  /** Questions asked today, and the day they were asked — see askAllowance. */
-  questionsAsked: number;
-  questionsOn: string;
   /**
    * Whether the offer to lock the app has been made. Asked once, at the moment
    * it starts to matter, and never again — an app that keeps asking for
@@ -101,8 +98,6 @@ const DEFAULTS: Settings = {
   scansUsed: 0,
   readsUsed: 0,
   credits: EMPTY_LEDGER,
-  questionsAsked: 0,
-  questionsOn: '',
   lockOffered: false,
   people: [],
   ownName: '',
@@ -186,29 +181,17 @@ function readLedger(stored: unknown, readsAlreadyUsed: number): Ledger {
  * loop, a stuck retry or somebody being clever cannot run up a bill overnight.
  * Every question costs a model call, and the transcripts go with it.
  */
-export const DAILY_QUESTION_LIMIT = { free: 20, premium: 100 };
-
-/** Today's date as the app counts it — local, because the user's day is local. */
-export function today(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-}
-
-/** How many questions are left today, and the patch that records asking one. */
-export function askAllowance(settings: Settings): {
-  left: number;
-  limit: number;
-  spend: () => Partial<Settings>;
-} {
-  const limit = settings.premium ? DAILY_QUESTION_LIMIT.premium : DAILY_QUESTION_LIMIT.free;
-  // A new day starts the count again, so nothing has to be swept or cleaned up.
-  const asked = settings.questionsOn === today() ? settings.questionsAsked : 0;
-  return {
-    left: Math.max(0, limit - asked),
-    limit,
-    spend: () => ({ questionsAsked: asked + 1, questionsOn: today() }),
-  };
-}
+/*
+ * A daily question limit used to live here: twenty a day free, a hundred on
+ * Pro. It was abuse protection written before anything measured what a
+ * question costs, and it became the second gate on a feature that already has
+ * one — so somebody with credits in hand could be told to come back tomorrow,
+ * for a reason no screen showed them.
+ *
+ * The credit balance is the limit now. It is the honest one: it reflects what
+ * the question actually costs rather than a number chosen for safety, it is
+ * visible while they decide, and running out is something they can fix.
+ */
 
 type SettingsContextValue = {
   settings: Settings;
@@ -253,8 +236,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
            * have no ledger at all has never spent any.
            */
           credits: readLedger(parsed.credits, parsed.readsUsed ?? 0),
-          questionsAsked: parsed.questionsAsked ?? DEFAULTS.questionsAsked,
-          questionsOn: parsed.questionsOn ?? DEFAULTS.questionsOn,
           lockOffered: parsed.lockOffered ?? DEFAULTS.lockOffered,
           people: Array.isArray(parsed.people)
             ? parsed.people.filter((name): name is string => typeof name === 'string')

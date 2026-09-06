@@ -21,6 +21,7 @@ import { formatTime } from '@/lib/dates';
 import { countryLabel, type Country } from '@/data/countries';
 import { emirateLabel, type Emirate } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
+import { documentsLeft, formatCredits } from '@/domain/credits';
 import { useSettings, type ThemePreference } from '@/store/settings';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -130,6 +131,22 @@ export default function SettingsScreen() {
                   ? undefined
                   : { label: 'Unlock', onPress: () => router.push('/paywall') }
               }
+            />
+
+            {/*
+              * Shown here and nowhere else in normal use.
+              *
+              * Reading a contract and answering questions about it costs real
+              * money every time, so the balance is the person's to see. Putting
+              * it in Settings rather than over the feature is deliberate: a
+              * number that follows you around while you work is a meter, and a
+              * meter makes people ask worse questions. This is where somebody
+              * comes when they want to know.
+              */}
+            <Row
+              icon="lightning-bolt-outline"
+              title="Expyr AI credits"
+              subtitle={`${formatCredits(settings.credits.balance)} · about ${documentsLeft(settings.credits, 14)} more document${documentsLeft(settings.credits, 14) === 1 ? '' : 's'}`}
             />
           </Section>
 
@@ -257,11 +274,11 @@ export default function SettingsScreen() {
               <Row
                 icon="refresh"
                 title="Reset the free allowances"
-                subtitle={`${settings.scansUsed} scans, ${settings.readsUsed} readings and ${settings.questionsAsked} questions used.`}
+                subtitle={`${settings.scansUsed} scans and ${settings.readsUsed} readings used.`}
                 action={{
                   label: 'Reset',
                   onPress: () => {
-                    update({ scansUsed: 0, readsUsed: 0, questionsAsked: 0, questionsOn: '' });
+                    update({ scansUsed: 0, readsUsed: 0 });
                     successFeedback();
                   },
                 }}

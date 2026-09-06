@@ -69,7 +69,7 @@ const PRICE_POINTS: Record<string, string> = {
 };
 
 /** The storefront Apple would bill against: the phone's own region. */
-function region(): string {
+export function region(): string {
   try {
     return getLocales()[0]?.regionCode?.toUpperCase() ?? 'AE';
   } catch {

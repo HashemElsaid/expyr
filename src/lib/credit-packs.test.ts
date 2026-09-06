@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CREDIT_COST_USD } from '@/domain/credits';
-import { costToHonour, PACKS, pagesIn, revenueFrom } from '@/lib/credit-packs';
+import { costToHonour, PACKS, pagesIn, priceOf, revenueFrom } from '@/lib/credit-packs';
 
 /**
  * These are the tests that stop a price change losing money quietly.
@@ -60,5 +60,35 @@ describe('the packs themselves', () => {
   it('are listed cheapest first', () => {
     const prices = PACKS.map((p) => p.usd);
     expect([...prices].sort((a, b) => a - b)).toEqual(prices);
+  });
+});
+
+describe('the price shown matches the storefront', () => {
+  /*
+   * The paywall quotes Expyr Pro in AED to somebody in Dubai. Quoting credits
+   * in dollars on the next screen makes it look like two different apps.
+   */
+  it('prices in the local currency where there is one', () => {
+    expect(priceOf(PACKS[1], 'AE')).toBe('AED 18.99');
+    expect(priceOf(PACKS[1], 'GB')).toBe('£4.99');
+    expect(priceOf(PACKS[1], 'US')).toBe('$4.99');
+  });
+
+  it('serves every euro storefront from one entry', () => {
+    for (const country of ['DE', 'FR', 'ES', 'IT', 'NL', 'IE']) {
+      expect(priceOf(PACKS[0], country)).toBe('€2.99');
+    }
+  });
+
+  it('falls back to dollars rather than showing nothing', () => {
+    expect(priceOf(PACKS[2], 'ZZ')).toBe('$9.99');
+  });
+
+  it('has a price for every pack in every listed storefront', () => {
+    for (const pack of PACKS) {
+      for (const country of ['AE', 'SA', 'QA', 'GB', 'EU', 'US']) {
+        expect(pack.prices[country]).toBeTruthy();
+      }
+    }
   });
 });

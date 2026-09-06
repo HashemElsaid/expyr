@@ -93,6 +93,8 @@ export default function AskScreen() {
   const [pending, setPending] = useState<string | null>(null);
   const [working, setWorking] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  /** Set when the balance will not cover another question. */
+  const [broke, setBroke] = useState(false);
 
   // Moves through the stages while the answer is being formed.
   useEffect(() => {
@@ -158,14 +160,18 @@ export default function AskScreen() {
      * the money it was refused for.
      */
     if (!canAfford(settings.credits, CREDITS_PER_QUESTION)) {
-      setError(
-        `Each question costs ${CREDITS_PER_QUESTION} credits and you have ${formatCredits(settings.credits.balance)}. Top up in Settings to keep asking.`
-      );
+      /*
+       * Held apart from `error` so the screen can offer the top-up rather than
+       * only naming the problem. Running out is a thing to fix, and a sentence
+       * telling somebody to go and find a screen is not fixing it.
+       */
+      setBroke(true);
       return;
     }
     tapFeedback();
     setQuestion('');
     setError(null);
+    setBroke(false);
     // On screen before the request leaves, where the person put it.
     setPending(trimmed);
     setBusy(true);
@@ -388,6 +394,35 @@ export default function AskScreen() {
                 </ThemedText>
               </View>
             )}
+
+            {broke && (
+              <View style={styles.reply}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  A question costs {CREDITS_PER_QUESTION} credits and you have{' '}
+                  {formatCredits(settings.credits.balance)}.
+                </ThemedText>
+                <Pressable
+                  onPress={() => {
+                    tapFeedback();
+                    router.push('/top-up');
+                  }}
+                  accessibilityRole="button"
+                  style={styles.topUp}>
+                  {({ pressed }) => (
+                    <View
+                      style={[
+                        styles.topUpButton,
+                        { backgroundColor: theme.accent },
+                        pressed && styles.dim,
+                      ]}>
+                      <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                        Top up
+                      </ThemedText>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+            )}
           </ScrollView>
 
           {!nothingRead && (
@@ -521,6 +556,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
+  topUp: { alignSelf: 'flex-start', marginTop: Spacing.two },
+  topUpButton: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+  },
+  dim: { opacity: 0.6 },
   reply: { gap: Spacing.three },
   quote: { borderLeftWidth: 2, paddingLeft: Spacing.three, gap: Spacing.one },
   quoteText: { fontStyle: 'italic' },
@@ -559,5 +601,4 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     marginTop: Spacing.two,
   },
-  dim: { opacity: 0.6 },
 });

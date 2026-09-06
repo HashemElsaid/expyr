@@ -21,9 +21,15 @@ export type Pack = {
   /** Matches the product identifier in App Store Connect. */
   id: 'credits.small' | 'credits.medium' | 'credits.large';
   credits: Credits;
-  /** Placeholder until StoreKit returns the storefront's own formatted price. */
-  price: string;
-  /** USD, for working out the rate. Never shown. */
+  /**
+   * Apple's price points for this pack, by storefront. Placeholders until
+   * StoreKit hands back the storefront's own formatted price, and the same
+   * arrangement `purchases.ts` uses for Expyr Pro: nobody converts currency
+   * here, because Apple charges the price set for that storefront and a figure
+   * we worked out is a figure nobody is about to be charged.
+   */
+  prices: Record<string, string>;
+  /** USD, which is what the economics are worked out against. Never shown. */
   usd: number;
 };
 
@@ -33,10 +39,41 @@ export type Pack = {
  * test suite asserts it so a future price change cannot quietly go underwater.
  */
 export const PACKS: Pack[] = [
-  { id: 'credits.small', credits: 1_500, price: '$2.99', usd: 2.99 },
-  { id: 'credits.medium', credits: 3_000, price: '$4.99', usd: 4.99 },
-  { id: 'credits.large', credits: 6_500, price: '$9.99', usd: 9.99 },
+  {
+    id: 'credits.small',
+    credits: 1_500,
+    usd: 2.99,
+    prices: { AE: 'AED 10.99', SA: 'SAR 12.99', QA: 'QAR 12.99', GB: '£2.99', EU: '€2.99', US: '$2.99' },
+  },
+  {
+    id: 'credits.medium',
+    credits: 3_000,
+    usd: 4.99,
+    prices: { AE: 'AED 18.99', SA: 'SAR 22.99', QA: 'QAR 21.99', GB: '£4.99', EU: '€4.99', US: '$4.99' },
+  },
+  {
+    id: 'credits.large',
+    credits: 6_500,
+    usd: 9.99,
+    prices: { AE: 'AED 36.99', SA: 'SAR 44.99', QA: 'QAR 42.99', GB: '£9.99', EU: '€9.99', US: '$9.99' },
+  },
 ];
+
+/** Storefronts billed in euros, so one entry can serve all of them. */
+const EURO = new Set(['DE', 'FR', 'ES', 'IT', 'NL', 'IE', 'BE', 'AT', 'PT', 'FI', 'GR']);
+
+/**
+ * The price to show, for the phone's own storefront.
+ *
+ * Falls back to dollars, which is what Apple's own matrix does with a
+ * storefront that has no local price of its own. The important part is that it
+ * never shows a number in one currency next to Expyr Pro in another.
+ */
+export function priceOf(pack: Pack, region: string): string {
+  if (pack.prices[region]) return pack.prices[region];
+  if (EURO.has(region)) return pack.prices.EU;
+  return pack.prices.US;
+}
 
 /** Apple's largest share, and so the one every pack has to survive. */
 export const APPLE_SHARE = 0.3;

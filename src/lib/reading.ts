@@ -15,7 +15,17 @@ import { Attachment, DocumentTypeId } from '@/types';
  */
 
 const FOLDER = 'reading';
-const TIMEOUT_MS = 120_000;
+/**
+ * Two minutes was chosen against a service that answered in seconds. The one
+ * that actually runs is a tenth of a shared CPU parsing multi-megabyte PDFs,
+ * and a batch there is not slow because anything is wrong — it is slow because
+ * the container is small. Cutting it off at two minutes throws away work that
+ * was nearly done and charges for it anyway.
+ *
+ * Three minutes, with a page count moving on screen the whole time, is a wait.
+ * Two minutes ending in an error is a failure.
+ */
+const TIMEOUT_MS = 180_000;
 
 export type Brief = {
   kind: string;
@@ -258,14 +268,19 @@ const PAGES_PER_BATCH = 4;
 /**
  * How many batches are in the air together.
  *
- * Three, not four. Four was chosen so a fourteen-page contract would be one
- * round of batches, which was the right idea measured against the wrong thing:
- * every batch re-sends the whole file, so four at once means four uploads
- * sharing one uplink, and the slowest of them times out having spent its
- * budget on bytes rather than pages. Three leaves the connection room, and
- * anything that still fails is retried alone.
+ * Two, walked down from four.
+ *
+ * Four was chosen so a fourteen-page contract would be a single round, which
+ * was the right idea measured against the wrong constraint. Every batch
+ * re-sends the whole file and the service parses it again, so concurrency
+ * multiplies the two most expensive things on the smallest container Render
+ * sells: the uplink and a tenth of a CPU.
+ *
+ * Two still halves the wall clock against reading them one at a time, and
+ * leaves the box enough room to finish each one. Anything that still fails is
+ * retried alone afterwards.
  */
-const BATCH_CONCURRENCY = 3;
+const BATCH_CONCURRENCY = 2;
 
 /**
  * Which documents are worth reading unprompted.

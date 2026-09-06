@@ -78,8 +78,19 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
         setBrief(result.brief);
         if (!settings.premium && fresh && !joined) update({ readsUsed: settings.readsUsed + 1 });
       })
-      .catch(() => {
-        // Offered as a button instead, rather than an alert nobody asked for.
+      .catch((error) => {
+        /*
+         * Offered as a button instead, rather than an alert nobody asked for.
+         *
+         * Quiet for the person is not the same as invisible to us, though: a
+         * read that failed on somebody's phone used to leave no trace at all,
+         * anywhere, which made "it just says reading" impossible to diagnose.
+         * The message is the service's own wording — never the document.
+         */
+        console.warn(
+          '[reading] on-arrival read failed:',
+          error instanceof Error ? error.message : String(error)
+        );
       })
       .finally(() => live && setStage(null));
 

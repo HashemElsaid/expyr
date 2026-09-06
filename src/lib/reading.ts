@@ -302,9 +302,14 @@ export function readInBackground(
     // Only a reading that produced something counts against the allowance. A
     // failure delivered nothing, so it should not be charged for.
     .then(() => onRead?.())
-    .catch(() => {
+    .catch((error) => {
       // Silent on purpose. Nobody asked for this yet, so nobody should be
-      // interrupted when it fails.
+      // interrupted when it fails — but it still says so where a developer
+      // can see it. The message only; never the document.
+      console.warn(
+        '[reading] background read failed:',
+        error instanceof Error ? error.message : String(error)
+      );
     });
 }
 

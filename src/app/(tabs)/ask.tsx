@@ -9,7 +9,14 @@ import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
-import { askDocuments, hasReading, readable, type Turn } from '@/lib/reading';
+import {
+  askDocuments,
+  hasReading,
+  loadTurns,
+  readable,
+  saveTurns,
+  type Turn,
+} from '@/lib/reading';
 import { labelForId } from '@/data/document-types';
 import { longDate } from '@/lib/dates';
 import { useDocuments } from '@/store/documents';
@@ -125,11 +132,16 @@ export default function AskScreen() {
     [documents, archived, settings.country]
   );
 
-  // A different set of documents is a different conversation.
+  /*
+    * A different set of documents is a different conversation, so each is
+    * stored under its own scope and read back here rather than started empty.
+    */
+  const scope = id ?? 'all';
+
   useEffect(() => {
-    setTurns([]);
+    setTurns(loadTurns(scope));
     setError(null);
-  }, [id]);
+  }, [scope]);
 
   async function ask(text: string) {
     const trimmed = text.trim();
@@ -150,7 +162,11 @@ export default function AskScreen() {
     requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
     try {
       const answer = await askDocuments(asking, trimmed, turns, records);
-      setTurns((current) => [...current, { question: trimmed, answer }]);
+      setTurns((current) => {
+        const next = [...current, { question: trimmed, answer }];
+        saveTurns(scope, next);
+        return next;
+      });
       // Only an answer is counted: a failure delivered nothing.
       update(allowance.spend());
     } catch (e) {

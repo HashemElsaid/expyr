@@ -204,7 +204,7 @@ describe('expiryVerb', () => {
   });
 
   it('says a subscription charges you, because it does not expire', () => {
-    const netflix = { ...makeDocument('membership'), renewsEvery: 'month' as const };
+    const netflix = { ...makeDocument('membership'), renewsEvery: 'monthly' as const };
     expect(expiryVerb(netflix)).toBe('charges you');
     expect(expiryVerb(netflix, true)).toBe('charged you');
   });

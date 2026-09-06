@@ -114,6 +114,57 @@ function saveBrief(documentId: string, brief: Brief) {
   b.write(JSON.stringify(brief));
 }
 
+/**
+ * How many exchanges are kept on disk.
+ *
+ * Generous, because the file is small and the request is not: askDocuments
+ * only ever sends the last six turns, so a long history costs storage rather
+ * than tokens. This is the point at which a conversation stops being one.
+ */
+const MAX_STORED_TURNS = 40;
+
+function turnsFile(scope: string): File {
+  return new File(folder(), `${scope}.turns.json`);
+}
+
+/**
+ * The conversation, kept beside the reading it is about.
+ *
+ * Every answer costs one of the day's questions and about ten seconds, and a
+ * reload threw all of them away — including the thread the next question is
+ * asked against, since the history travels with it. Nobody expects a chat to
+ * survive a reload until it does not.
+ *
+ * Scoped the way the screen scopes it: one document, or 'all' when the
+ * question was put to everything, because a different set of documents is a
+ * different conversation.
+ */
+export function loadTurns(scope: string): Turn[] {
+  if (Platform.OS === 'web') return [];
+  try {
+    const file = turnsFile(scope);
+    if (!file.exists) return [];
+    const parsed = JSON.parse(file.textSync());
+    return Array.isArray(parsed) ? (parsed as Turn[]) : [];
+  } catch {
+    // A conversation that will not parse is one the app starts again.
+    return [];
+  }
+}
+
+export function saveTurns(scope: string, turns: Turn[]) {
+  if (Platform.OS === 'web') return;
+  try {
+    const file = turnsFile(scope);
+    if (file.exists) file.delete();
+    if (turns.length === 0) return;
+    file.create();
+    file.write(JSON.stringify(turns.slice(-MAX_STORED_TURNS)));
+  } catch {
+    // It is still on screen. Failing to save it is not worth an alert.
+  }
+}
+
 /** Called when a document is deleted, so its reading does not outlive it. */
 export function deleteReading(documentId: string) {
   if (Platform.OS === 'web') return;
@@ -122,6 +173,9 @@ export function deleteReading(documentId: string) {
     if (t.exists) t.delete();
     const b = briefFile(documentId);
     if (b.exists) b.delete();
+    // The conversation went with the document it was about.
+    const c = turnsFile(documentId);
+    if (c.exists) c.delete();
   } catch {
     // A stranded transcript is harmless; failing the delete is not worth raising.
   }

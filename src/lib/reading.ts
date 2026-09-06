@@ -70,10 +70,56 @@ function briefFile(documentId: string): File {
   return new File(folder(), `${documentId}.brief.json`);
 }
 
+function progressFile(documentId: string): File {
+  return new File(folder(), `${documentId}.progress.json`);
+}
+
+/** How many pages of a long PDF are already transcribed, and out of how many. */
+function loadProgress(documentId: string): { pages: number; of: number } | null {
+  if (Platform.OS === 'web') return null;
+  try {
+    const file = progressFile(documentId);
+    if (!file.exists) return null;
+    const parsed = JSON.parse(file.textSync());
+    if (typeof parsed?.pages !== 'number' || typeof parsed?.of !== 'number') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveProgress(documentId: string, pages: number, of: number) {
+  try {
+    const file = progressFile(documentId);
+    if (file.exists) file.delete();
+    file.create();
+    file.write(JSON.stringify({ pages, of }));
+  } catch {
+    // Losing the marker costs a repeat, not the reading.
+  }
+}
+
+function clearProgress(documentId: string) {
+  try {
+    const file = progressFile(documentId);
+    if (file.exists) file.delete();
+  } catch {
+    // Harmless: the next read overwrites it.
+  }
+}
+
+/**
+ * Whether there is a *complete* transcript.
+ *
+ * The distinction matters now that a long PDF is written down as it goes. A
+ * half-read contract on disk would otherwise look finished, and questions would
+ * be answered from the pages that happened to arrive — confidently, and from
+ * half the document.
+ */
 export function hasReading(documentId: string): boolean {
   if (Platform.OS === 'web') return false;
   try {
-    return transcriptFile(documentId).exists;
+    return transcriptFile(documentId).exists && loadProgress(documentId) === null;
   } catch {
     return false;
   }
@@ -176,6 +222,8 @@ export function deleteReading(documentId: string) {
     // The conversation went with the document it was about.
     const c = turnsFile(documentId);
     if (c.exists) c.delete();
+    const p = progressFile(documentId);
+    if (p.exists) p.delete();
   } catch {
     // A stranded transcript is harmless; failing the delete is not worth raising.
   }
@@ -280,12 +328,24 @@ export function readDocumentFully(
  * promises in writing that it does not.
  */
 async function readPdfInBatches(
+  documentId: string,
   fileBase64: string,
   onStage?: (stage: ReadStage, progress?: ReadProgress) => void
 ): Promise<string> {
-  const parts: string[] = [];
-  let from = 1;
-  let total = 0;
+  /*
+   * Each batch is banked the moment it lands.
+   *
+   * A batch costs real money to produce, and losing four pages because the
+   * fifth timed out meant paying for those four twice. Written down as they
+   * arrive, a retry starts at the page the failure reached — and a run that
+   * fails halfway has still bought something.
+   */
+  const done = loadProgress(documentId);
+  const parts: string[] = done ? [loadTranscript(documentId) ?? ''] : [];
+  let from = done ? done.pages + 1 : 1;
+  let total = done?.of ?? 0;
+
+  if (done) onStage?.('transcribing', { page: done.pages, of: done.of });
 
   for (;;) {
     const to = from + PAGES_PER_BATCH - 1;
@@ -299,13 +359,26 @@ async function readPdfInBatches(
      * No count means a service too old to split, which ignored the range and
      * read the whole document. What came back is all of it.
      */
-    if (typeof batch.pageCount !== 'number') return batch.text;
+    if (typeof batch.pageCount !== 'number') {
+      clearProgress(documentId);
+      return batch.text;
+    }
 
     total = batch.pageCount;
     parts.push(batch.text);
-    onStage?.('transcribing', { page: Math.min(to, total), of: total });
 
-    if (to >= total) return parts.join('\n\n');
+    const reached = Math.min(to, total);
+    const soFar = parts.join('\n\n');
+    onStage?.('transcribing', { page: reached, of: total });
+
+    if (reached >= total) {
+      clearProgress(documentId);
+      return soFar;
+    }
+
+    // Banked before the next request, which is the one that might fail.
+    saveTranscript(documentId, soFar);
+    saveProgress(documentId, reached, total);
     from = to + 1;
   }
 }
@@ -328,7 +401,7 @@ async function runRead(
    */
   const text =
     file.type === 'pdf'
-      ? await readPdfInBatches(handle.base64Sync(), onStage)
+      ? await readPdfInBatches(documentId, handle.base64Sync(), onStage)
       : (
           await post<{ text: string }>('/read', {
             fileBase64: handle.base64Sync(),

@@ -87,10 +87,19 @@ export async function readDocument(opts: {
   fileBase64: string;
   mediaType: SupportedMediaType;
 }): Promise<string> {
-  const response = await getClient().messages.create({
-    model: READ_MODEL,
-    max_tokens: 16000,
-    system: READ_SYSTEM,
+  /*
+   * Streamed, not awaited whole.
+   *
+   * Transcribing pages is the longest generation this service does, and a
+   * response that sends no bytes for forty seconds is one a proxy is entitled
+   * to close — which is the same failure the guidance route was rewritten to
+   * avoid. Streaming keeps the connection alive with the work itself.
+   */
+  const response = await getClient().messages
+    .stream({
+      model: READ_MODEL,
+      max_tokens: 16000,
+      system: READ_SYSTEM,
     messages: [
       {
         role: 'user',
@@ -99,8 +108,9 @@ export async function readDocument(opts: {
           { type: 'text', text: 'Transcribe this document.' },
         ],
       },
-    ],
-  });
+      ],
+    })
+    .finalMessage();
 
   return response.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')

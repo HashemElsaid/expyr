@@ -74,26 +74,34 @@ function progressFile(documentId: string): File {
   return new File(folder(), `${documentId}.progress.json`);
 }
 
-/** How many pages of a long PDF are already transcribed, and out of how many. */
-function loadProgress(documentId: string): { pages: number; of: number } | null {
+/**
+ * The batches already transcribed, keyed by the page each one starts at.
+ *
+ * A watermark would have done when batches ran one after another. They run at
+ * once now and finish out of order, so what is banked is which batches came
+ * back — not how far along a line the work has got.
+ */
+type Progress = { of: number; parts: Record<string, string> };
+
+function loadProgress(documentId: string): Progress | null {
   if (Platform.OS === 'web') return null;
   try {
     const file = progressFile(documentId);
     if (!file.exists) return null;
     const parsed = JSON.parse(file.textSync());
-    if (typeof parsed?.pages !== 'number' || typeof parsed?.of !== 'number') return null;
-    return parsed;
+    if (typeof parsed?.of !== 'number' || typeof parsed?.parts !== 'object') return null;
+    return parsed as Progress;
   } catch {
     return null;
   }
 }
 
-function saveProgress(documentId: string, pages: number, of: number) {
+function saveProgress(documentId: string, progress: Progress) {
   try {
     const file = progressFile(documentId);
     if (file.exists) file.delete();
     file.create();
-    file.write(JSON.stringify({ pages, of }));
+    file.write(JSON.stringify(progress));
   } catch {
     // Losing the marker costs a repeat, not the reading.
   }
@@ -248,6 +256,15 @@ export type ReadProgress = { page: number; of: number };
 const PAGES_PER_BATCH = 4;
 
 /**
+ * How many batches are in the air together.
+ *
+ * Four, because a fourteen-page contract is four batches and should therefore
+ * take about as long as one. Higher would not help much: every batch re-sends
+ * the whole file, so the phone's uplink saturates before the service does.
+ */
+const BATCH_CONCURRENCY = 4;
+
+/**
  * Which documents are worth reading unprompted.
  *
  * An Emirates ID, a passport, a Mulkiya are cards: a handful of fields the scan
@@ -327,60 +344,92 @@ export function readDocumentFully(
  * but then it would be holding somebody's tenancy contract, and the app
  * promises in writing that it does not.
  */
+/**
+ * A long PDF, read a few pages at a time — all of them at once.
+ *
+ * Written first as a loop, which was the obvious shape and the wrong one. The
+ * batches do not depend on each other: read sequentially, fourteen pages cost
+ * four round trips end to end, and nobody waits four minutes for a tenancy
+ * contract. Run together, fourteen pages cost about as long as four do.
+ *
+ * The page count comes from a route that only counts pages, so the fan-out can
+ * start immediately rather than waiting on a first transcription to discover
+ * how much work there is.
+ */
 async function readPdfInBatches(
   documentId: string,
   fileBase64: string,
   onStage?: (stage: ReadStage, progress?: ReadProgress) => void
 ): Promise<string> {
   /*
-   * Each batch is banked the moment it lands.
-   *
-   * A batch costs real money to produce, and losing four pages because the
-   * fifth timed out meant paying for those four twice. Written down as they
-   * arrive, a retry starts at the page the failure reached — and a run that
-   * fails halfway has still bought something.
+   * A service without /pages is one deployed before batching existed. Reading
+   * the document whole is what it would have done anyway, and is what it is
+   * still able to do — better a slow read than a route that 404s the feature
+   * during the minutes between a push and a deploy.
    */
-  const done = loadProgress(documentId);
-  const parts: string[] = done ? [loadTranscript(documentId) ?? ''] : [];
-  let from = done ? done.pages + 1 : 1;
-  let total = done?.of ?? 0;
-
-  if (done) onStage?.('transcribing', { page: done.pages, of: done.of });
-
-  for (;;) {
-    const to = from + PAGES_PER_BATCH - 1;
-    const batch = await post<{ text: string; pageCount?: number }>('/read', {
+  let total: number;
+  try {
+    const counted = await post<{ pageCount: number }>('/pages', {
       fileBase64,
       mediaType: 'application/pdf',
-      pages: { from, to },
     });
-
-    /*
-     * No count means a service too old to split, which ignored the range and
-     * read the whole document. What came back is all of it.
-     */
-    if (typeof batch.pageCount !== 'number') {
-      clearProgress(documentId);
-      return batch.text;
-    }
-
-    total = batch.pageCount;
-    parts.push(batch.text);
-
-    const reached = Math.min(to, total);
-    const soFar = parts.join('\n\n');
-    onStage?.('transcribing', { page: reached, of: total });
-
-    if (reached >= total) {
-      clearProgress(documentId);
-      return soFar;
-    }
-
-    // Banked before the next request, which is the one that might fail.
-    saveTranscript(documentId, soFar);
-    saveProgress(documentId, reached, total);
-    from = to + 1;
+    total = counted.pageCount;
+  } catch {
+    const whole = await post<{ text: string }>('/read', {
+      fileBase64,
+      mediaType: 'application/pdf',
+    });
+    clearProgress(documentId);
+    return whole.text;
   }
+
+  const previous = loadProgress(documentId);
+  const parts: Record<string, string> =
+    previous && previous.of === total ? { ...previous.parts } : {};
+
+  const starts: number[] = [];
+  for (let from = 1; from <= total; from += PAGES_PER_BATCH) starts.push(from);
+
+  /* Pages banked so far, whichever batches they came from. */
+  const readSoFar = () =>
+    Math.min(total, Object.keys(parts).length * PAGES_PER_BATCH);
+
+  onStage?.('transcribing', { page: readSoFar(), of: total });
+
+  const pending = starts.filter((from) => parts[String(from)] === undefined);
+  let next = 0;
+
+  /*
+   * Four at a time. Each batch carries the whole file — the cost of not letting
+   * the service keep it — so the phone's uplink, not the model, is what more
+   * concurrency would run into.
+   */
+  async function worker() {
+    for (;;) {
+      const index = next++;
+      if (index >= pending.length) return;
+      const from = pending[index];
+
+      const batch = await post<{ text: string; pageCount?: number }>('/read', {
+        fileBase64,
+        mediaType: 'application/pdf',
+        pages: { from, to: from + PAGES_PER_BATCH - 1 },
+      });
+
+      parts[String(from)] = batch.text;
+      onStage?.('transcribing', { page: readSoFar(), of: total });
+      // Banked as it lands, so a failure elsewhere does not buy these pages again.
+      saveProgress(documentId, { of: total, parts });
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(BATCH_CONCURRENCY, pending.length) }, worker)
+  );
+
+  const transcript = starts.map((from) => parts[String(from)] ?? '').join('\n\n');
+  clearProgress(documentId);
+  return transcript;
 }
 
 async function runRead(

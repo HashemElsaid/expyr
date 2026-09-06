@@ -191,6 +191,28 @@ export const ROUTES: Record<string, Route> = {
     },
   },
 
+  /*
+   * How many pages, and nothing else.
+   *
+   * The phone needs the count before it can divide the work up, and asking for
+   * it by transcribing the first batch made every read serial: one round trip
+   * before any of the others could start. This is pdf-lib alone — no model, no
+   * cost, and back in the time it takes to parse the file.
+   */
+  '/pages': {
+    method: 'POST',
+    auth: true,
+    metered: true,
+    costs: false,
+    handle: async (ctx) => {
+      const { fileBase64, mediaType } = parse(FileRequest, ctx.body);
+      if (mediaType !== 'application/pdf') return json({ pageCount: 1 });
+      const pageCount = await pdfPageCount(fileBase64);
+      ctx.note({ n_pages: pageCount });
+      return json({ pageCount });
+    },
+  },
+
   '/read': {
     method: 'POST',
     auth: true,

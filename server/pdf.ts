@@ -28,12 +28,12 @@ function bytes(base64: string): Uint8Array {
  * contracts are routinely like this. Refusing them would reject exactly the
  * documents this feature exists for.
  */
-async function open(base64: string) {
+export async function openPdf(base64: string): Promise<PDFDocument> {
   return PDFDocument.load(bytes(base64), { ignoreEncryption: true });
 }
 
 export async function pdfPageCount(base64: string): Promise<number> {
-  const doc = await open(base64);
+  const doc = await openPdf(base64);
   return doc.getPageCount();
 }
 
@@ -44,7 +44,18 @@ export async function pdfPageCount(base64: string): Promise<number> {
  * last batch is almost always short.
  */
 export async function pdfPages(base64: string, from: number, to: number): Promise<string> {
-  const source = await open(base64);
+  return pagesOf(await openPdf(base64), from, to);
+}
+
+/**
+ * The same cut, on a document already parsed.
+ *
+ * Parsing is the expensive half — a multi-megabyte contract read into
+ * JavaScript objects, on a container with a fraction of a CPU. The route used
+ * to parse once to count the pages and again to cut them, which doubled the
+ * only slow thing this service does for no reason at all.
+ */
+export async function pagesOf(source: PDFDocument, from: number, to: number): Promise<string> {
   const total = source.getPageCount();
 
   const first = Math.max(1, Math.min(from, total));

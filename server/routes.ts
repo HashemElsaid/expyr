@@ -5,7 +5,7 @@ import { extractFromImage } from './extract.ts';
 import { FileGuidanceStore, isFresh, LayeredGuidanceStore } from './guidance-cache.ts';
 import { generateGuidance, type Guidance } from './guidance.ts';
 import { canIssueTokens, issueInstallToken } from './install-token.ts';
-import { pdfPageCount, pdfPages } from './pdf.ts';
+import { openPdf, pagesOf, pdfPageCount } from './pdf.ts';
 import type { LogFields } from './log.ts';
 import {
   AskRequest,
@@ -234,8 +234,10 @@ export const ROUTES: Record<string, Route> = {
       let pageCount: number | undefined;
 
       if (mediaType === 'application/pdf') {
-        pageCount = await pdfPageCount(fileBase64);
-        if (pages) payload = await pdfPages(fileBase64, pages.from, pages.to);
+        // Parsed once and used for both. It used to be parsed twice per batch.
+        const doc = await openPdf(fileBase64);
+        pageCount = doc.getPageCount();
+        if (pages) payload = await pagesOf(doc, pages.from, pages.to);
       }
 
       const text = await readDocument({ fileBase64: payload, mediaType });

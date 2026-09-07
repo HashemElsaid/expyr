@@ -42,6 +42,26 @@ export function findGaps(
   mine: TrackedDocument[],
   country: Country | null
 ): Gap[] {
+  /*
+   * Every rule below is a UAE rule.
+   *
+   * Not just the list of papers a resident is expected to hold, which was
+   * always gated — the chains as well. "Renew your Emirates ID first, a valid
+   * one is required to renew your licence" is the RTA's requirement, and it
+   * was being shown to anybody anywhere who tracked a driving licence. Someone
+   * in London reading that learns the app is describing a country they do not
+   * live in, and stops believing the parts that are true.
+   *
+   * The labels adapt on their own — emirates-id reads "National ID" outside
+   * the UAE — but these warnings are written sentences, not labels, and a
+   * sentence cannot be translated into a rule that was never checked.
+   *
+   * So nothing at all where the rules have not been verified. Dates and
+   * reminders work everywhere; being told how a country's paperwork chains
+   * together does not.
+   */
+  if (!hasGuidance(country)) return [];
+
   const gaps: Gap[] = [];
   const holds = (id: DocumentTypeId) => mine.some((doc) => doc.typeId === id);
 
@@ -69,19 +89,12 @@ export function findGaps(
     });
   }
 
-  /*
-   * Only where the rules have been checked. Telling somebody in Cairo which
-   * papers they ought to hold would be guessing, and guessing confidently is
-   * the thing this app refuses to do.
-   */
-  if (hasGuidance(country)) {
-    // Anything a rule above has already explained does not need listing twice.
-    const absent = EVERY_RESIDENT.filter((id) => !holds(id) && !namedAlready.has(id)).map((id) =>
-      labelForId(id, country)
-    );
-    if (absent.length > 0) {
-      gaps.push({ severity: 'untracked', text: `Not tracked: ${absent.join(', ')}.` });
-    }
+  // Anything a rule above has already explained does not need listing twice.
+  const absent = EVERY_RESIDENT.filter((id) => !holds(id) && !namedAlready.has(id)).map((id) =>
+    labelForId(id, country)
+  );
+  if (absent.length > 0) {
+    gaps.push({ severity: 'untracked', text: `Not tracked: ${absent.join(', ')}.` });
   }
 
   // The same requirement can be named by two rules; say it once.

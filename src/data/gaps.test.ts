@@ -150,3 +150,37 @@ describe('how a document type reads inside a sentence', () => {
     expect(inSentence('')).toBe('');
   });
 });
+
+/**
+ * The app is sold outside the UAE. Somebody in London or Texas must never be
+ * told about an Emirates ID, a Mulkiya or an Ejari, because being described a
+ * country you do not live in is how an app stops being believed about the
+ * parts that are true.
+ *
+ * The document labels adapt on their own — emirates-id reads "National ID"
+ * elsewhere — but these warnings are written sentences naming the RTA and the
+ * ICP, and a sentence cannot be translated into a rule nobody checked.
+ */
+describe('outside the countries whose rules have been checked', () => {
+  const licence = makeDocument('driving-license', { expiryDate: '2027-01-01' });
+  const car = makeDocument('car-registration', { expiryDate: '2027-01-01' });
+  const visa = makeDocument('residence-visa', { expiryDate: '2027-01-01' });
+
+  it.each([null, 'us', 'gb', 'eg', 'in'] as const)('says nothing at all in %s', (country) => {
+    expect(findGaps([licence, car, visa], country as never)).toEqual([]);
+  });
+
+  it('never names an Emirates ID to somebody who does not have one', () => {
+    for (const country of [null, 'us', 'gb'] as const) {
+      const text = findGaps([licence, car, visa], country as never)
+        .map((g) => g.text)
+        .join(' ');
+      expect(text).not.toMatch(/Emirates ID|Mulkiya|Ejari|RTA|ICP|emirate/i);
+    }
+  });
+
+  /* And it still does its job where the rules were verified. */
+  it('still warns in the UAE', () => {
+    expect(findGaps([licence, car, visa], 'ae').length).toBeGreaterThan(0);
+  });
+});

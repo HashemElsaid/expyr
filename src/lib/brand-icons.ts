@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
+import { isDefiniteMiss, shouldAskAgain } from '@/domain/icon-retry';
 import { serviceBase } from '@/lib/service';
 
 /**
@@ -92,6 +93,36 @@ function fileFor(domain: string): File {
 }
 
 /**
+ * Where a "there is no icon for this" is remembered, so it is not asked again
+ * every time the app opens. Holds a timestamp and nothing else.
+ */
+function missFor(domain: string): File {
+  return new File(folder(), `${domain.toLowerCase().replace(/[^a-z0-9.-]/g, '')}.miss`);
+}
+
+function missedAt(domain: string): number | null {
+  try {
+    const file = missFor(domain);
+    if (!file.exists) return null;
+    const at = Number.parseInt(file.textSync(), 10);
+    return Number.isFinite(at) ? at : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberMiss(domain: string, at: number) {
+  try {
+    const file = missFor(domain);
+    if (file.exists) file.delete();
+    file.create();
+    file.write(String(at));
+  } catch {
+    // Forgetting costs a repeated request, not a broken icon.
+  }
+}
+
+/**
  * The stored icon for a domain, or null when there is not one yet.
  *
  * The web build has no private storage to keep files in, so it points straight
@@ -135,10 +166,29 @@ export async function ensureBrandIcon(domain?: string): Promise<boolean> {
     const file = fileFor(domain);
     if (file.exists) return false;
 
+    /*
+     * Already asked, and the answer was no. Guessed domains are the reason
+     * this exists: "My gym" becomes mygym.com, nothing comes back, and without
+     * this the phone asks a stranger about somebody's private list on every
+     * launch for as long as the app is installed.
+     */
+    if (!shouldAskAgain(missedAt(domain), Date.now())) return false;
+
     const response = await fetch(
       `${serviceBase()}/icon?domain=${encodeURIComponent(domain.toLowerCase())}`,
       { signal: controller.signal }
     );
+
+    /*
+     * A 404 is the service saying it looked and there is nothing there, which
+     * is worth remembering. Everything else — a timeout, a 502, a phone on a
+     * plane — is about the moment rather than the domain, so it is left to be
+     * asked again next time.
+     */
+    if (isDefiniteMiss(response.status)) {
+      rememberMiss(domain, Date.now());
+      return false;
+    }
     if (!response.ok) return false;
 
     const type = response.headers.get('content-type') ?? '';

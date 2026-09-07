@@ -134,21 +134,23 @@ work removed.
 
 ## 8. Decisions still open — YOU
 
-- [ ] **Brand icons, and it is Google you are exposed to rather than Apple.**
-      Subscription logos come from Google's undocumented `s2/favicons`
-      endpoint. App Review cannot see this: the phone calls our own service,
-      and where that service fetches an icon leaves no trace on the device. It
-      is not a rejection risk.
+- [x] **Brand icons — keep pulling them, and the reason changed on inspection.**
+      Bundling logos would mean shipping copies of other companies' trademarks
+      inside the binary, which is a stronger claim on their marks than linking
+      a publicly served favicon, not a weaker one. It would also lose the long
+      tail this app most needs: Shahid, du, STC, Careem.
 
-      What it is, is a dependency on something nobody promised. An undocumented
-      endpoint can change, rate-limit or disappear without notice, and when it
-      does every subscription icon stops loading at once and you hear about it
-      from a review rather than a deploy.
+      The silent-breakage risk was smaller than I described. Icons are stored
+      on the phone after the first fetch, the server caches across users, and a
+      missing icon already falls back to the category glyph without saying
+      anything.
 
-      Bundling a dozen of the common services, with a lettermark for the rest,
-      removes the dependency, a network call and a cold-start delay. Not a
-      blocker, and worth doing before there are enough users for a quiet
-      breakage to matter
+      The real bug was the opposite of the one I raised: a guessed domain with
+      no icon, like mygym.com from "My gym", was asked for on every launch
+      forever. A definite no is now remembered for thirty days; a timeout or a
+      502 still retries, because that is about the moment rather than the
+      domain.
+
 - [ ] **The summary model.** The brief runs on Sonnet 5 at roughly twice the
       price of everything around it. Worth comparing Haiku on a real contract
 - [x] **Your name** — handled, and it needed no new decision. Renaming "Mine"

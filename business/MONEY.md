@@ -29,6 +29,55 @@ AED  99.33   less 30% commission            = USD 27.05
 more revenue, for a form that takes five minutes. That is the whole argument
 for step 2 of `APP-STORE-CONNECT.md`.
 
+### What Apple actually generated, 7 September
+
+Base price AED 149.00 on the UAE storefront. Apple produced the other 174 from
+local tax and exchange rates. The six that matter, with what each one actually
+pays after the local tax Apple remits and the 15% commission:
+
+| Storefront | Price | Local tax | Proceeds | ≈ USD |
+|---|---|---|---|---|
+| **United Arab Emirates** | AED 149.00 | 5% | **AED 120.62** | $32.84 |
+| United States | $39.99 | varies by state | **$33.99** | $33.99 |
+| Germany and eurozone | €44.99 | 19% | **€32.14** | ~$35.03 |
+| United Kingdom | £39.99 | 20% | **£28.33** | ~$35.98 |
+| Saudi Arabia | SAR 179.99 | 15% | **SAR 133.03** | ~$35.47 |
+| Qatar | QAR 149.99 | none | **QAR 127.49** | ~$35.02 |
+
+The local-currency figures are exact arithmetic. The dollar column moves with
+exchange rates and is there for comparison only.
+
+**The UAE pays you the least of the six.** AED 149 is about $40.57 gross, which
+looks like the highest price on the list, and it produces the lowest proceeds
+because everywhere else Apple placed the price a band higher. The spread is
+$32.84 to $35.98, so it is not worth acting on. It is worth knowing before
+somebody concludes the home market is the profitable one.
+
+### The guesses in the code were wrong in three places
+
+`src/lib/purchases.ts` holds a `PRICE_POINTS` table written from memory, and
+its own comment says showing a person a number they are not about to be charged
+is what Guideline 3.1.2 exists to stop. Measured against what Apple generated:
+
+| Storefront | Code said | Apple generated | |
+|---|---|---|---|
+| AE | AED 149 | AED 149.00 | correct |
+| QA | QAR 149.99 | QAR 149.99 | correct |
+| US | $39.99 | $39.99 | correct |
+| **SA** | SAR 149.99 | **SAR 179.99** | **20% low** |
+| **GB** | £34.99 | **£39.99** | **£5 low** |
+| **DE, FR, ES, IT, NL** | €39.99 | **€44.99** | **€5 low** |
+
+A Saudi user would have been shown SAR 149.99 and charged SAR 179.99.
+
+Eight more entries in that table are still unverified, because they were not
+read off the screen: KW, BH, OM, EG, CA, IN, PK, PH. They should be treated as
+wrong until checked.
+
+The table dies the moment StoreKit is wired, because `displayPrice` on the
+product comes back already localised and correct. Until then it is what the
+paywall shows, so the three known errors need fixing rather than waiting.
+
 ### The credit packs
 
 Credits are priced to recover cost, not to profit. `credit-packs.ts` sizes

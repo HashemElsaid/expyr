@@ -313,6 +313,23 @@ work removed.
 
 ## 10. Submit
 
+- [ ] **Set EXPO_PUBLIC_EXTRACT_URL and EXPO_PUBLIC_SCAN_TOKEN on EAS**, for
+      the **production** and **preview** environments. This is a submission
+      blocker and it fails silently.
+
+      A development build is safe: developmentClient means the JavaScript comes
+      from Metro, which reads the local .env. A release build inlines
+      EXPO_PUBLIC_* during the EAS build instead, and .env is gitignored so EAS
+      never receives it. Both variables are then undefined, and service.ts
+      falls back to http://<hostUri>:8787, where hostUri is undefined in
+      production, giving **http://localhost:8787**. localhost matches the
+      private-host allowlist, so assertEncrypted raises nothing.
+
+      No error, no warning, a healthy-looking build, and every scan, read and
+      purchase verification quietly trying to reach a server on the phone
+      itself. Plain text visibility is correct: anything prefixed EXPO_PUBLIC_
+      is inlined into the bundle and readable by anyone who unpacks the app,
+      which is exactly why the per-install token in install-token.ts exists.
 - [ ] Test everything on the development build, not Expo Go
 - [x] **Cold start handled.** Measured at 52.7 seconds on the free plan, which
       an uptime monitor read as the service being *down* the first time it

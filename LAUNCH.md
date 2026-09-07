@@ -51,6 +51,11 @@ and deployed and returns 200 live, the three wrong prices in `PRICE_POINTS` are
 corrected, the product identifiers are pinned, and Render is on the paid plan
 with a disk. One item survives.
 
+**The AED credit pack prices in credit-packs.ts.** Read off real sandbox
+purchases: AED 12.99, 19.99 and 39.99, against guesses of 10.99, 18.99 and
+36.99. StoreKit returns the real ones and the app shows them, so this is the
+fallback being wrong rather than a live bug.
+
 **A Bill category.** `src/data/document-types.ts` still has thirteen types and
 none of them is a bill. The App Store listing now says `Documents, bills &
 renewals` in the subtitle and describes "a payment that falls due every month"

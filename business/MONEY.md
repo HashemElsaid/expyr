@@ -53,6 +53,23 @@ because everywhere else Apple placed the price a band higher. The spread is
 $32.84 to $35.98, so it is not worth acting on. It is worth knowing before
 somebody concludes the home market is the profitable one.
 
+### The credit pack prices were wrong too
+
+Read off a real sandbox purchase on 7 September, against a US base of $2.99,
+$4.99 and $9.99:
+
+| Pack | credit-packs.ts guesses | Apple actually charges |
+|---|---|---|
+| Small | AED 10.99 | **AED 12.99** |
+| Medium | AED 18.99 | **AED 19.99** |
+| Large | AED 36.99 | **AED 39.99** |
+
+Apple does not convert, it places the price at a local point that absorbs tax,
+so every guess came out low. This one does not bite today: the purchase
+screenshots show StoreKit returning the real prices and the app displaying
+them, which is what use-store-prices.ts is for. The table is only the fallback,
+and the fallback is wrong.
+
 ### The guesses in the code were wrong in three places
 
 `src/lib/purchases.ts` holds a `PRICE_POINTS` table written from memory, and

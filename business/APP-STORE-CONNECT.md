@@ -62,7 +62,21 @@ the Apple Account that holds the membership.
       needs a screenshot of the purchase screen from a running app, and Apple
       requires the first non-consumable to be submitted alongside a new app
       version. That is the correct resting state.
-- [ ] Sandbox tester, under Users and Access
+- [x] Sandbox tester created 7 September:
+      **hashim.elsaeed+sandbox1@gmail.com**, region **United Arab Emirates**,
+      so the test account sees AED 149 rather than a dollar price. The plus
+      alias delivers to the normal inbox while Apple treats it as a separate
+      address, so more can be made without new mailboxes.
+
+      Idle until a development build exists, because in-app purchases do not
+      run in Expo Go. A second sandbox account will be needed later to test
+      Family Sharing on pro.lifetime, since that needs two accounts in a family
+      group.
+
+      Worth remembering before building a beta list: **TestFlight testers get
+      in-app purchases free**, because TestFlight runs against the sandbox
+      environment. That is Apple design, not a leak, but a hundred external
+      testers means a hundred free copies of Pro for the duration
 - [ ] The 1.0 version page: description, keywords, support URL, review notes
 - [ ] Screenshots, and the four purchase-screen shots. Needs the app
 - [ ] A build. Needs the coding session

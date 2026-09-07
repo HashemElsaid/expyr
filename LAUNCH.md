@@ -345,9 +345,23 @@ work removed.
 
 ## 10. Submit
 
-- [ ] **Set EXPO_PUBLIC_EXTRACT_URL and EXPO_PUBLIC_SCAN_TOKEN on EAS**, for
-      the **production** and **preview** environments. This is a submission
-      blocker and it fails silently.
+- [x] **Build 1.0.0 (2) uploaded to App Store Connect**, 7 September, 23:43.
+      Production profile, App Store distribution provisioning, and EAS confirmed
+      loading both production environment variables, so the shipped app reaches
+      Render rather than talking to itself. Processing at Apple.
+
+      The App Store Connect API key was generated as **APP_MANAGER**, not the
+      default ADMIN. The key lives on EAS servers, and ADMIN over an account
+      that now holds banking details, tax forms and signed agreements is more
+      authority than uploading a binary needs.
+
+      One thing found on the way: the EAS account already held a submit key for
+      **Team 92YVBQMR64, Majed Salem**, from an earlier project. Choosing it
+      would have tried to upload Expyr into somebody else's developer account,
+      and the error would not have said so. Do not pick it on a future submit.
+- [x] **EXPO_PUBLIC_EXTRACT_URL and EXPO_PUBLIC_SCAN_TOKEN set on EAS**, for
+      production and preview. This was a submission blocker that fails
+      silently.
 
       A development build is safe: developmentClient means the JavaScript comes
       from Metro, which reads the local .env. A release build inlines

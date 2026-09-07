@@ -323,7 +323,20 @@ work removed.
       4,000.** It would have truncated silently, part-way through the business
       model section, which is the part that prevents a 3.1.1 rejection. The cut
       version is 3,993
-- [ ] **Screenshots**, 6.7" and 6.5". Guideline 2.3.3 rejects title art and
+- [x] **Screenshots done**, 7 September. Seven frames at **1284 x 2778**, the
+      6.5 inch slot. Note the size: 1290 x 2796 is the 6.9 inch slot and App
+      Store Connect rejects it in the 6.5 one.
+
+      Each is the app on warm paper with an Instrument Serif headline, which is
+      the app's own display face, so the listing and the product read as one
+      thing. Status bars repainted to 9:41 with a full battery, because a 22
+      percent battery in every shot is the kind of small scruffiness that makes
+      a listing look unfinished.
+
+      Seeded with an invented American household, Michael and Sarah Bennett,
+      and an invented Denver lease, because these pages are public forever and
+      a real tenancy contract has a real person's name on it.
+- [ ] (superseded) **Screenshots**, 6.7" and 6.5". Guideline 2.3.3 rejects title art and
       splash screens; show the app in use. **One should show the subscription
       scan working**, since the listing now leads on it and that feature sells
       itself by being seen rather than listed

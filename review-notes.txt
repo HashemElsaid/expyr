@@ -1,0 +1,78 @@
+NO SIGN-IN, NO DEMO ACCOUNT NEEDED
+
+Expyr has no accounts, no login and no server-side user data. Every feature is
+available on first launch. Please leave Sign-In Information blank.
+
+SEEING THE APP IN TWO MINUTES
+
+1. Choose a country on first launch, then an emirate if it is the UAE. Allow or
+   decline notifications; both paths work.
+2. Tap + to add an item. "Take a photo" runs the scanner. "Enter it myself"
+   adds an item by hand with no camera at all.
+3. To test scanning, use the sample image attached here, or photograph any card
+   or letter with a printed date. Extracted values are always shown for
+   confirmation before saving.
+4. Open the item for the countdown, reminder dates, renewal steps, cost, late
+   fine and the authority link. The Ask tab answers questions about it.
+   Settings has "Send a test reminder", which fires a real notification.
+
+USE OF AI, STATED PLAINLY
+
+Three features use a large language model. All are user-initiated, none run in
+the background, none are required to use the app.
+
+1. SCANNING. An image the user explicitly selects is sent once to our service,
+   which forwards it to the Anthropic Claude API to extract the expiry date and
+   the other fields. Values are shown for confirmation before anything is saved.
+2. ASK. The user may have a saved document transcribed, then ask free-text
+   questions about it. Answers are drawn from that document.
+3. RENEWAL GUIDANCE. Steps, fees and processing times for a document type in a
+   region are model-generated using web search, then cached and reused. It is
+   presented as indicative, carries the wording "confirm with the official
+   channel", and links to the official source. It is never presented as
+   official instruction.
+
+THE BUSINESS MODEL
+
+Expyr is free for 5 tracked items and 10 scans. Unlocking removes both limits.
+Expyr AI, which reads a document in full and answers questions about it, is paid
+for separately in credits, because it costs money every time it is used.
+
+- ONE non-consumable: AED 149, paid once, removes the two limits. Marked Family
+  Shareable, up to six people.
+- THREE consumables: credit packs, spent as Expyr AI is used. Ten credits reads
+  a page, twenty answers a question. A new install is given thirty pages' worth
+  so it can be tried before it is bought.
+- NOT a subscription. Nothing auto-renews, nothing to cancel.
+- No other way to pay. No external payment, no web checkout, no link out, no
+  third-party billing. Nothing is unlocked outside In-App Purchase.
+- No physical goods or real-world services are sold.
+
+AVAILABILITY
+
+Expyr ships in all storefronts. Renewal guidance has been checked against the
+responsible authority only for the UAE, and the app says so rather than
+pretending otherwise. Elsewhere, type names fall back to generic ones, guidance
+is labelled generated rather than verified, and features depending on checked
+UAE data switch off. Everyone gets a working tracker; UAE users also get
+verified guidance and the correct authority.
+
+Expyr collects no government fees, acts as no authority's agent, and is neither
+affiliated with nor endorsed by any government body. Links open official sites
+in the browser.
+
+WHAT LEAVES THE DEVICE
+
+Only an image or document the user explicitly picks, at the moment they pick it,
+plus questions they choose to ask. Nothing is written to disk on our own server
+and no question or answer text is logged by us. Both are forwarded to the
+Anthropic Claude API, which may retain them briefly for its own trust and safety
+purposes, and does not train on them. That is why the privacy labels declare
+Photos and Other User Content as collected rather than claiming none.
+
+Nothing else is transmitted. Documents, dates, numbers, notes and photos are
+stored only in the app's private storage on the device. Reminders are scheduled
+locally by iOS, never pushed from a server. There is no analytics SDK, no
+advertising SDK and no third-party tracking of any kind.
+
+iPhone only. No iPad support is claimed.

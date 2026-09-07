@@ -352,11 +352,26 @@ screenshots that show only title art or a splash screen.
 
 ## Review notes for Apple
 
-Paste this whole thing into App Review Information. It answers, in advance,
-every question that turns a review into a two-week correspondence: how to get
-in without an account, how the money works, and what leaves the phone.
-Guideline 2.3.1 rejects generic notes, and every AI feature must be described
-with specificity.
+**Do not paste the block below. It does not fit.**
+
+App Review Information caps Notes at **4,000 characters** and the version below
+is 6,034. This file never checked, and pasting it would silently truncate
+somewhere in the middle of the business model section, which is the part most
+likely to prevent a rejection.
+
+The version to actually paste lives in **review-notes.txt** at the repository
+root: 3,993 characters, seven to spare. It keeps everything that prevents a
+rejection and drops the permissions section, because app.json already carries
+purpose strings that APP-REVIEW.md rates better than most shipping apps, and
+Apple reads those directly.
+
+The long version below is kept as the source of record. Edit it, then re-cut
+review-notes.txt from it, and check the count before pasting.
+
+It answers, in advance, every question that turns a review into a two-week
+correspondence: how to get in without an account, how the money works, and what
+leaves the phone. Guideline 2.3.1 rejects generic notes, and every AI feature
+must be described with specificity.
 
 ```
 THERE IS NO SIGN-IN, AND NO DEMO ACCOUNT IS NEEDED

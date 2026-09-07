@@ -52,6 +52,35 @@ test.
 
 ---
 
+## When the money actually arrives
+
+Separate from how much, and it lands later than people expect.
+
+**Apple pays 33 days after the end of its own fiscal month**, which does not
+line up with the calendar. A sale in early October is money in the account
+around mid-December.
+
+**There is a minimum before Apple sends anything.** For most international bank
+accounts, including a UAE one, it is **$40**. Below that the balance rolls
+forward and keeps accumulating.
+
+That threshold bites at exactly this stage. One Expyr Pro sale nets $32.84,
+which is **under** it. So a month with a single sale pays nothing at all; it
+carries. **Two Pro sales in a month is roughly where the first real payout
+happens.**
+
+Nothing in this chain asks for a UAE business licence. Apple does not check for
+one, and a personal account receiving foreign income is ordinary. The point at
+which it could come up is a bank taking the view that large regular business
+income belongs in a business account, which is a question of volume rather than
+of law. See COMPANY.md.
+
+Some UAE banks also hold a first inbound international payment until a purpose
+of transfer code is confirmed in the banking app. Worth knowing before a
+payment appears stuck.
+
+---
+
 ## What the year costs
 
 Fixed, and it is almost nothing:

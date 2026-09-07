@@ -31,6 +31,11 @@ export type Redeemed = {
   credits?: number;
   /** True when this was the one off purchase. */
   pro?: boolean;
+  /**
+   * The balance the service holds after granting, which is the one that
+   * counts. The phone keeps a copy so it can show a number without asking.
+   */
+  balance?: number;
 };
 
 export type StoreOutcome =

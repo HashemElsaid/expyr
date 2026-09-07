@@ -1,5 +1,9 @@
 import { getLocales } from 'expo-localization';
 
+import { PRO_PRODUCT_ID, type CreditPackId } from '@/lib/products';
+import { redeemWithService } from '@/lib/redeem';
+import { buy, sweep, type Redeemed } from '@/lib/store';
+
 export { PRO_PRODUCT_ID } from '@/lib/products';
 
 /**
@@ -126,19 +130,61 @@ export function plans(): Plan[] {
  * the limits themselves and cannot drift away from them again.
  */
 
-export type PurchaseOutcome = { ok: true } | { ok: false; message: string };
+export type PurchaseOutcome =
+  | { ok: true }
+  /** They changed their mind. Not a failure, and not worth an alert. */
+  | { ok: false; cancelled: true }
+  | { ok: false; cancelled?: false; message: string };
 
+/**
+ * Buys Expyr Pro.
+ *
+ * Nothing is entitled here on the phone's say so. The service asks Apple what
+ * the transaction was, and only a confirmed purchase of PRO_PRODUCT_ID comes
+ * back with pro set.
+ */
 export async function purchase(_plan: Plan['id']): Promise<PurchaseOutcome> {
-  return {
-    ok: false,
-    message:
-      'Payments are not connected yet. This needs an Apple Developer account and products set up in App Store Connect.',
-  };
+  const outcome = await buy(PRO_PRODUCT_ID, redeemWithService);
+  if (!outcome.ok) return outcome;
+  return outcome.redeemed.pro === true
+    ? { ok: true }
+    : { ok: false, message: 'That purchase did not include Expyr Pro.' };
 }
 
+/**
+ * Buys a credit pack.
+ *
+ * Returns what the service granted rather than a bare yes, because the caller
+ * needs Apple's transaction identifier: it is what keys the phone's copy of
+ * the ledger, so the same purchase arriving twice is written once.
+ */
+export async function purchaseCredits(
+  packId: CreditPackId
+): Promise<{ ok: true; redeemed: Redeemed } | Exclude<PurchaseOutcome, { ok: true }>> {
+  const outcome = await buy(packId, redeemWithService);
+  if (!outcome.ok) return outcome;
+  if (typeof outcome.redeemed.credits !== 'number') {
+    return { ok: false, message: 'That purchase did not include any credits.' };
+  }
+  return { ok: true, redeemed: outcome.redeemed };
+}
+
+/**
+ * Restores a previous purchase.
+ *
+ * On iOS this is the same operation as recovering an interrupted one: Apple
+ * hands back everything it is still holding for this Apple Account, and each
+ * is put through the same verification a fresh purchase gets. Somebody on a
+ * new phone and somebody whose app died mid-purchase are doing the same thing
+ * and get the same code.
+ */
 export async function restore(): Promise<PurchaseOutcome> {
-  return {
-    ok: false,
-    message: 'There is nothing to restore until payments are connected.',
-  };
+  const redeemed = await sweep(redeemWithService);
+  return redeemed.some((item) => item.pro === true)
+    ? { ok: true }
+    : {
+        ok: false,
+        message:
+          'Apple has no previous purchase of Expyr Pro for this Apple Account. If you bought it with a different one, sign in with that Apple Account and try again.',
+      };
 }

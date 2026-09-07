@@ -102,6 +102,13 @@ Not optional any more, and it buys three things at once:
 - [ ] Upgrade the instance
 - [ ] Attach a disk and set `EXPYR_CREDITS_DIR` to a path on it
 - [ ] Set `EXPYR_GUIDANCE_DIR` too, so the guidance cache survives a deploy
+- [ ] Set the three Apple keys, or `/purchase/redeem` refuses every purchase:
+
+      | Variable | Value |
+      |---|---|
+      | `EXPYR_APPLE_KEY_ID` | `2AX49534J2` |
+      | `EXPYR_APPLE_ISSUER_ID` | `51eccb44-a2ab-4d3c-852f-362796657233` |
+      | `EXPYR_APPLE_KEY` | the contents of the .p8, which never goes in this repo |
 
 ## 4. A development build — ME, needs 1
 
@@ -113,11 +120,15 @@ This is the wall between here and credits surviving a new phone.
 
 ## 5. Make the money work — ME, needs 2 and 3
 
-- [ ] Wire StoreKit: `purchase()` and `restore()` in `src/lib/purchases.ts`
-      currently return `ok: false`, which is a guaranteed rejection under
-      Guideline 2.1
-- [ ] Grant credits on a completed consumable purchase, in the one place
-      `top-up.tsx` reserves for it
+- [x] **StoreKit wired**, on expo-iap rather than a third party. `purchase()`,
+      `purchaseCredits()` and `restore()` are real; the paywall and the top-up
+      screen call them; an interrupted purchase is recovered at launch
+- [x] **Credits granted on a verified purchase.** The service asks Apple's App
+      Store Server API what the transaction was, `server/products.ts` decides
+      what it is worth, and the ledger pays a transaction identifier once
+- [ ] **Test a sandbox purchase on the phone.** Needs a new development build,
+      the three Apple environment variables, the paid Render plan, and a
+      sandbox tester. Nothing above has been through a real till
 - [ ] Move spending to the server. `/read` and `/ask` still trust the balance
       the phone reports, and a balance in local storage is a number its owner
       can edit

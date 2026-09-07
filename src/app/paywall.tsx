@@ -17,8 +17,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { successFeedback } from '@/lib/haptics';
 import { plans, purchase, restore } from '@/lib/purchases';
-import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT } from '@/store/settings';
+import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 
 /** Shorter than the word, and it reads the same in any language. */
 const UNLIMITED = '∞';
@@ -36,6 +37,7 @@ const COMPARISON: { label: string; free: string }[] = [
 export default function PaywallScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { update } = useSettings();
   const [busy, setBusy] = useState(false);
   /*
    * Read once per render rather than at module load, so the price follows the
@@ -58,14 +60,31 @@ export default function PaywallScreen() {
     setBusy(true);
     const outcome = await purchase(plan.id);
     setBusy(false);
-    if (outcome.ok) close();
-    else Alert.alert('Not available yet', outcome.message);
+
+    if (outcome.ok) {
+      update({ premium: true });
+      successFeedback();
+      close();
+      return;
+    }
+    // Changing your mind is not an error, and an alert about it is a scolding.
+    if (outcome.cancelled) return;
+    Alert.alert('That did not go through', outcome.message);
   }
 
   async function restorePurchases() {
+    setBusy(true);
     const outcome = await restore();
-    if (outcome.ok) close();
-    else Alert.alert('Nothing to restore', outcome.message);
+    setBusy(false);
+
+    if (outcome.ok) {
+      update({ premium: true });
+      successFeedback();
+      close();
+      return;
+    }
+    if (outcome.cancelled) return;
+    Alert.alert('Nothing to restore', outcome.message);
   }
 
   return (

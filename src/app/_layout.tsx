@@ -22,6 +22,9 @@ import {
   ACTION_SNOOZE,
   registerNotificationActions,
 } from '@/lib/notifications';
+import { topUp } from '@/domain/credits';
+import { redeemWithService } from '@/lib/redeem';
+import { sweep } from '@/lib/store';
 import { DocumentsProvider, useDocuments } from '@/store/documents';
 import { SettingsProvider, useSettings } from '@/store/settings';
 
@@ -131,7 +134,7 @@ function AppShell() {
   const theme = useTheme();
   const scheme = useColorScheme();
   const router = useRouter();
-  const { settings, loaded } = useSettings();
+  const { settings, loaded, update } = useSettings();
   const { setArchived, snoozeDocument } = useDocuments();
 
   // Send first-time users through onboarding before they see an empty list.
@@ -205,6 +208,60 @@ function AppShell() {
       }
     })();
   }, [loaded, handleResponse]);
+
+  /**
+   * Finishes any purchase that was interrupted.
+   *
+   * A transaction is never finished with Apple until the service has granted
+   * what it bought, so a crash, a dead network, or an app killed while the
+   * sheet was open all leave it unfinished. Apple then offers it again on
+   * every launch, and this is what accepts it.
+   *
+   * Which means somebody who paid and then lost their connection gets their
+   * credits the next time they open Expyr, without doing anything and without
+   * being told there was a problem. Silent on purpose: an alert about a
+   * purchase that has just quietly worked is a fright, not news.
+   *
+   * Restoring Expyr Pro on a new phone goes through the same code, because on
+   * iOS it is the same operation.
+   */
+  const purchasesChecked = useRef(false);
+  useEffect(() => {
+    if (!loaded || purchasesChecked.current) return;
+    purchasesChecked.current = true;
+
+    (async () => {
+      try {
+        const recovered = await sweep(redeemWithService);
+        if (recovered.length === 0) return;
+
+        /*
+         * Built from the settings this effect closed over, then written once.
+         * Reading the store again between the two would be reading a value
+         * this update is about to replace.
+         */
+        let credits = settings.credits;
+        let pro = settings.premium;
+        for (const item of recovered) {
+          if (item.pro) pro = true;
+          if (typeof item.credits === 'number') {
+            credits = topUp(
+              credits,
+              item.credits,
+              `${item.credits.toLocaleString('en-US')} credits`,
+              new Date(),
+              item.transactionId
+            );
+          }
+        }
+        update({ credits, premium: pro });
+      } catch {
+        // Left with Apple, which will offer it again. Nothing to say here.
+      }
+    })();
+    // Deliberately not depending on settings: this runs once, at launch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
 
   return (
     <>

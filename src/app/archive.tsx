@@ -31,11 +31,6 @@ export default function ArchiveScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <ThemedText type="small" themeColor="textTertiary" style={styles.intro}>
-              These are kept but no longer remind you.
-            </ThemedText>
-          }
           renderItem={({ item }) => (
             <View style={styles.cardWrap}>
               <DocumentCard doc={item} onPress={() => router.push(`/document/${item.id}`)} />

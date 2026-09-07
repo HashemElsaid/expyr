@@ -429,7 +429,7 @@ export default function AddDocumentScreen() {
          */}
         {slowScan && (
           <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
-            Still working. The first scan after a while takes longer than the rest.
+            Still working.
           </ThemedText>
         )}
       </ThemedView>

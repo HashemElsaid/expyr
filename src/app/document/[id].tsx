@@ -254,19 +254,6 @@ export default function DocumentDetailScreen() {
             {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}.
           </ThemedText>
 
-          {/*
-            * Said plainly, because the screen below no longer offers a button
-            * to confirm the renewal — and an absence explains nothing on its
-            * own. Somebody who expected to confirm it needs to be told they
-            * do not have to, or they will assume the app forgot.
-            */}
-          {isSubscription(doc) && (
-            <ThemedText type="small" themeColor="textTertiary">
-              This renews itself. Expyr moves the date on each time, so there is nothing
-              for you to confirm.
-            </ThemedText>
-          )}
-
           {period && (
             <View style={styles.runway}>
               <View style={[styles.runwayLine, { backgroundColor: theme.border }]} />
@@ -407,8 +394,7 @@ export default function DocumentDetailScreen() {
               ))}
             </View>
             <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
-              Read from your photo when you scanned it, and kept on this phone. Check anything
-              you are about to rely on.
+              Check anything you are about to rely on.
             </ThemedText>
           </View>
         )}
@@ -503,24 +489,25 @@ export default function DocumentDetailScreen() {
                   </ThemedText>
                   <ThemedText type="small" themeColor="textTertiary">
                     {stage === 'counting'
-                      ? 'Working out how long it is. This part is free.'
-                      : stage === 'transcribing'
-                      ? /*
-                         * A count when there is one, because the honest number
-                         * for fourteen pages is minutes rather than the half a
-                         * minute this used to promise — and a progressing count
-                         * is the difference between waiting and wondering.
+                      ? 'Counting the pages.'
+                      : /*
+                         * A moving count, and nothing else. Everything this
+                         * line used to add — how long it takes, that it only
+                         * happens once — was either guesswork or something the
+                         * count already says by moving.
                          */
-                        progress
-                        ? progress.total > progress.of
-                          ? `Page ${progress.page} of ${progress.of}, the first ${progress.of} of ${progress.total}.`
-                          : `Page ${progress.page} of ${progress.of}. It only happens once.`
-                        : 'This can take a minute. It only happens once.'
-                      : stage === 'summarising'
-                        ? 'Almost there.'
-                        : readable
-                          ? 'It has been read, but the summary did not finish. You can already ask it questions.'
-                          : 'Find out what you agreed to, then ask it anything.'}
+                        stage === 'transcribing'
+                        ? progress
+                          ? progress.total > progress.of
+                            ? `Page ${progress.page} of ${progress.of}, of ${progress.total}`
+                            : `Page ${progress.page} of ${progress.of}`
+                          : ''
+                        : stage === 'summarising'
+                          ? 'Almost there.'
+                          : readable
+                            ? 'Read. The summary did not finish, but you can ask it questions.'
+                            : /* The one thing worth saying, because this one costs credits. */
+                              'Find out what you agreed to, then ask it anything.'}
                   </ThemedText>
                 </View>
               </View>

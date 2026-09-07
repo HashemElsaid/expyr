@@ -90,9 +90,6 @@ export default function PaywallScreen() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Enter step={0} style={styles.hero}>
             <ThemedText type="headline">Free, or everything.</ThemedText>
-            <ThemedText type="body" themeColor="textSecondary">
-              Same app either way. Pro just takes the ceilings off.
-            </ThemedText>
           </Enter>
 
           <Enter step={1}>
@@ -134,8 +131,7 @@ export default function PaywallScreen() {
             </View>
 
             <ThemedText type="small" themeColor="textTertiary" style={styles.footnote}>
-              Reminders, renewal steps, fees and backups are on both. Expyr AI, which reads a
-              contract and answers questions about it, is bought separately in credits.
+              Expyr AI is bought separately, in credits.
             </ThemedText>
           </Enter>
 

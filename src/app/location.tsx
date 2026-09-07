@@ -66,8 +66,7 @@ export default function LocationScreen() {
 
         <View style={[styles.footnote, { borderTopColor: theme.border }]}>
           <ThemedText type="small" themeColor="textTertiary">
-            Nothing leaves the phone. This only decides which guidance Expyr is confident enough to
-            show you.
+            This decides which renewal guidance Expyr will show you.
           </ThemedText>
         </View>
       </ScrollView>

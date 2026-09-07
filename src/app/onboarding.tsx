@@ -184,7 +184,7 @@ export default function OnboardingScreen() {
                 One last thing
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                Reminders are scheduled on this phone. No server ever sees your dates.
+                Your iPhone will ask you to confirm on the next screen.
               </ThemedText>
               <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
                 Your iPhone will ask you to confirm on the next screen.

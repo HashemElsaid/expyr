@@ -110,7 +110,7 @@ export function plans(): Plan[] {
       title: 'Expyr Pro',
       price: localPrice(),
       cadence: 'once',
-      footnote: 'Pay once. Nothing renews, nothing to cancel.',
+      footnote: undefined,
     },
   ];
 }

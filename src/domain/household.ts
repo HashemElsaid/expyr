@@ -1,4 +1,4 @@
-import { daysUntil } from '@/lib/dates';
+import { countWord, daysUntil } from '@/lib/dates';
 import type { TrackedDocument } from '@/types';
 
 /**
@@ -179,4 +179,27 @@ export function personSummary(person: Person): string {
    * licence — the card contradicting itself in two adjacent lines.
    */
   return 'Nothing due soon';
+}
+
+/**
+ * The same facts as a headline, set in the serif.
+ *
+ * Not personSummary with a full stop on the end, which is what the person's
+ * page was doing. That string is written for a tile a third of the screen
+ * wide, where "8 due soon" in sans-serif digits is right; a display face
+ * spells small numbers out, which is the rule the home masthead already
+ * follows and this screen was quietly breaking beside it.
+ *
+ * It also said "All clear." directly above the list of everything missing from
+ * somebody's file. Expired wins outright when there is any, exactly as the
+ * masthead does: one figure covering both flattens the thing already costing
+ * money into the ones that are not.
+ */
+export function personVerdict(person: Person): string {
+  if (person.empty) return 'Nothing yet.';
+
+  const expired = person.items.filter((doc) => daysUntil(doc.expiryDate) < 0).length;
+  if (expired > 0) return `${countWord(expired)} expired.`;
+  if (person.urgent > 0) return `${countWord(person.urgent)} due soon.`;
+  return 'Nothing due soon.';
 }

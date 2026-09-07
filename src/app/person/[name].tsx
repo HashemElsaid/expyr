@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { findGaps } from '@/data/gaps';
 import { isSubscription } from '@/domain/documents';
-import { buildHousehold, MINE, personSummary } from '@/domain/household';
+import { buildHousehold, MINE, personVerdict } from '@/domain/household';
 import { buildSections } from '@/domain/timeline';
 import { TimelineRow, TimelineSectionHeader } from '@/components/timeline-row';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -116,11 +116,7 @@ export default function PersonScreen() {
             <ThemedText
               type="verdict"
               style={person.urgent > 0 ? { color: theme.urgentStrong } : undefined}>
-              {person.empty
-                ? 'Nothing yet.'
-                : person.urgent > 0
-                  ? personSummary(person) + '.'
-                  : 'All clear.'}
+              {personVerdict(person)}
             </ThemedText>
 
             {next && person.urgent === 0 && (

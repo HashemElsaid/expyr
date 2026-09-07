@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildHousehold, MINE, nameFromDevice, personSummary } from '@/domain/household';
+import {
+  buildHousehold,
+  MINE,
+  nameFromDevice,
+  personSummary,
+  personVerdict,
+} from '@/domain/household';
 import { inDays, makeDocument } from '@/test/factories';
 
 describe('buildHousehold', () => {
@@ -223,5 +229,51 @@ describe('personSummary', () => {
   it('does not count today as expired', () => {
     const today = [makeDocument('passport', { expiryDate: inDays(0) })];
     expect(personSummary(person({ items: today, urgent: 1 }))).toBe('1 due soon');
+  });
+});
+
+describe('personVerdict', () => {
+  const person = (over: Partial<ReturnType<typeof buildHousehold>[number]>) => ({
+    name: 'x',
+    label: 'x',
+    items: [],
+    urgent: 0,
+    empty: false,
+    unnamed: false,
+    ...over,
+  });
+
+  /*
+   * The page was rendering personSummary with a full stop on the end, which is
+   * a string written for a tile a third of the screen wide. A display face
+   * spells small numbers out, which is the rule the home masthead follows and
+   * this screen was breaking beside it.
+   */
+  it('spells the number out, the way the masthead does', () => {
+    const gone = [makeDocument('passport', { expiryDate: inDays(-4) })];
+    expect(personVerdict(person({ items: gone, urgent: 1 }))).toBe('One expired.');
+    expect(personVerdict(person({ urgent: 3 }))).toBe('Three due soon.');
+  });
+
+  /*
+   * "All clear." was printed directly above the list of everything missing
+   * from somebody's file.
+   */
+  it('claims only what it checked', () => {
+    expect(personVerdict(person({ urgent: 0 }))).toBe('Nothing due soon.');
+  });
+
+  it('says nothing yet when there is nothing filed', () => {
+    expect(personVerdict(person({ empty: true }))).toBe('Nothing yet.');
+  });
+
+  /* Expired wins outright, as it does on the home screen. */
+  it('does not flatten what is expired into what is merely due', () => {
+    const items = [
+      makeDocument('passport', { expiryDate: inDays(-4) }),
+      makeDocument('emirates-id', { expiryDate: inDays(6) }),
+      makeDocument('residence-visa', { expiryDate: inDays(9) }),
+    ];
+    expect(personVerdict(person({ items, urgent: 3 }))).toBe('One expired.');
   });
 });

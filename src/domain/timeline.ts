@@ -61,3 +61,32 @@ export function buildSections(docs: readonly TrackedDocument[]): Section[] {
 
   return overdue.length > 0 ? [{ title: 'Overdue', data: overdue }, ...months] : months;
 }
+
+/**
+ * Whether a row's title already says what kind of thing it is.
+ *
+ * The subtitle exists to add what the title cannot: how long is left, whose it
+ * is, what a subscription costs. Repeating the category back is the one thing
+ * it should never do, and "Health insurance · Health Insurance" is what that
+ * looks like on screen.
+ *
+ * An exact comparison used to guard this and was too literal to catch anything
+ * a person would actually type. One capital defeated it, and so did a spelling:
+ * "UAE Driving Licence" is plainly a driving licence and did not match the
+ * label "Driving License" by a single character in the middle.
+ *
+ * So: letters only, one spelling of licence, and a title that contains its
+ * label says its own type. Deliberately one-directional — "Mulkiya" under the
+ * label "Car Registration (Mulkiya)" keeps the subtitle, because there the
+ * label is telling somebody something the title did not.
+ */
+function normalise(text: string): string {
+  return text.toLowerCase().replace(/licence/g, 'license').replace(/[^a-z0-9]/g, '');
+}
+
+export function saysItsOwnType(title: string, label: string): boolean {
+  const a = normalise(title);
+  const b = normalise(label);
+  if (a.length === 0 || b.length === 0) return false;
+  return a.includes(b);
+}

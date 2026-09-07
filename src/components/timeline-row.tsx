@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
+import { saysItsOwnType } from '@/domain/timeline';
 import { urgencyColor } from '@/hooks/use-urgency';
 import { guessDomain } from '@/lib/brand-icons';
 import { countdownLabel, daysUntil, urgencyFor } from '@/lib/dates';
@@ -83,7 +84,7 @@ export function TimelineRow({
                 doc.renewsEvery ? doc.notes : null,
                 // "Claude Pro - Monthly · AED 73.99 · Subscription / Membership" —
                 // the last part is the only one nobody needed.
-                doc.title.trim() === label || (doc.renewsEvery && doc.notes) ? null : label,
+                saysItsOwnType(doc.title, label) || (doc.renewsEvery && doc.notes) ? null : label,
               ]
                 .filter(Boolean)
                 .join(' · ')}

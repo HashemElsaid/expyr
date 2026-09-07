@@ -217,6 +217,56 @@ const CATALOGUE: DocumentType[] = [
     },
   },
   {
+    /*
+     * The credential somebody needs in order to be allowed to do their job:
+     * a nursing licence, a medical one, a CPA, a teaching certificate, an
+     * engineering registration, a contractor's licence, a CDL.
+     *
+     * Added when Expyr went worldwide, because this is the type that matters
+     * elsewhere the way the Mulkiya matters in the UAE. It has the exact shape
+     * the app is built for, and a sharper edge than most of the others: an
+     * expired one does not merely cost a fine, it stops somebody working, and
+     * the renewal usually cannot even be submitted until continuing education
+     * hours are done. That is a deadline behind the deadline, which is
+     * precisely what nobody remembers.
+     *
+     * Until now it had nowhere to go but "Other", where it got no lead times
+     * worth having and no renewal note at all.
+     */
+    id: 'professional-license',
+    label: 'Professional Licence',
+    // Same split as the driving licence: British where the UAE writes it,
+    // American everywhere else, because the store listing is English (U.S.).
+    genericLabel: 'Professional License',
+    emoji: '🎓',
+    numberField: { label: 'Licence number', placeholder: 'e.g. DHA-P-0123456' },
+    genericNumberField: { label: 'License number', placeholder: 'e.g. RN1234567' },
+    /*
+     * Ninety days, which is longer than anything else here except a passport.
+     * The work that gates the renewal is the training, not the paperwork, and
+     * thirty days is not enough to find and finish a course.
+     */
+    defaultLeadDays: [90, 30, 7],
+    typicalValidity: '1-5 years, depending on the profession and the regulator',
+    guide: {
+      where: 'The authority that issued it',
+      steps: [
+        'Check how many continuing education or training hours this renewal needs',
+        'Finish them early, because most regulators will not accept a renewal without the certificates',
+        'Renew through the issuing authority, not a third party',
+        'Keep the new certificate attached here once it arrives',
+      ],
+      typicalCost: '',
+      /*
+       * Deliberately general. Every regulator sets its own penalty and none of
+       * them have been checked, so this says the shape of the risk rather than
+       * inventing a number, which is the rule the rest of this file follows.
+       */
+      lateFee: 'Working on an expired licence can carry penalties and may void professional insurance',
+      processingTime: '',
+    },
+  },
+  {
     id: 'labor-card',
     label: 'Work Permit / Labor Card',
     genericLabel: 'Work Permit',
@@ -320,6 +370,7 @@ const DISPLAY_ORDER: DocumentTypeId[] = [
   'driving-license',
   'trade-license',
   'labor-card',
+  'professional-license',
   'passport',
   'membership',
   'warranty',

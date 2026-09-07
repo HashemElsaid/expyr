@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, topUp } from '@/domain/credits';
+import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
 import { pagesIn, PACKS, priceOf, type Pack } from '@/lib/credit-packs';
 import { region } from '@/lib/purchases';
@@ -40,6 +41,13 @@ export default function TopUpScreen() {
    * against another is the app looking like two apps.
    */
   const here = region();
+  /*
+   * Apple's own prices, which are right for all 175 storefronts rather than
+   * the nineteen written down, and right when they change. `priceOf` is the
+   * fallback for a build with no store in it.
+   */
+  const storePrices = useStorePrices();
+  const priceFor = (pack: Pack): string => storePrices[pack.id] ?? priceOf(pack, here);
 
   function close() {
     if (router.canGoBack()) router.back();
@@ -148,7 +156,7 @@ export default function TopUpScreen() {
                   }}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: picked }}
-                  accessibilityLabel={`${pack.credits} credits for ${priceOf(pack, here)}`}>
+                  accessibilityLabel={`${pack.credits} credits for ${priceFor(pack)}`}>
                   {({ pressed }) => (
                     <View
                       style={[
@@ -172,7 +180,7 @@ export default function TopUpScreen() {
                           {pagesIn(pack).toLocaleString('en-US')} pages
                         </ThemedText>
                       </View>
-                      <ThemedText type="numeral">{priceOf(pack, here)}</ThemedText>
+                      <ThemedText type="numeral">{priceFor(pack)}</ThemedText>
                     </View>
                   )}
                 </Pressable>
@@ -190,7 +198,7 @@ export default function TopUpScreen() {
                     (pressed || busy) && styles.dim,
                   ]}>
                   <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
-                    {busy ? 'One moment' : `Buy for ${priceOf(chosen, here)}`}
+                    {busy ? 'One moment' : `Buy for ${priceFor(chosen)}`}
                   </ThemedText>
                 </View>
               )}

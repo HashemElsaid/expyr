@@ -8,6 +8,7 @@ export type DocumentTypeId =
   | 'health-insurance'
   | 'tenancy-ejari'
   | 'trade-license'
+  | 'professional-license'
   | 'labor-card'
   | 'membership'
   | 'warranty'

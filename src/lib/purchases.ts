@@ -54,26 +54,57 @@ export type Plan = {
  * to list here.
  */
 const PRICE_POINTS: Record<string, string> = {
+  /*
+   * Read off App Store Connect on 7 September, against a base of AED 149.00.
+   * These are what Apple actually generated, not what anybody expected: the
+   * Saudi price was twenty per cent low and every euro storefront was five
+   * euros out.
+   */
   AE: 'AED 149',
-  SA: 'SAR 149.99',
+  SA: 'SAR 179.99',
   QA: 'QAR 149.99',
+  US: '$39.99',
+  GB: '£39.99',
+  DE: '€44.99',
+  FR: '€44.99',
+  ES: '€44.99',
+  IT: '€44.99',
+  NL: '€44.99',
+
+  /*
+   * Not yet read off App Store Connect, and therefore wrong until they are.
+   *
+   * Left in rather than deleted because the alternative is worse: with no
+   * entry these storefronts fall back to the dollar price, and quoting dollars
+   * to somebody in Cairo is a number in the wrong currency rather than merely
+   * the wrong amount. Both are wrong; one of them at least looks local while
+   * being close.
+   *
+   * None of this table is shown once the store answers. `priceList` asks
+   * StoreKit for each product's own displayPrice, already localised and
+   * formatted for the buyer's storefront and correct by construction, and the
+   * screens prefer it. This is what they fall back to when the store cannot be
+   * reached, which is the only case where an approximation beats nothing.
+   */
   KW: 'KWD 12.500',
   BH: 'BHD 14.900',
   OM: 'OMR 15.900',
   EG: 'EGP 1,999',
-  US: '$39.99',
-  GB: '£34.99',
   CA: 'CA$54.99',
   AU: 'A$59.99',
   IN: '₹3,500',
   PK: 'Rs 10,900',
   PH: '₱2,290',
-  DE: '€39.99',
-  FR: '€39.99',
-  ES: '€39.99',
-  IT: '€39.99',
-  NL: '€39.99',
 };
+
+/**
+ * The storefronts whose prices have actually been read off App Store Connect.
+ *
+ * Kept because "which of these did somebody check" is otherwise a fact that
+ * lives only in a chat message, and the answer decides whether a number on
+ * screen is a price or a guess.
+ */
+export const VERIFIED_STOREFRONTS = ['AE', 'SA', 'QA', 'US', 'GB', 'DE', 'FR', 'ES', 'IT', 'NL'];
 
 /** The storefront Apple would bill against: the phone's own region. */
 export function region(): string {

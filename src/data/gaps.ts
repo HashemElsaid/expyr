@@ -36,6 +36,15 @@ export type Gap = {
    * tracked at all. untracked: the ordinary papers of a resident, absent. */
   severity: 'blocked' | 'missing' | 'untracked';
   text: string;
+  /**
+   * The same thing in a few words, for somewhere with no room for a sentence.
+   *
+   * Every gap here reads as one on a page and as an ellipsis on a household
+   * tile, which is a third of the screen wide. A warning cut off mid-sentence
+   * is worse than a short one: the reader can see that something was withheld
+   * and cannot tell whether it mattered.
+   */
+  brief: string;
 };
 
 export function findGaps(
@@ -72,7 +81,11 @@ export function findGaps(
    */
   for (const doc of mine) {
     for (const blocker of findBlockers(doc, mine)) {
-      gaps.push({ severity: 'blocked', text: blocker.rule.warning });
+      gaps.push({
+        severity: 'blocked',
+        text: blocker.rule.warning,
+        brief: blocker.rule.brief,
+      });
     }
   }
 
@@ -86,6 +99,7 @@ export function findGaps(
       text: `No ${inSentence(labelForId(rule.requires, country))} is tracked, and ${inSentence(
         labelForId(rule.dependent, country)
       )} cannot be renewed without one.`,
+      brief: `No ${labelForId(rule.requires, country)} tracked.`,
     });
   }
 
@@ -94,7 +108,16 @@ export function findGaps(
     labelForId(id, country)
   );
   if (absent.length > 0) {
-    gaps.push({ severity: 'untracked', text: `Not tracked: ${absent.join(', ')}.` });
+    gaps.push({
+      severity: 'untracked',
+      text: `Not tracked: ${absent.join(', ')}.`,
+      // One name and a count. Three names truncate to one name and an ellipsis
+      // anyway, which reads as a bug rather than as "and two more".
+      brief:
+        absent.length === 1
+          ? `Not tracked: ${absent[0]}.`
+          : `Not tracked: ${absent[0]} +${absent.length - 1}`,
+    });
   }
 
   // The same requirement can be named by two rules; say it once.

@@ -20,6 +20,17 @@ export type Prerequisite = {
   bufferDays: number;
   /** Shown when the prerequisite falls short. Kept to one sentence. */
   warning: string;
+  /**
+   * The same warning in a few words, for the household tile.
+   *
+   * The tile is a third of the screen wide and gives a warning two short
+   * lines, which is about six words. The full sentence was arriving as "Renew
+   * your car insurance first. …" — the instruction survived and the reason was
+   * cut off mid-clause, which is the half a person cannot act on missing from
+   * the half they can. So the instruction alone, whole, and the reason on the
+   * person's own page where there is room for it.
+   */
+  brief: string;
   /** Shown on the dependent even when nothing is wrong, as a heads-up. */
   note: string;
   source: string;
@@ -33,6 +44,7 @@ export const PREREQUISITES: Prerequisite[] = [
     // is why insurers sell 13-month motor policies here.
     bufferDays: 30,
     warning: 'Renew your car insurance first. Registration cannot be renewed without a policy covering the new year.',
+    brief: 'Renew your car insurance first.',
     note: 'You will need valid insurance covering the new registration year, and all traffic fines cleared.',
     source: 'Vehicle registration renewal requirements (RTA in Dubai, Abu Dhabi Mobility via TAMM, Ministry of Interior elsewhere)',
   },
@@ -41,6 +53,7 @@ export const PREREQUISITES: Prerequisite[] = [
     requires: 'health-insurance',
     bufferDays: 0,
     warning: 'Renew your health insurance first. A visa cannot be issued or renewed without active cover.',
+    brief: 'Renew your health insurance first.',
     note: 'Health insurance must be active before the visa can be renewed. It is mandatory in all seven emirates.',
     source: 'ICP / GDRFA residence visa requirements; federal health insurance mandate from 1 January 2025',
   },
@@ -50,6 +63,7 @@ export const PREREQUISITES: Prerequisite[] = [
     // A passport must carry at least six months' validity at the point of renewal.
     bufferDays: 180,
     warning: 'Your passport needs at least six months left when you renew the visa, so start the passport first.',
+    brief: 'Renew your passport first.',
     note: 'Your passport must have at least six months of validity at renewal.',
     source: 'ICP / GDRFA residence visa requirements',
   },
@@ -58,6 +72,7 @@ export const PREREQUISITES: Prerequisite[] = [
     requires: 'emirates-id',
     bufferDays: 0,
     warning: 'Renew your Emirates ID first. A valid one is required to renew your licence.',
+    brief: 'Renew your Emirates ID first.',
     note: 'You will need a valid Emirates ID, an approved eye test, and all traffic fines cleared.',
     source: 'Driving licence renewal requirements across the emirates',
   },

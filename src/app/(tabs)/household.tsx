@@ -448,7 +448,7 @@ function PersonCard({
             color={worst.severity === 'blocked' ? theme.urgentSoft : theme.textTertiary}
           />
           <ThemedText type="small" themeColor="textTertiary" numberOfLines={2} style={styles.flex}>
-            {worst.text}
+            {worst.brief}
           </ThemedText>
         </View>
       )}

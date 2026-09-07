@@ -155,8 +155,28 @@ export function buildHousehold(
  * person, or that the app is waiting to be told.
  */
 export function personSummary(person: Person): string {
+  /*
+   * Expired is said as expired.
+   *
+   * Anything already past counts as urgent, so a passport four days over was
+   * announced as "1 due soon" — which reads as a warning about next week, on
+   * the one item where the deadline has already gone. Both are said when both
+   * exist, because leading with the expired one and dropping the other would
+   * turn eight things needing attention into "2 expired".
+   */
+  const over = person.items.filter((doc) => daysUntil(doc.expiryDate) < 0).length;
+  if (over > 0) {
+    const soon = person.urgent - over;
+    return soon > 0 ? `${over} expired, ${soon} due` : `${over} expired`;
+  }
   if (person.urgent > 0) return `${person.urgent} due soon`;
   if (person.unnamed) return 'Tap to add your name';
   if (person.empty) return 'Nothing tracked yet';
-  return 'All clear';
+  /*
+   * Says what was actually checked, which is dates. "All clear" was a broader
+   * claim than this function can make, and it was being printed directly above
+   * a warning triangle saying the Emirates ID has to be renewed before the
+   * licence — the card contradicting itself in two adjacent lines.
+   */
+  return 'Nothing due soon';
 }

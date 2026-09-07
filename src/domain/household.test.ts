@@ -172,8 +172,13 @@ describe('personSummary', () => {
     expect(personSummary(person({ empty: true }))).toBe('Nothing tracked yet');
   });
 
-  it('says so plainly when there is nothing to do', () => {
-    expect(personSummary(person({ urgent: 0 }))).toBe('All clear');
+  /*
+   * "All clear" claimed more than this function checks. It was printed
+   * directly above a warning triangle saying the Emirates ID has to be renewed
+   * before the licence — the card contradicting itself in two adjacent lines.
+   */
+  it('claims only what it checked, which is dates', () => {
+    expect(personSummary(person({ urgent: 0 }))).toBe('Nothing due soon');
   });
 
   /*
@@ -193,5 +198,30 @@ describe('personSummary', () => {
   it('states how many rather than asking for help', () => {
     expect(personSummary(person({ urgent: 1 }))).toBe('1 due soon');
     expect(personSummary(person({ urgent: 3 }))).toBe('3 due soon');
+  });
+
+  /*
+   * The passport four days over that announced itself as "1 due soon".
+   * Anything expired is also urgent, so the count was right and the word was
+   * wrong on the one item whose deadline has already gone.
+   */
+  it('calls something already past expired, not due', () => {
+    const gone = [makeDocument('passport', { expiryDate: inDays(-4) })];
+    expect(personSummary(person({ items: gone, urgent: 1 }))).toBe('1 expired');
+  });
+
+  it('says both when both are true', () => {
+    const items = [
+      makeDocument('passport', { expiryDate: inDays(-4) }),
+      makeDocument('emirates-id', { expiryDate: inDays(-1) }),
+      makeDocument('residence-visa', { expiryDate: inDays(6) }),
+    ];
+    expect(personSummary(person({ items, urgent: 3 }))).toBe('2 expired, 1 due');
+  });
+
+  /* Today is not over. */
+  it('does not count today as expired', () => {
+    const today = [makeDocument('passport', { expiryDate: inDays(0) })];
+    expect(personSummary(person({ items: today, urgent: 1 }))).toBe('1 due soon');
   });
 });

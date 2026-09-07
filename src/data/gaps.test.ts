@@ -99,8 +99,51 @@ describe('findGaps', () => {
 
   it('says nothing at all about an empty file', () => {
     expect(findGaps([], 'ae')).toEqual([
-      { severity: 'untracked', text: expect.stringContaining('Not tracked') },
+      {
+        severity: 'untracked',
+        text: expect.stringContaining('Not tracked'),
+        // One name and a count, because four names in a tile a third of the
+        // screen wide arrive as one name and an ellipsis.
+        brief: 'Not tracked: Passport +3',
+      },
     ]);
+  });
+
+  /*
+   * The household tile gives a warning about two short lines. The full
+   * sentence was arriving as "Renew your car insurance first. …" — the reason
+   * cut off mid-clause, leaving the half a person cannot act on missing from
+   * the half they can.
+   */
+  it('carries a short form of every gap for somewhere with no room', () => {
+    const gaps = findGaps(
+      [
+        makeDocument('car-registration', { expiryDate: inDays(64) }),
+        makeDocument('car-insurance', { expiryDate: inDays(64) }),
+      ],
+      'ae'
+    );
+
+    expect(gaps.length).toBeGreaterThan(0);
+    for (const gap of gaps) {
+      expect(gap.brief.length).toBeLessThan(gap.text.length + 1);
+      expect(gap.brief.split(' ').length).toBeLessThanOrEqual(6);
+      expect(gap.brief).not.toContain('…');
+    }
+
+    expect(gaps[0]).toMatchObject({
+      severity: 'blocked',
+      brief: 'Renew your car insurance first.',
+    });
+  });
+
+  it('names one missing prerequisite in the short form', () => {
+    const gaps = findGaps(
+      [makeDocument('driving-license', { expiryDate: inDays(200) })],
+      'ae'
+    );
+
+    expect(gaps.find((g) => g.severity === 'missing')?.brief).toBe('No Emirates ID tracked.');
   });
 
   it('is silent when a UAE resident tracks the full set', () => {
@@ -118,9 +161,9 @@ describe('findGaps', () => {
 describe('gapSummary', () => {
   it('leads with the most serious thing there is to say', () => {
     const gaps = [
-      { severity: 'untracked' as const, text: 'c' },
-      { severity: 'blocked' as const, text: 'a' },
-      { severity: 'missing' as const, text: 'b' },
+      { severity: 'untracked' as const, text: 'c', brief: 'c' },
+      { severity: 'blocked' as const, text: 'a', brief: 'a' },
+      { severity: 'missing' as const, text: 'b', brief: 'b' },
     ];
     expect(gapSummary(gaps)?.text).toBe('a');
   });

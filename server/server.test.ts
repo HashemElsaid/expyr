@@ -252,3 +252,48 @@ describe('the ceilings', () => {
     assert.match(retryAfter ?? '', /^\d+$/);
   });
 });
+
+/*
+ * The route that turns money into credits. These run against the real service
+ * with no Apple key configured, which is the state every deploy starts in, and
+ * they pin the two properties that matter most in that state: nothing is
+ * granted, and the refusal is one the phone can retry rather than a crash.
+ *
+ * They also prove the route boots at all. That is the whole reason this file
+ * exists: node strips types rather than checking them, so a route can
+ * typecheck perfectly and still take the service down on start.
+ */
+describe('redeeming a purchase', () => {
+  it('needs the app credential like everything else that costs', async () => {
+    const response = await post('/purchase/redeem', {
+      transactionId: '2000000123456789',
+      productId: 'credits.large',
+    });
+    assert.equal(response.status, 401);
+  });
+
+  it('refuses a body that is not a purchase', async () => {
+    const response = await post('/purchase/redeem', { transactionId: '' }, authed);
+    assert.equal(response.status, 400);
+    assert.equal(((await response.json()) as { code: string }).code, 'invalid_request');
+  });
+
+  /*
+   * With no key configured the service cannot ask Apple anything, and the one
+   * thing it must not do is take the phone's word for it. A refusal leaves the
+   * transaction unfinished with Apple, so the purchase survives and is
+   * redeemed once a key is set.
+   */
+  it('grants nothing at all when it cannot ask Apple', async () => {
+    const response = await post(
+      '/purchase/redeem',
+      { transactionId: '2000000123456789', productId: 'credits.large', sandbox: true },
+      authed
+    );
+
+    assert.notEqual(response.status, 200, 'must never grant on trust');
+    const body = (await response.json()) as { credits?: number; balance?: number };
+    assert.equal(body.credits, undefined);
+    assert.equal(body.balance, undefined);
+  });
+});

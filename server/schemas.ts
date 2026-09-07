@@ -80,6 +80,23 @@ export const IdentityRequest = z.object({
 });
 export type IdentityRequest = z.infer<typeof IdentityRequest>;
 
+/**
+ * A purchase the phone says Apple just made.
+ *
+ * Every field here is a claim, and none of them is believed. The transaction
+ * identifier is the only one that is used: it is what Apple is asked about,
+ * and Apple's answer supplies the product and everything else. The product and
+ * the token are carried for the log and for the error message when the two
+ * disagree.
+ */
+export const RedeemRequest = z.object({
+  transactionId: z.string().min(1).max(64),
+  productId: z.string().min(1).max(128),
+  token: z.string().max(16_384).nullish(),
+  sandbox: z.boolean().optional(),
+});
+export type RedeemRequest = z.infer<typeof RedeemRequest>;
+
 export const FileRequest = z.object({
   fileBase64: z.string().min(1),
   mediaType,

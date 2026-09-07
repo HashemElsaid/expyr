@@ -39,6 +39,20 @@ export type Account = {
    * while the old move must still never repeat.
    */
   signedInAs?: string;
+  /**
+   * Apple transaction identifiers already credited to this account.
+   *
+   * iOS hands back every unfinished transaction on each app launch, which is
+   * how a purchase survives a crash between paying and being credited. So the
+   * same purchase arrives here repeatedly in the ordinary course of working,
+   * and without this each arrival would be paid again.
+   *
+   * Bounded, because a file that only grows is a file that eventually breaks
+   * something. Five hundred is far beyond any real buyer, and a transaction
+   * old enough to fall off the end was finished with Apple long ago and will
+   * never be offered again.
+   */
+  redeemed?: string[];
 };
 
 export interface CreditStore {
@@ -112,6 +126,10 @@ export class FileCreditStore implements CreditStore {
         ...(typeof parsed.linkedTo === 'string' ? { linkedTo: parsed.linkedTo } : {}),
         // And this one, or a phone forgets who it signed in as at every deploy.
         ...(typeof parsed.signedInAs === 'string' ? { signedInAs: parsed.signedInAs } : {}),
+        // And this, or every purchase becomes redeemable again after a deploy.
+        ...(Array.isArray(parsed.redeemed)
+          ? { redeemed: parsed.redeemed.filter((t): t is string => typeof t === 'string') }
+          : {}),
       };
     } catch {
       /*
@@ -172,7 +190,7 @@ export async function grant(
   const amount = Math.max(0, Math.floor(credits));
   const existing = await store.read(id);
   const balance = (existing?.balance ?? 0) + amount;
-  await store.write({ id, balance, seenAt: now });
+  await store.write({ ...existing, id, balance, seenAt: now });
   return balance;
 }
 
@@ -192,7 +210,7 @@ export async function debit(
   const balance = existing?.balance ?? 0;
   if (balance < amount) throw new InsufficientCredits(balance, amount);
   const next = balance - amount;
-  await store.write({ id, balance: next, seenAt: now });
+  await store.write({ ...existing, id, balance: next, seenAt: now });
   return next;
 }
 
@@ -206,7 +224,7 @@ export async function refund(
   const amount = Math.max(0, Math.floor(credits));
   const existing = await store.read(id);
   const balance = (existing?.balance ?? 0) + amount;
-  await store.write({ id, balance, seenAt: now });
+  await store.write({ ...existing, id, balance, seenAt: now });
   return balance;
 }
 
@@ -284,4 +302,59 @@ export async function link(
 export async function accountFor(store: CreditStore, installId: string): Promise<string> {
   const install = await store.read(installId);
   return install?.signedInAs ?? installId;
+}
+
+/** How many transaction identifiers an account remembers. */
+const MAX_REDEEMED = 500;
+
+/**
+ * Credits a verified purchase, once.
+ *
+ * Everything about whether the purchase is real happens before this: Apple is
+ * asked, the bundle is checked, a refund is refused. This is only the last
+ * step, and its whole job is that asking twice pays once.
+ *
+ * The transaction is recorded in the same write as the balance, so there is no
+ * moment where the credits exist and the record of having granted them does
+ * not. A store with transactions would guarantee that; this one gets it by
+ * writing a single object.
+ */
+export async function redeem(
+  store: CreditStore,
+  accountId: string,
+  transactionId: string,
+  credits: number,
+  now = Date.now()
+): Promise<{ balance: number; granted: boolean }> {
+  if (!store.durable) throw new Error('Refusing to sell credits into a store that forgets them.');
+
+  const existing = await store.read(accountId);
+  const already = existing?.redeemed ?? [];
+
+  if (already.includes(transactionId)) {
+    return { balance: existing?.balance ?? 0, granted: false };
+  }
+
+  const amount = Math.max(0, Math.floor(credits));
+  const balance = (existing?.balance ?? 0) + amount;
+
+  await store.write({
+    ...existing,
+    id: accountId,
+    balance,
+    seenAt: now,
+    redeemed: [transactionId, ...already].slice(0, MAX_REDEEMED),
+  });
+
+  return { balance, granted: true };
+}
+
+/** Whether this account has already been paid for a given transaction. */
+export async function alreadyRedeemed(
+  store: CreditStore,
+  accountId: string,
+  transactionId: string
+): Promise<boolean> {
+  const account = await store.read(accountId);
+  return (account?.redeemed ?? []).includes(transactionId);
 }

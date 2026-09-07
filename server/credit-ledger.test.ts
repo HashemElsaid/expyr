@@ -5,14 +5,16 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 
 import {
+  FileCreditStore,
+  InsufficientCredits,
+  MemoryCreditStore,
   accountFor,
+  alreadyRedeemed,
   balanceOf,
   debit,
-  FileCreditStore,
   grant,
-  InsufficientCredits,
   link,
-  MemoryCreditStore,
+  redeem,
   refund,
   sellable,
 } from './credit-ledger.ts';
@@ -309,4 +311,95 @@ test('who a phone signed in as survives the process that wrote it', async () => 
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+/*
+ * iOS hands back every unfinished transaction on each app launch, which is how
+ * a purchase survives a crash between paying and being credited. The same
+ * purchase therefore arrives here again and again in the ordinary course of
+ * working, and paying it each time would be the most expensive bug in the app.
+ */
+test('a purchase pays once however many times it is redeemed', async () => {
+  await onDisk(async (store) => {
+    const first = await redeem(store, 'apple_abc', 'txn_1', 3000);
+    assert.deepEqual(first, { balance: 3000, granted: true });
+
+    const again = await redeem(store, 'apple_abc', 'txn_1', 3000);
+    assert.deepEqual(again, { balance: 3000, granted: false });
+
+    assert.equal(await balanceOf(store, 'apple_abc'), 3000);
+  });
+});
+
+test('a genuinely different purchase is still paid', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', 'txn_1', 1500);
+    await redeem(store, 'apple_abc', 'txn_2', 1500);
+    assert.equal(await balanceOf(store, 'apple_abc'), 3000);
+  });
+});
+
+test('says whether a transaction has been paid already', async () => {
+  await onDisk(async (store) => {
+    assert.equal(await alreadyRedeemed(store, 'apple_abc', 'txn_1'), false);
+    await redeem(store, 'apple_abc', 'txn_1', 1500);
+    assert.equal(await alreadyRedeemed(store, 'apple_abc', 'txn_1'), true);
+    assert.equal(await alreadyRedeemed(store, 'apple_abc', 'txn_2'), false);
+  });
+});
+
+/*
+ * The record and the balance are written as one object, so there is no moment
+ * where the credits exist and the note saying they were granted does not.
+ */
+test('what has been redeemed survives the process that wrote it', async () => {
+  const dir = temporaryDir();
+  try {
+    await redeem(new FileCreditStore(dir), 'apple_abc', 'txn_1', 3000);
+
+    const later = new FileCreditStore(dir);
+    assert.equal(await alreadyRedeemed(later, 'apple_abc', 'txn_1'), true);
+    assert.deepEqual(await redeem(later, 'apple_abc', 'txn_1', 3000), {
+      balance: 3000,
+      granted: false,
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/*
+ * grant, debit and refund each rebuilt the record from scratch, so any field
+ * they did not name was dropped. Latent while accounts held nothing else;
+ * fatal the moment they remember what has been paid, because the next purchase
+ * would erase the record of the previous one and make it redeemable again.
+ */
+test('spending does not forget what has already been paid for', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', 'txn_1', 3000);
+    await debit(store, 'apple_abc', 100);
+    await refund(store, 'apple_abc', 50);
+    await grant(store, 'apple_abc', 10);
+
+    assert.equal(await alreadyRedeemed(store, 'apple_abc', 'txn_1'), true);
+    assert.deepEqual(await redeem(store, 'apple_abc', 'txn_1', 3000), {
+      balance: 2960,
+      granted: false,
+    });
+  });
+});
+
+test('signing in is not forgotten by a later purchase either', async () => {
+  await onDisk(async (store) => {
+    await link(store, 'install-1', 'apple_abc');
+    await grant(store, 'install-1', 10);
+    assert.equal(await accountFor(store, 'install-1'), 'apple_abc');
+  });
+});
+
+test('refuses to redeem into a store that forgets', async () => {
+  await assert.rejects(
+    () => redeem(new MemoryCreditStore(), 'apple_abc', 'txn_1', 3000),
+    /forgets/
+  );
 });

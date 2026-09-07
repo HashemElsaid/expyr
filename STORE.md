@@ -61,11 +61,49 @@ pages' worth. See `PRICING.md`.
 Five items is deliberate: it fits one person's own papers, so the wall lands on
 the sixth item, which is almost always someone else's.
 
+## Two English listings, not one
+
+Decided 7 September 2026, when availability went from UAE-only to all 175
+storefronts. The listing below used to open with "Photograph your Emirates ID,
+visa, Mulkiya or tenancy contract", which is the right sentence for Dubai and
+gibberish in Denver.
+
+The fix is not to strip the UAE out. **App Store metadata is localized by
+language, and Apple's English locales map to different storefronts:**
+
+- **English (U.S.)** is the primary and the global fallback. Anyone whose
+  storefront has no closer match sees it
+- **English (U.K.)** serves the UK, the Commonwealth and the Middle East,
+  including the UAE
+
+So Expyr gets two listings rather than one compromise, and **two keyword fields
+rather than one**, which is 100 extra indexed characters for free. Each is
+written for the people who will actually read it.
+
+Add English (U.K.) as a second localization in App Store Connect. If the
+storefront mapping turns out differently from expected, nothing breaks: the
+U.S. listing remains the fallback everywhere.
+
+---
+
+# English (U.S.) — the international listing
+
+## Subtitle (30 characters max)
+
+```
+Visa, documents & renewals
+```
+
+26 characters. Universal: visas exist everywhere, documents and renewals are
+plain English.
+
 ## Promotional text (170 characters, changeable without review)
 
 ```
-Photograph your Emirates ID, visa, Mulkiya or tenancy contract. Expyr reads the date, reminds you in time, and tells you exactly how to renew it.
+Photograph a passport, license, insurance policy or lease. Expyr reads the expiry date, reminds you in good time, and tells you how to renew it.
 ```
+
+143 characters. Every noun in it means something in every country.
 
 ## Description
 
@@ -73,22 +111,22 @@ Photograph your Emirates ID, visa, Mulkiya or tenancy contract. Expyr reads the 
 Expyr makes sure nothing in your life expires without warning.
 
 Photograph a document and Expyr reads the expiry date for you. No typing, no
-forms. It works on residence visas, Emirates ID, passports, car registration,
-insurance policies, tenancy contracts, driving licences, trade licences and
-work permits, from a photo, a PDF, or a screenshot of an email.
+forms. It works on passports, driver's licenses, residence permits and visas,
+national ID cards, vehicle registration, insurance policies, leases and tenancy
+contracts, work permits and warranties, from a photo, a PDF, or a screenshot of
+an email.
 
 WHAT IT DOES
 
 • Reads the date from a photo, a PDF, or a screenshot
 • Pulls out the whole document, not just the date: names, numbers, issuing
-  authority, amounts — so it is useful the moment you scan it
+  authority, amounts, so it is useful the moment you scan it
 • Reminds you weeks or months ahead, not the day before
 • Lets you snooze or mark something done from the reminder itself
 • Tracks subscriptions alongside documents, on their own tab: what renews,
   when, and what it costs you
-• Tells you how to renew: where to go, what it typically costs, and the fine
-  for being late
-• Opens the right government portal for you
+• Tells you how to renew: where to go, what it typically costs, and what being
+  late usually costs
 • Keeps the whole family in one place, so you can see what everyone needs
 • Holds both sides of an ID, and shares a copy when someone asks for one
 • Shows your year as a timeline, so you can see what is coming
@@ -100,80 +138,127 @@ When is my notice period? What is the excess on this policy? Can I cancel
 early? Expyr reads the contract once and answers from the document itself,
 quoting the clause rather than guessing.
 
-BUILT FOR LIFE IN THE UAE
+IT TELLS YOU HOW TO RENEW
 
-Expyr knows what a Mulkiya is. Every category carries the renewal steps, the
-typical cost, the penalty for leaving it late, and a link to the authority that
-actually handles it — Emirates ID, Ejari, RTA, ICP, MOHRE, and the right one
-for your own emirate.
+Every category carries renewal guidance: the steps, what it typically costs,
+and the penalty for leaving it late. That guidance is compiled for you and
+clearly marked as indicative, because fees and procedures change. Expyr shows
+you the official source and tells you to confirm there before you act. It
+points you at the door. It does not pretend to be the counter behind it.
 
-This guidance is compiled for you and clearly marked as indicative. Government
-fees and procedures change, so Expyr shows you the official source and tells
-you to confirm there before you act. It points you at the door; it does not
-pretend to be the counter behind it.
-
-Expyr tracks dates and sends reminders wherever you live. Outside the UAE it
-keeps your dates and stays quiet about the paperwork rather than guessing.
+The guidance goes deepest in the United Arab Emirates, where every step has
+been checked against the authority that actually handles it, and Expyr opens
+the right government portal for you. Everywhere else it keeps your dates, tells
+you what it can, and says plainly when something has not been verified.
 
 PRIVATE BY DESIGN
 
 Your documents stay on your phone. Photos are kept in Expyr's own storage,
 never your camera roll and never iCloud Photo Library. There is no account, no
-sign-up and no server database. Reminders are scheduled by iOS itself, so nobody
-else needs to know your dates. Everything travels with your iPhone backup, so a
-new phone brings it all back. You can lock Expyr behind Face ID, and export a
-copy only you hold.
+sign-up and no server database. Reminders are scheduled by iOS itself, so
+nobody else needs to know your dates. Everything travels with your iPhone
+backup, so a new phone brings it all back. You can lock Expyr behind Face ID,
+and export a copy only you hold.
 
 FREE TO START
 
-Track five items and ten scans free, for as long as you like — enough for your
-visa, your Emirates ID and your car. Unlock Expyr with a single payment to
+Track five items and ten scans free, for as long as you like. Enough for your
+passport, your license and your car. Unlock Expyr with a single payment to
 track everything you own, and everyone in your household. One payment. Nothing
 renews, nothing to cancel.
 ```
 
+**Three changes from the UAE original, beyond the obvious.**
+
+The government-portal bullet moved out of the feature list and into the UAE
+paragraph, because opening the right portal only happens in the UAE and a
+bullet promising it to everyone is a promise the app does not keep.
+
+"BUILT FOR LIFE IN THE UAE" became "IT TELLS YOU HOW TO RENEW". The UAE is now
+the depth rather than the premise, and the honest sentence about everywhere
+else was promoted out of the footnote it was hiding in.
+
+**Two em dashes were removed.** The original had them in "amounts — so it is
+useful" and "as long as you like — enough for". They read as a tell that copy
+was machine-written, and this is user-facing copy.
+
 ## Keywords (100 characters, comma separated, no spaces)
 
 ```
-emirates,id,licence,license,mulkiya,istimara,ejari,tenancy,passport,subscriptions,insurance,warranty
+passport,license,insurance,warranty,subscriptions,lease,registration,permit,tracker,id,car,expire
 ```
 
-Exactly 100 characters. Rewritten 7 September.
+97 characters. No word here appears in the name or subtitle, because Apple
+indexes all three together and a repeated word buys nothing twice.
 
-**Apple indexes the name, the subtitle and this field together**, so a word
-already in the first two buys nothing here. The old list spent 29 of its 100
-characters on four words it already owned:
+---
 
-| Word | Already in |
-|---|---|
-| `visa` | subtitle |
-| `renewal` | subtitle |
-| `expiry` | the app name |
-| `reminder` | the app name |
+# English (U.K.) — the Middle East listing
 
-`deadline` was dropped as well, for being a word nobody types when they mean a
-visa.
+Add this as a second localization. It is the original UAE copy, which was
+always right for this audience, and it is what people in the UAE, the wider
+Gulf and the UK will see.
 
-What the reclaimed space bought:
+## Subtitle (30 characters max)
 
-- **Both spellings of licence.** The subtitle no longer carries either, and UAE
-  App Store users type both. British because their document says so, American
-  out of habit. They are different strings to Apple's index, so owning one is
-  not owning the other
-- **`id` as its own term**, split out of `emirates id`. Apple recombines single
-  words into phrases on its own, so two words index more than one phrase does
-- **`tenancy`**, which is what somebody types when they cannot spell Ejari
-- **`warranty`**, a real category that was not represented at all
-- **`istimara`**, the Gulf term for vehicle registration outside the UAE. The
-  only speculative entry here, and it is there for the Saudi and Qatari
-  storefronts that `business/GTM.md` phases in later
+```
+Emirates ID, visa & renewals
+```
 
-**Subscriptions is plural here on purpose**, and it belongs in this field rather
-than in the subtitle. Both fields are indexed and neither is weighted more per
-word, so a thirteen-character word costs 13 of 100 here and 13 of 30 there.
-What that feature actually deserves is a screenshot: "photograph your App Store
-subscriptions list and it reads all of them" is a demonstration, not a keyword,
-and nobody buys it from three words in a subtitle.
+28 characters. In the UAE, "Emirates ID" is the single highest-intent phrase
+anybody types. Worth more in this storefront than the generic "documents".
+
+## Promotional text (170 characters)
+
+```
+Photograph your Emirates ID, visa, Mulkiya or tenancy contract. Expyr reads the date, reminds you in time, and tells you exactly how to renew it.
+```
+
+## Description
+
+Use the international description above with two sections swapped back:
+
+Replace the second paragraph's list with: *residence visas, Emirates ID,
+passports, car registration, insurance policies, tenancy contracts, driving
+licences, trade licences and work permits.*
+
+Replace **IT TELLS YOU HOW TO RENEW** with:
+
+```
+BUILT FOR LIFE IN THE UAE
+
+Expyr knows what a Mulkiya is. Every category carries the renewal steps, the
+typical cost, the penalty for leaving it late, and a link to the authority that
+actually handles it: Emirates ID, Ejari, RTA, ICP, MOHRE, and the right one for
+your own emirate.
+
+This guidance is compiled for you and clearly marked as indicative. Government
+fees and procedures change, so Expyr shows you the official source and tells
+you to confirm there before you act. It points you at the door. It does not
+pretend to be the counter behind it.
+```
+
+And in **FREE TO START**, "enough for your passport, your license and your car"
+becomes "enough for your visa, your Emirates ID and your car".
+
+Note the British spellings throughout this variant. *Licence*, not license.
+The RTA issues a driving licence and the document in the reader's hand says so.
+
+## Keywords (100 characters, comma separated, no spaces)
+
+```
+emirates,id,licence,mulkiya,istimara,ejari,tenancy,labour,trade,passport,insurance,subscriptions
+```
+
+96 characters, and a completely different set from the U.S. one. This is the
+free half of running two localizations: `mulkiya` and `ejari` are close to
+uncontested in the storefront where anybody searches them, and they cost
+nothing in the storefront where nobody does.
+
+`istimara` is the Gulf term for vehicle registration outside the UAE, held here
+for the Saudi and Qatari storefronts.
+
+---
 
 ## Categories
 
@@ -370,9 +455,17 @@ reviewer can test the whole flow without owning a UAE document.
 
 - **2.1(a), unable to access the app.** Expyr has no login, but it has an
   equivalent trap: if the scanning service is asleep, the reviewer taps "Take a
-  photo" and gets a timeout. **The Render service must be on a paid plan before
-  submitting** — the free tier cold-starts in roughly twenty seconds, which
-  reads as broken.
+  photo" and gets a timeout.
+
+  Measured 7 September against the live service: a cold start takes **52.7
+  seconds**, not the twenty this entry used to claim. An uptime monitor
+  reported the service **down** the first time it looked, which is the same
+  conclusion a reviewer reaches.
+
+  The Render paid plan is deferred until there is revenue, so this is handled
+  instead by an external ping every five minutes that stops the instance
+  sleeping. **Confirm the service answers fast before submitting**, and check
+  the UptimeRobot monitor is still green. See LAUNCH.md section 3.
 - **5.1.1(ii), purpose strings.** A string that does not say what the data is
   used for, with an example, gets rejected. Every string in `app.json` names the
   resource, the reason and a concrete example. Do not shorten them.

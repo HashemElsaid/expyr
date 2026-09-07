@@ -330,7 +330,15 @@ work removed.
       itself. Plain text visibility is correct: anything prefixed EXPO_PUBLIC_
       is inlined into the bundle and readable by anyone who unpacks the app,
       which is exactly why the per-install token in install-token.ts exists.
-- [ ] Test everything on the development build, not Expo Go
+- [x] **Purchases proven end to end on the development build**, 7 September,
+      against the sandbox account. A purchase completes and credits are
+      granted. That closes the largest rejection risk on this list: a paywall
+      that cannot take money is what APP-REVIEW.md calls the single most
+      reliable rejection there is.
+- [ ] **Restore Purchases**, which is a separate requirement under 3.1.1 and the
+      one that gets skipped because the purchase itself worked. Delete the app,
+      reinstall, tap Restore, watch Pro come back
+- [ ] Test the rest on the development build, not Expo Go
 - [x] **Cold start handled.** Measured at 52.7 seconds on the free plan, which
       an uptime monitor read as the service being *down* the first time it
       looked. That is the conclusion App Review would have reached. An

@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -27,28 +27,49 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-/** One of a set of choices, filled when it is the chosen one. */
+/**
+ * One of a set of choices, filled when it is the chosen one.
+ *
+ * `style` sizes the chip from outside, for the callers that want a grid rather
+ * than a row that wraps wherever it happens to run out. The label is centred
+ * either way, which costs an intrinsically sized chip nothing and is the whole
+ * point of a grown one.
+ */
 export function Chip({
   label,
   active,
   onPress,
+  style,
+  tight = false,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
+  /** Sizes the chip from outside, for a grid rather than a wrapping row. */
+  style?: StyleProp<ViewStyle>;
+  /** Set when `style` fixes the width, so the label gets the space instead. */
+  tight?: boolean;
 }) {
   const theme = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: active }}>
+    <Pressable
+      onPress={onPress}
+      style={style}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}>
       <View
         style={[
           styles.chip,
+          tight && styles.chipTight,
           {
             backgroundColor: active ? theme.accent : 'transparent',
             borderColor: active ? theme.accent : theme.border,
           },
         ]}>
-        <ThemedText type="smallBold" style={active ? { color: theme.accentContrast } : undefined}>
+        <ThemedText
+          type="smallBold"
+          numberOfLines={1}
+          style={active ? { color: theme.accentContrast } : undefined}>
           {label}
         </ThemedText>
       </View>
@@ -138,11 +159,18 @@ export function SecondaryButton({
 
 const styles = StyleSheet.create({
   field: { gap: 6 },
+  /*
+   * A chip whose width comes from a grid has no use for wide side padding: the
+   * label is centred in a fixed pill either way, so the padding only steals
+   * room from the text and ellipsised "2 months" into "2 month…".
+   */
+  chipTight: { paddingHorizontal: Spacing.one },
   chip: {
     borderRadius: Radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.three,
     paddingVertical: 9,
+    alignItems: 'center',
   },
   note: { borderRadius: 12, paddingHorizontal: Spacing.three, paddingVertical: 12 },
   primary: { borderRadius: Radius.pill, paddingVertical: Spacing.three, alignItems: 'center' },

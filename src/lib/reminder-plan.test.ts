@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { planReminders, REMINDER_BUDGET, snoozeDate, SUBSCRIPTION_CATEGORY } from '@/lib/reminder-plan';
+import { REMINDER_BUDGET, SUBSCRIPTION_CATEGORY, leadLabel, planReminders, snoozeDate } from '@/lib/reminder-plan';
 import { inDays, makeDocument } from '@/test/factories';
 
 /**
@@ -230,5 +230,43 @@ describe('planReminders', () => {
 describe('snoozeDate', () => {
   it('lands the requested number of days out, on a local calendar day', () => {
     expect(snoozeDate(7, new Date(2026, 0, 28))).toBe('2026-02-04');
+  });
+});
+
+describe('leadLabel', () => {
+  /*
+   * The picker read "1 day, 3, 7, 14, 30, 60, 90, 180 days": units on the
+   * first and the last, and six bare integers in between. Three grammars in
+   * one control.
+   */
+  it('says every option in the same grammar', () => {
+    expect([1, 3, 7, 14, 30, 60, 90, 180].map(leadLabel)).toEqual([
+      '1 day',
+      '3 days',
+      '1 week',
+      '2 weeks',
+      '1 month',
+      '2 months',
+      '3 months',
+      '6 months',
+    ]);
+  });
+
+  /* Seven days is a week to everybody who is not a computer. */
+  it('prefers the unit a person would actually use', () => {
+    expect(leadLabel(7)).toBe('1 week');
+    expect(leadLabel(30)).toBe('1 month');
+  });
+
+  /* The driving licence default warns at 45, which is neither. */
+  it('falls back to days when nothing divides cleanly', () => {
+    expect(leadLabel(45)).toBe('45 days');
+    expect(leadLabel(10)).toBe('10 days');
+  });
+
+  it('never says "1 days"', () => {
+    for (const days of [1, 3, 7, 14, 30, 45, 60, 90, 180]) {
+      expect(leadLabel(days)).not.toMatch(/1 (days|weeks|months)/);
+    }
   });
 });

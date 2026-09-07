@@ -95,28 +95,68 @@ should not settle at all.
 
 ---
 
-## The question I cannot answer without you
+## Residency and the licence question, answered 7 September
 
-**Does selling an app as an individual require a licence, given your
-residency?**
+**Golden visa.** That resolves the worst branch of this and it is worth saying
+why it mattered.
 
-The UAE requires a licence to conduct business activity. For individuals that
-is usually a **freelance permit**, issued by a free zone rather than the
-mainland DED, cheaper and lighter than a full trade licence, and available for
-technology work.
+Had this been an employer's visa, app income could have breached two things at
+once: the employment contract, and MOHRE's rules on outside work. That is the
+version of this question that actually catches people, and it cannot be fixed
+after the fact. A Golden visa is self-sponsored. There is no employer whose
+permission is in question and nobody with standing to object.
 
-Whether you need one turns on facts I do not have:
+It also confirms UAE tax residency, which everything above depends on.
 
-- Are you a UAE resident, and on what visa? Employment, golden, dependent and
-  freelance visas all sit differently here
-- If you are on an employment visa, do your contract and the MOHRE rules permit
-  outside business activity? This is the one that catches people, and it is a
-  contract question before it is a licensing one
-- Are you resident somewhere else entirely, in which case none of the analysis
-  above is the right analysis
+### What it does not do
 
-**Tell me these three and I will finish this section properly.** Until then the
-tax analysis above is conditional on UAE residency.
+A Golden visa is residency, not a licence to trade. Those are separate things
+in the UAE, and holding the first says nothing about the second.
+
+### What the licence would cost
+
+Abu Dhabi issues a freelancer licence through **TAMM**, with UAE PASS, in about
+10 working days. ADDED's activity list runs to roughly a hundred activities and
+covers software and AI work.
+
+| | AED |
+|---|---|
+| Economic Register enrolment | 10 |
+| Commercial licence issuance | 10 |
+| Abu Dhabi Chamber of Commerce | 50 |
+| Sole proprietorship establishment | 50 |
+| Federal Authority for Identity and Citizenship | 315 |
+| Organizational entities | 790 |
+| Social contributions | 1,500 |
+| Ministry of Economy | 2,500 |
+| **Total, renewed annually** | **5,225** |
+
+About **$1,423 a year**. Eight times the entire running cost of Expyr, which is
+$183, and twenty-nine times the Render plan that was declined on the same day.
+
+### The decision: not yet
+
+**Nothing is blocked without it.** Apple does not ask individual developers for
+a licence. A personal bank account does not require one. The App Store account
+is already live and selling is already possible.
+
+**UAE corporate tax explicitly contemplates natural persons conducting
+business**, and brings them into scope only above AED 1,000,000 of turnover in
+a calendar year. A regime that taxes individual business activity above a
+threshold is not one that treats every dirham below it as an offence.
+
+**And it buys two things for one price later.** A trade licence plus a D-U-N-S
+number is the route to Apple Organization enrolment, which is what would make
+the App Store seller name read as a company rather than as a person. If that is
+ever wanted, this is the same purchase.
+
+**Trigger to buy it:** revenue that is material rather than theoretical, around
+the point where AED 5,225 stops being most of a year's income. Or the moment a
+bank, the FTA or Apple asks for one.
+
+This is a read of published fee schedules and the corporate tax law, not
+advice. ADDED answers the licensing question directly, and TAMM has a live
+chat, if certainty is wanted rather than a judgment call.
 
 ---
 
@@ -194,5 +234,5 @@ being watched. See SUPPORT.md on replacing the published address entirely.
 | Bank account | App Store Connect | Not added |
 | Terms of use | hashemelsaid.github.io/expyr/terms.html | Live |
 | Privacy policy | hashemelsaid.github.io/expyr/privacy.html | Live, and **becomes false the moment sign-in ships**. `LAUNCH.md` §6 lists all six places that have to change together |
-| Business licence | none | Open question above |
+| Business licence | none | Not held. Decided 7 September to defer until revenue justifies AED 5,225 a year. Golden visa means no employer permission is in question |
 | UAE corporate tax registration | none | Not required below AED 1M turnover |

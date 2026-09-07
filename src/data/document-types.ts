@@ -117,7 +117,19 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'driving-license',
-    label: 'Driving License',
+    /*
+     * The UAE writes it the British way, and so does most of the world that
+     * writes it in English. This label said "Driving License", which is the
+     * British noun with the American spelling and therefore right nowhere.
+     */
+    label: 'Driving Licence',
+    /*
+     * Outside the UAE it takes the American form, because the store listing is
+     * in English (U.S.) and because a Briton reading "Driver's License" loses
+     * nothing. There is no spelling that is correct everywhere, and inventing a
+     * per-country table for one word would be a lot of machinery for a letter.
+     */
+    genericLabel: "Driver's License",
     emoji: '🚦',
     numberField: { label: 'Licence number', placeholder: 'e.g. 1234567' },
     defaultLeadDays: [30, 14, 7],
@@ -180,6 +192,13 @@ const CATALOGUE: DocumentType[] = [
   {
     id: 'trade-license',
     label: 'Trade / Freelance License',
+    /*
+     * "Trade licence" is what the UAE calls the thing that lets you operate a
+     * business, and it is a UAE phrase. Somebody in Ohio renewing the same
+     * document is renewing a business licence, and was being shown a term from
+     * a country they may never have visited.
+     */
+    genericLabel: 'Business License',
     emoji: '💼',
     numberField: { label: 'Licence number', placeholder: 'e.g. 1234567' },
     defaultLeadDays: [60, 30, 7],

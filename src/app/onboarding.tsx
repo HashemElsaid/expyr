@@ -168,13 +168,27 @@ export default function OnboardingScreen() {
 
               {country !== null && !hasGuidance(country) && (
                 <View style={[styles.note, { borderColor: theme.border }]}>
+                  {/*
+                    * Says what is missing without making somebody feel they
+                    * have the wrong app.
+                    *
+                    * It used to lead with "have only been checked for the
+                    * UAE", which tells a reader in Toronto that this was built
+                    * for somewhere else and they are using it by accident. The
+                    * fact that the UAE is covered is not interesting to them;
+                    * what their own country gets is.
+                    *
+                    * It also rendered a space before the full stop, so it read
+                    * "for Canada yet ." on every screen it appeared on.
+                    */}
                   <ThemedText type="small" themeColor="textSecondary">
-                    Expyr tracks your dates and reminds you wherever you are. Renewal steps, costs
-                    and fines have only been checked for the UAE, so{' '}
+                    Everything that tracks dates and reminds you works here.{' '}
                     {country === 'other'
-                      ? 'you will not see them'
-                      : `there are none for ${countryLabel(country)} yet`}{' '}
-                    . We would rather show you nothing than guess about your documents.
+                      ? 'Renewal steps, fees and fines are written country by country, so you will not see them.'
+                      : `Renewal steps, fees and fines are written country by country, and ${countryLabel(
+                          country
+                        )} is not written yet.`}{' '}
+                    Nothing is guessed, so you will see nothing rather than something invented.
                   </ThemedText>
                 </View>
               )}

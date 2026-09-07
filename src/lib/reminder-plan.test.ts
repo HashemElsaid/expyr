@@ -266,7 +266,7 @@ describe('leadLabel', () => {
 
   it('never says "1 days"', () => {
     for (const days of [1, 3, 7, 14, 30, 45, 60, 90, 180]) {
-      expect(leadLabel(days)).not.toMatch(/1 (days|weeks|months)/);
+      expect(leadLabel(days)).not.toMatch(/\b1 (days|weeks|months)\b/);
     }
   });
 });

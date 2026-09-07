@@ -210,6 +210,7 @@ export const ROUTES: Record<string, Route> = {
          * still a string and still fails at the first real purchase, as a 401
          * from Apple with no explanation.
          */
+        appleKeyConfigured: appleCredentials() !== null,
         appleKeyUsable: appleKeyUsable(appleCredentials()),
         /*
          * Whether guidance survives a restart. Reported because it is the

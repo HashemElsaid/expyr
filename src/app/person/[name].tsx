@@ -1,11 +1,13 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SectionList, StyleSheet, View } from 'react-native';
 
 import { SecondaryAction } from '@/components/document/actions';
+import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { findGaps } from '@/data/gaps';
+import { isSubscription } from '@/domain/documents';
 import { buildHousehold, MINE, personSummary } from '@/domain/household';
 import { buildSections } from '@/domain/timeline';
 import { TimelineRow, TimelineSectionHeader } from '@/components/timeline-row';
@@ -26,6 +28,14 @@ import { useSettings } from '@/store/settings';
  * The owner column is hidden here, and only here — a screen that is already
  * about Ali does not need to say "Ali" under every line.
  */
+/**
+ * Overdue, or inside a week. A dot for anything merely due next month would be
+ * on permanently, and a mark that is always lit stops being a mark.
+ */
+function pressing(docs: { expiryDate: string }[]): boolean {
+  return docs.some((doc) => daysUntil(doc.expiryDate) <= 7);
+}
+
 export default function PersonScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -48,7 +58,28 @@ export default function PersonScreen() {
     [documents, settings.people, settings.ownName, owner]
   );
 
-  const sections = useMemo(() => buildSections(person?.items ?? []), [person]);
+  /**
+   * The same split the home screen makes, for the same reason.
+   *
+   * It matters most here, and specifically on the owner's own page: every
+   * subscription with no owner is theirs, so eight of them sit above the two
+   * documents that actually expire. A page meant to answer "what does Hashim
+   * have to deal with" opened on five months of streaming.
+   */
+  const [side, setSide] = useState<'documents' | 'subscriptions'>('documents');
+
+  const halves = useMemo(
+    () => ({
+      documents: (person?.items ?? []).filter((doc) => !isSubscription(doc)),
+      subscriptions: (person?.items ?? []).filter(isSubscription),
+    }),
+    [person]
+  );
+
+  const split = halves.documents.length > 0 && halves.subscriptions.length > 0;
+  const shown = split ? halves[side] : (person?.items ?? []);
+
+  const sections = useMemo(() => buildSections(shown), [shown]);
   const gaps = useMemo(
     () => (person ? findGaps(person.items, settings.country) : []),
     [person, settings.country]
@@ -115,6 +146,33 @@ export default function PersonScreen() {
                 ))}
               </View>
             )}
+
+            {/*
+              * Offered only when there is something on both sides, as on the
+              * home screen. Most people in a household have documents and no
+              * subscriptions at all, and a control that splits three things
+              * from nothing asks a question with one answer.
+              */}
+            {split && (
+              <View style={styles.segmented}>
+                <Segmented
+                  value={side}
+                  onChange={setSide}
+                  segments={[
+                    {
+                      value: 'documents',
+                      label: 'Documents',
+                      attention: pressing(halves.documents),
+                    },
+                    {
+                      value: 'subscriptions',
+                      label: 'Subscriptions',
+                      attention: pressing(halves.subscriptions),
+                    },
+                  ]}
+                />
+              </View>
+            )}
           </View>
         }
         renderSectionHeader={({ section }) => <TimelineSectionHeader title={section.title} />}
@@ -160,6 +218,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   header: { gap: 6, paddingBottom: Spacing.two },
+  segmented: { paddingTop: Spacing.four },
   gaps: { gap: 4, paddingTop: Spacing.three },
   empty: { alignItems: 'center', gap: Spacing.three, paddingTop: Spacing.six },
 });

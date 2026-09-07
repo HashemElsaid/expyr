@@ -50,7 +50,8 @@ sections 5, 6 and 7 move behind the launch instead of in front of it.
 
 ## 2. The day you are admitted — YOU
 
-- [ ] **Enrol in the App Store Small Business Program.** Apple's cut drops from
+- [ ] **Enrol in the App Store Small Business Program.** Submitted 7 September,
+      awaiting Apple. Apple's cut drops from
       30% to 15%, which doubles what arrives from every sale. Free, no
       downside, and the only reason to hurry is the calendar: the reduced rate
       starts on the **first day of the month after Apple approves you**, so a
@@ -151,10 +152,10 @@ This is the wall between here and credits surviving a new phone.
       real Apple Account cannot buy in the sandbox at all, which surfaces as
       "not authorised to make purchases" and reads like a code fault.
 
-- [ ] **Production purchases still need the Paid Applications agreement
-      Active.** Sandbox works without it. Selling does not, so a build that
-      passes review and cannot take money is the failure this line exists to
-      prevent
+- [x] **Paid Applications agreement Active, 7 September.** With banking
+      (AED, royalties in USD), both tax forms, and the Digital Services Act
+      declaration, across 175 countries. Nothing commercial blocks selling any
+      more; what remains before launch is the app itself
 - [ ] Move spending to the server. `/read` and `/ask` still trust the balance
       the phone reports, and a balance in local storage is a number its owner
       can edit

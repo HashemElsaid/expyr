@@ -41,7 +41,31 @@ the Apple Account that holds the membership.
       **These labels expire the day Sign in with Apple ships.** An Apple
       subject identifier and a server-side balance are data linked to identity,
       and the label would then be false. See LAUNCH.md section 6
-- [ ] In-app purchases and prices, blocked until the bank verifies
+- [x] **All four in-app purchases created, 7 September.** Paid Apps agreement
+      and the FAB account both went Active the same afternoon, faster than the
+      24 hours Apple warned about.
+
+      | Product ID | Type | Base | Family Sharing |
+      |---|---|---|---|
+      | pro.lifetime | Non-Consumable | AED 149.00, UAE | **On**, irreversibly |
+      | credits.small | Consumable | $2.99, US | n/a |
+      | credits.medium | Consumable | $4.99, US | n/a |
+      | credits.large | Consumable | $9.99, US | n/a |
+
+      Pro is based in the UAE because AED 149 is a judgment about what the home
+      market pays. Credits are based in the US because the cost is denominated
+      in dollars and the margin guardrail in credit-packs.test.ts is written in
+      dollars. Value-priced in the home market, cost-priced in the cost
+      currency.
+
+      All four sit at **Prepare for Submission** and cannot go further: each
+      needs a screenshot of the purchase screen from a running app, and Apple
+      requires the first non-consumable to be submitted alongside a new app
+      version. That is the correct resting state.
+- [ ] Sandbox tester, under Users and Access
+- [ ] The 1.0 version page: description, keywords, support URL, review notes
+- [ ] Screenshots, and the four purchase-screen shots. Needs the app
+- [ ] A build. Needs the coding session
 
 Two details worth keeping. Apple routes payouts by **royalty currency**, and
 this account shows bank currency AED with royalty currency USD, so proceeds may

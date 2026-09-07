@@ -23,9 +23,15 @@ export type Runway = {
   /** Where today sits: 0 at the left edge, 1 on the day itself. */
   now: number;
   /**
-   * Where each reminder sits, in the order they will arrive. Always empty on
-   * the life scale — at that width they land on top of one another, which is
-   * the bug this whole module exists to undo.
+   * Where each reminder still to come sits, in the order they will arrive.
+   *
+   * Only the ones ahead. A reminder already sent was drawn as a slot punched
+   * through the filled part in the page colour, and a hairline gap in a solid
+   * bar is indistinguishable from the screen tearing. It also earned its place
+   * least: what a person can act on is that they will be told twice more, and
+   * the dates underneath already carry the sent ones with a line through them.
+   *
+   * Always empty on the life scale, where they land on top of one another.
    */
   reminders: number[];
 };
@@ -58,7 +64,8 @@ export function buildRunway(
       span,
       now: clamp((span - days) / span),
       reminders: [...leadDays]
-        .filter((lead) => lead >= 0 && lead <= span)
+        // lead < days is the same as "this reminder has not fired yet".
+        .filter((lead) => lead >= 0 && lead <= span && lead < days)
         .sort((a, b) => b - a)
         .map((lead) => (span - lead) / span),
     };

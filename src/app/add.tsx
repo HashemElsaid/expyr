@@ -26,6 +26,7 @@ import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from 
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { newAttachmentKey } from '@/lib/files';
 import { REMINDER_TIME } from '@/lib/notifications';
+import { leadLabel } from '@/lib/reminder-plan';
 import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
@@ -42,7 +43,20 @@ export default function AddDocumentScreen() {
   const scheme = useColorScheme();
   const { documents, addDocument, updateDocument } = useDocuments();
   const { settings, update } = useSettings();
-  const params = useLocalSearchParams<{ id?: string; renew?: string; owner?: string }>();
+  const params = useLocalSearchParams<{
+    id?: string;
+    renew?: string;
+    owner?: string;
+    /**
+     * Opens straight on the category list instead of the camera.
+     *
+     * That list is the honest answer to "what can this app track", and it was
+     * three taps down: other ways to add, enter it myself, change. Somewhere
+     * had to be able to point at it, and pointing at the real one means there
+     * is never a second list to keep in step.
+     */
+    start?: string;
+  }>();
 
   /** Set when you arrived from a person, so the form already knows whose this is. */
   const forOwner = typeof params.owner === 'string' ? params.owner : undefined;
@@ -53,7 +67,9 @@ export default function AddDocumentScreen() {
   const outOfScans = !settings.premium && settings.scansUsed >= FREE_SCAN_LIMIT;
   const scansLeft = Math.max(0, FREE_SCAN_LIMIT - settings.scansUsed);
 
-  const [step, setStep] = useState<Step>(editing ? 'form' : 'choose');
+  const [step, setStep] = useState<Step>(
+    editing ? 'form' : params.start === 'type' ? 'type' : 'choose'
+  );
   const [typeId, setTypeId] = useState<DocumentTypeId | null>(editing?.typeId ?? null);
   const [title, setTitle] = useState(editing?.title ?? '');
   /**
@@ -172,7 +188,7 @@ export default function AddDocumentScreen() {
         d.setDate(d.getDate() - lead);
         return dayMonth(d);
       });
-    return `${countWord(leadDays.length)} nudge${leadDays.length === 1 ? '' : 's'}: ${dates.join(', ')}, each at ${reminderAt}.`;
+    return `${countWord(leadDays.length)} reminder${leadDays.length === 1 ? '' : 's'}: ${dates.join(', ')}, each at ${reminderAt}.`;
     // The hour is the user's, so quoting 9am at everybody was simply wrong.
   }, [leadDays, expiry, reminderAt]);
 
@@ -801,13 +817,21 @@ export default function AddDocumentScreen() {
         </Field>
 
         <Field label="Remind me before">
-          <View style={styles.chipRow}>
-            {LEAD_DAY_OPTIONS.map((day, i) => (
+          {/*
+            * Four to a row, every chip the same width, every label in the same
+            * grammar. It was a wrap that ran out wherever it happened to, with
+            * the first option labelled "1 day", the last "180 days" and the
+            * middle six as bare numbers.
+            */}
+          <View style={styles.leadGrid}>
+            {LEAD_DAY_OPTIONS.map((day) => (
               <Chip
                 key={day}
-                label={i === 0 ? '1 day' : i === LEAD_DAY_OPTIONS.length - 1 ? '180 days' : String(day)}
+                label={leadLabel(day)}
                 active={leadDays.includes(day)}
                 onPress={() => toggleLeadDay(day)}
+                style={styles.leadChip}
+                tight
               />
             ))}
           </View>
@@ -904,6 +928,13 @@ const styles = StyleSheet.create({
   webDate: { fontFamily: 'DMSans', fontSize: 13, paddingTop: 6 },
   notes: { minHeight: 60, textAlignVertical: 'top' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  /*
+   * Four columns on any phone. The basis is a percentage so the count does not
+   * change with the screen, and every chip grows into the remainder equally so
+   * the rows line up rather than trailing off.
+   */
+  leadGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  leadChip: { flexGrow: 1, flexBasis: '21%' },
   thumbRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, alignItems: 'center' },
   thumb: {
     width: 56,

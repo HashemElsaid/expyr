@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 /**
@@ -95,6 +98,27 @@ describe('routing', () => {
 
   it('refuses the right path with the wrong method', async () => {
     const response = await post('/health');
+    assert.equal(response.status, 404);
+  });
+
+  /*
+   * An uptime monitor reported the service down while it was serving every
+   * request perfectly. It led with HEAD, as load balancers and platform health
+   * probes nearly all do, and got a 404.
+   */
+  it('answers HEAD wherever it answers GET', async () => {
+    const response = await fetch(`${BASE}/health`, { method: 'HEAD' });
+    assert.equal(response.status, 200);
+  });
+
+  it('still refuses HEAD on a path it does not have', async () => {
+    const response = await fetch(`${BASE}/nope`, { method: 'HEAD' });
+    assert.equal(response.status, 404);
+  });
+
+  /* HEAD must not become a way around the method check on a POST route. */
+  it('does not let HEAD reach a route that only takes POST', async () => {
+    const response = await fetch(`${BASE}/register`, { method: 'HEAD' });
     assert.equal(response.status, 404);
   });
 
@@ -250,5 +274,116 @@ describe('the ceilings', () => {
     }
 
     assert.match(retryAfter ?? '', /^\d+$/);
+  });
+});
+
+/*
+ * The route that turns money into credits. These run against the real service
+ * with no Apple key configured, which is the state every deploy starts in, and
+ * they pin the two properties that matter most in that state: nothing is
+ * granted, and the refusal is one the phone can retry rather than a crash.
+ *
+ * They also prove the route boots at all. That is the whole reason this file
+ * exists: node strips types rather than checking them, so a route can
+ * typecheck perfectly and still take the service down on start.
+ */
+describe('redeeming a purchase', () => {
+  it('needs the app credential like everything else that costs', async () => {
+    const response = await post('/purchase/redeem', {
+      transactionId: '2000000123456789',
+      productId: 'credits.large',
+    });
+    assert.equal(response.status, 401);
+  });
+
+  it('refuses a body that is not a purchase', async () => {
+    const response = await post('/purchase/redeem', { transactionId: '' }, authed);
+    assert.equal(response.status, 400);
+    assert.equal(((await response.json()) as { code: string }).code, 'invalid_request');
+  });
+
+  /*
+   * With no key configured the service cannot ask Apple anything, and the one
+   * thing it must not do is take the phone's word for it. A refusal leaves the
+   * transaction unfinished with Apple, so the purchase survives and is
+   * redeemed once a key is set.
+   */
+  it('grants nothing at all when it cannot ask Apple', async () => {
+    const response = await post(
+      '/purchase/redeem',
+      { transactionId: '2000000123456789', productId: 'credits.large', sandbox: true },
+      authed
+    );
+
+    assert.notEqual(response.status, 200, 'must never grant on trust');
+    const body = (await response.json()) as { credits?: number; balance?: number };
+    assert.equal(body.credits, undefined);
+    assert.equal(body.balance, undefined);
+  });
+});
+
+/*
+ * A directory that cannot be written to took the whole service down once:
+ * EXPYR_CREDITS_DIR pointed at a disk that had not been attached, the store's
+ * constructor tried to create it, and the EACCES killed the process at import.
+ * Scanning, reading, guidance and reminders all went with it, over a directory
+ * none of them use.
+ */
+describe('a credits directory that cannot be written to', () => {
+  const BROKEN_PORT = 8898;
+  const BROKEN = `http://127.0.0.1:${BROKEN_PORT}`;
+  let broken: ChildProcess;
+  /** An ordinary file. Nothing can be created underneath it. */
+  const blocker = join(mkdtempSync(join(tmpdir(), 'expyr-nodisk-')), 'not-a-directory');
+
+  before(async () => {
+    writeFileSync(blocker, 'this is a file, not a mount point');
+    broken = spawn(process.execPath, ['index.ts'], {
+      cwd: import.meta.dirname,
+      env: {
+        ...process.env,
+        PORT: String(BROKEN_PORT),
+        EXPYR_APP_TOKEN: TOKEN,
+        EXPYR_INSTALL_SECRET: 'a-secret-long-enough-for-tests',
+        ANTHROPIC_API_KEY: '',
+        /*
+         * A directory inside a *file*, which no operating system will create.
+         *
+         * The first attempt used an absolute unix path that cannot exist on
+         * Linux, and on Windows it was cheerfully created at C:\proc — so the
+         * store opened, the service started for the ordinary reason, and the
+         * test passed while proving nothing.
+         */
+        EXPYR_CREDITS_DIR: join(blocker, 'credits'),
+      },
+      stdio: 'ignore',
+    });
+
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        if ((await fetch(`${BROKEN}/health`)).ok) return;
+      } catch {
+        // Not listening yet.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error('the service died over a directory it did not need');
+  });
+
+  after(() => {
+    broken?.kill();
+  });
+
+  it('still starts, and still serves everything that has nothing to do with selling', async () => {
+    assert.equal((await fetch(`${BROKEN}/health`)).status, 200);
+  });
+
+  it('refuses to sell rather than selling into a hole', async () => {
+    const response = await fetch(`${BROKEN}/purchase/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-expyr-token': TOKEN },
+      body: JSON.stringify({ transactionId: '2000000123456789', productId: 'credits.large' }),
+    });
+    assert.notEqual(response.status, 200, 'must never grant into a store it cannot write');
   });
 });

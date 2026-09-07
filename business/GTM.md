@@ -138,10 +138,15 @@ not doing so.
 
 **The guidance cost surface multiplies.** Guidance is cached per document type
 **and region**. UAE-only is thirteen combinations. Worldwide is thirteen times
-however many countries people actually arrive from, against a memory-only cache
-on Render's free plan and a ceiling of `EXPYR_GUIDANCE_DAILY_NEW` at 40 new
-generations a day. That cap prevents a runaway bill and also means users who
-hit it get nothing that day. See `MONEY.md`.
+however many countries people actually arrive from.
+
+This was the sharpest argument against going wide on the free Render plan, where
+the cache lived in memory and died every fifteen idle minutes. **Render moved to
+the paid plan on 7 September with a disk**, so the cache now survives a deploy
+rather than an idle period, and the multiplication is a one-off generation cost
+per country rather than a recurring one. The ceiling of
+`EXPYR_GUIDANCE_DAILY_NEW` at 40 new generations a day still applies, and still
+means a user who hits it gets nothing that day. See `MONEY.md`.
 
 The coding session has been briefed to make the app genuinely good
 internationally rather than merely not-broken: `trade-license` has no generic

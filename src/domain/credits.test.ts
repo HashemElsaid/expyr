@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CREDITS_PER_PAGE,
+  CREDITS_PER_QUESTION,
+  EMPTY_LEDGER,
+  MAX_ENTRIES,
   apply,
   asMoney,
   canAfford,
   chargeForPages,
   chargeForQuestion,
-  CREDITS_PER_PAGE,
-  CREDITS_PER_QUESTION,
-  EMPTY_LEDGER,
   formatCredits,
-  MAX_ENTRIES,
+  hasEntry,
   pagesLeft,
   priceOfPages,
   refund,
@@ -166,5 +167,47 @@ describe('applying a movement', () => {
     apply(before, { id: 'x', at: AT.toISOString(), kind: 'question', detail: 'q', delta: -20 });
     expect(before.balance).toBe(100);
     expect(before.entries).toHaveLength(entries);
+  });
+});
+
+/*
+ * iOS replays every unfinished transaction on each app launch. That is how a
+ * purchase survives a crash between paying and being credited, so being asked
+ * to add the same one twice is the ordinary course of working rather than an
+ * error, and apply() on its own says yes every time.
+ */
+describe('crediting the same purchase twice', () => {
+  const AT = new Date('2026-09-07T10:00:00Z');
+
+  it('adds it once, however many times it arrives', () => {
+    let ledger = topUp(EMPTY_LEDGER, 3000, 'credits.medium', AT, 'txn_1');
+    expect(ledger.balance).toBe(3000);
+
+    ledger = topUp(ledger, 3000, 'credits.medium', AT, 'txn_1');
+    ledger = topUp(ledger, 3000, 'credits.medium', AT, 'txn_1');
+
+    expect(ledger.balance).toBe(3000);
+    expect(ledger.entries).toHaveLength(1);
+  });
+
+  it('still credits a genuinely different purchase', () => {
+    let ledger = topUp(EMPTY_LEDGER, 1500, 'credits.small', AT, 'txn_1');
+    ledger = topUp(ledger, 1500, 'credits.small', AT, 'txn_2');
+
+    expect(ledger.balance).toBe(3000);
+    expect(ledger.entries).toHaveLength(2);
+  });
+
+  it('knows what it has already recorded', () => {
+    const ledger = topUp(EMPTY_LEDGER, 1500, 'credits.small', AT, 'txn_1');
+    expect(hasEntry(ledger, 'txn_1')).toBe(true);
+    expect(hasEntry(ledger, 'txn_2')).toBe(false);
+  });
+
+  /* The welcome grant uses a fixed id, so it must not stack on a reinstall. */
+  it('does not hand out the welcome credits twice', () => {
+    let ledger = topUp(EMPTY_LEDGER, 300, 'Welcome credits', AT, 'welcome');
+    ledger = topUp(ledger, 300, 'Welcome credits', AT, 'welcome');
+    expect(ledger.balance).toBe(300);
   });
 });

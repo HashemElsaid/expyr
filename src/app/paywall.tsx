@@ -16,9 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
-import { plans, purchase, restore } from '@/lib/purchases';
-import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT } from '@/store/settings';
+import { successFeedback } from '@/lib/haptics';
+import { PRO_PRODUCT_ID, plans, purchase, restore } from '@/lib/purchases';
+import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 
 /** Shorter than the word, and it reads the same in any language. */
 const UNLIMITED = '∞';
@@ -36,6 +38,7 @@ const COMPARISON: { label: string; free: string }[] = [
 export default function PaywallScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { update } = useSettings();
   const [busy, setBusy] = useState(false);
   /*
    * Read once per render rather than at module load, so the price follows the
@@ -43,6 +46,13 @@ export default function PaywallScreen() {
    * formatted price rather than anything written here.
    */
   const plan = plans()[0];
+  /*
+   * Apple's own price for this storefront, which is correct by construction
+   * and stays correct when prices change. The written table is what shows
+   * until the store answers, and on any build with no store in it.
+   */
+  const storePrices = useStorePrices();
+  const price = storePrices[PRO_PRODUCT_ID] ?? plan.price;
 
   /*
    * Normally this modal sits on top of Settings, but it can also be the first
@@ -58,14 +68,31 @@ export default function PaywallScreen() {
     setBusy(true);
     const outcome = await purchase(plan.id);
     setBusy(false);
-    if (outcome.ok) close();
-    else Alert.alert('Not available yet', outcome.message);
+
+    if (outcome.ok) {
+      update({ premium: true });
+      successFeedback();
+      close();
+      return;
+    }
+    // Changing your mind is not an error, and an alert about it is a scolding.
+    if (outcome.cancelled) return;
+    Alert.alert('That did not go through', outcome.message);
   }
 
   async function restorePurchases() {
+    setBusy(true);
     const outcome = await restore();
-    if (outcome.ok) close();
-    else Alert.alert('Nothing to restore', outcome.message);
+    setBusy(false);
+
+    if (outcome.ok) {
+      update({ premium: true });
+      successFeedback();
+      close();
+      return;
+    }
+    if (outcome.cancelled) return;
+    Alert.alert('Nothing to restore', outcome.message);
   }
 
   return (
@@ -150,7 +177,7 @@ export default function PaywallScreen() {
                 )}
               </View>
               <View style={styles.priceFigure}>
-                <ThemedText type="numeral">{plan.price}</ThemedText>
+                <ThemedText type="numeral">{price}</ThemedText>
                 <ThemedText type="label" themeColor="textTertiary">
                   {plan.cadence}
                 </ThemedText>
@@ -187,7 +214,7 @@ export default function PaywallScreen() {
              */}
             <View style={[styles.legal, { borderTopColor: theme.border }]}>
               <ThemedText type="small" themeColor="textTertiary">
-                {plan.title}, {plan.price}, {plan.cadence}. Payment is charged to your Apple Account
+                {plan.title}, {price}, {plan.cadence}. Payment is charged to your Apple Account
                 at confirmation. This is a one-off purchase: it does not renew, there is nothing to
                 cancel, and you will not be charged again. It can be shared with your Apple Family
                 group, up to six people.

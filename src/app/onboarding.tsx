@@ -85,11 +85,14 @@ export default function OnboardingScreen() {
                 * Nothing here names a country. This is the first screen of the
                 * app and it runs before the next one asks where somebody
                 * lives, so "an Emirates ID" was the second example shown to
-                * everyone on earth. All four of these exist everywhere.
+                * everyone on earth. Everything named here exists everywhere.
+                *
+                * Two triads rather than one, because the app tracks two kinds
+                * of thing and this sentence only ever admitted to the first.
                 */}
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                A passport, an ID card, a car registration, a tenancy contract. Photograph it once
-                and Expyr does the remembering.
+                A passport, a tenancy contract, the car insurance. The gym, the internet bill, a
+                streaming plan. Expyr remembers the date so you do not have to.
               </ThemedText>
 
               <View style={styles.points}>
@@ -157,7 +160,7 @@ export default function OnboardingScreen() {
                   <ThemedText
                     type="small"
                     themeColor={nudgeEmirate ? 'urgentSoft' : 'textTertiary'}>
-                    Vehicles and licences are run by each emirate, not federally — Expyr needs
+                    Vehicles and licences are run by each emirate, not federally, so Expyr needs
                     this to send you to the right one.
                   </ThemedText>
                 </View>
@@ -165,13 +168,27 @@ export default function OnboardingScreen() {
 
               {country !== null && !hasGuidance(country) && (
                 <View style={[styles.note, { borderColor: theme.border }]}>
+                  {/*
+                    * Says what is missing without making somebody feel they
+                    * have the wrong app.
+                    *
+                    * It used to lead with "have only been checked for the
+                    * UAE", which tells a reader in Toronto that this was built
+                    * for somewhere else and they are using it by accident. The
+                    * fact that the UAE is covered is not interesting to them;
+                    * what their own country gets is.
+                    *
+                    * It also rendered a space before the full stop, so it read
+                    * "for Canada yet ." on every screen it appeared on.
+                    */}
                   <ThemedText type="small" themeColor="textSecondary">
-                    Expyr tracks your dates and reminds you wherever you are. Renewal steps, costs
-                    and fines have only been checked for the UAE, so{' '}
+                    Everything that tracks dates and reminds you works here.{' '}
                     {country === 'other'
-                      ? 'you will not see them'
-                      : `there are none for ${countryLabel(country)} yet`}{' '}
-                    . We would rather show you nothing than guess about your documents.
+                      ? 'Renewal steps, fees and fines are written country by country, so you will not see them.'
+                      : `Renewal steps, fees and fines are written country by country, and ${countryLabel(
+                          country
+                        )} is not written yet.`}{' '}
+                    Nothing is guessed, so you will see nothing rather than something invented.
                   </ThemedText>
                 </View>
               )}

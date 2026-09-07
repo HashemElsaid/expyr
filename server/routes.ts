@@ -5,16 +5,20 @@ import { extractFromImage } from './extract.ts';
 import { FileGuidanceStore, isFresh, LayeredGuidanceStore } from './guidance-cache.ts';
 import { generateGuidance, type Guidance } from './guidance.ts';
 import { accountKeyFor, appleKeys, verifyAppleIdentityToken } from './apple-identity.ts';
+import { appleCredentials, appleKeyUsable, fetchTransaction } from './apple-store.ts';
 import {
+  accountFor,
   balanceOf,
   FileCreditStore,
   link,
   MemoryCreditStore,
+  redeem,
   sellable,
   type CreditStore,
 } from './credit-ledger.ts';
 import { canIssueTokens, issueInstallToken } from './install-token.ts';
 import { openPdf, pagesOf, pdfPageCount } from './pdf.ts';
+import { grantFor } from './products.ts';
 import type { LogFields } from './log.ts';
 import {
   AskRequest,
@@ -22,6 +26,7 @@ import {
   FileRequest,
   GuidanceRequest,
   IdentityRequest,
+  RedeemRequest,
   TextRequest,
   guidanceKey,
   parse,
@@ -97,11 +102,40 @@ export type Route = {
  * store is not durable, so a deployment with no disk cannot take money for
  * something it will forget. Render's free plan has no persistent disk, which
  * is exactly the case that rule exists for.
+ *
+ * The directory being unusable is a third case, and it took the whole service
+ * down once. EXPYR_CREDITS_DIR was set to a path on a disk that had not been
+ * attached yet, FileCreditStore's constructor tried to create it, and the
+ * EACCES from that killed the process at import. Scanning, reading, guidance
+ * and reminders all went with it, because of a directory none of them use.
+ *
+ * So a bad directory now falls back to memory, which refuses to sell rather
+ * than selling into a hole, and says so loudly on the way past. Exactly the
+ * rule the Apple credentials already follow: refusing to start is never the
+ * right answer to "this one feature is not configured".
  */
-const creditsDir = process.env.EXPYR_CREDITS_DIR;
-export const creditStore: CreditStore = creditsDir
-  ? new FileCreditStore(creditsDir)
-  : new MemoryCreditStore();
+function openCreditStore(): CreditStore {
+  const dir = process.env.EXPYR_CREDITS_DIR;
+  if (!dir) return new MemoryCreditStore();
+
+  try {
+    return new FileCreditStore(dir);
+  } catch (error) {
+    /*
+     * Deliberately shouted. Somebody who set this variable meant to sell
+     * credits, and is now running a service that will refuse every purchase.
+     * That has to be findable in the logs without reading this file.
+     */
+    console.error(
+      `[expyr] EXPYR_CREDITS_DIR is set to ${dir} but it cannot be written to, so credits cannot be sold. Attach a disk mounted there, or unset the variable. ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    return new MemoryCreditStore();
+  }
+}
+
+export const creditStore: CreditStore = openCreditStore();
 
 /**
  * The bundle identifier every genuine Apple identity token is issued for. A
@@ -163,6 +197,21 @@ export const ROUTES: Record<string, Route> = {
         ok: true,
         apiKeyConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
         registrationConfigured: canIssueTokens,
+        /*
+         * Whether credits can be sold, and it is reported for the same reason
+         * the guidance cache is: it is otherwise completely silent. A deploy
+         * whose disk did not mount serves every other route perfectly and
+         * refuses every purchase, and there is no way to tell from outside.
+         */
+        creditStore: creditStore.durable ? 'disk' : 'memory',
+        /*
+         * Not whether the Apple key is set, which proves nothing, but whether
+         * it can sign. A .p8 pasted into a field that ate its newlines is
+         * still a string and still fails at the first real purchase, as a 401
+         * from Apple with no explanation.
+         */
+        appleKeyConfigured: appleCredentials() !== null,
+        appleKeyUsable: appleKeyUsable(appleCredentials()),
         /*
          * Whether guidance survives a restart. Reported because it is the
          * difference between one web search per jurisdiction and one per
@@ -279,6 +328,92 @@ export const ROUTES: Record<string, Route> = {
       const identity = await verifyAppleIdentityToken(identityToken, BUNDLE_ID, appleKeys);
       const account = accountKeyFor(identity);
       return json({ account, balance: await balanceOf(creditStore, account) });
+    },
+  },
+
+  /**
+   * Turns a purchase into credits, or into Pro.
+   *
+   * The phone is not believed about any of it. It supplies a transaction
+   * identifier, Apple is asked what that transaction actually was, and the
+   * catalogue in products.ts decides what the answer is worth. A phone
+   * claiming to have bought the largest pack gets whatever Apple says it
+   * bought, which for a fabricated identifier is nothing.
+   *
+   * Safe to call repeatedly, and it will be: iOS replays every unfinished
+   * transaction on each launch, and the phone deliberately does not finish one
+   * until this route has answered. So the ordinary path includes redeeming the
+   * same purchase twice, and the ledger pays it once.
+   */
+  '/purchase/redeem': {
+    method: 'POST',
+    auth: true,
+    metered: true,
+    costs: false,
+    handle: async (ctx) => {
+      const claim = parse(RedeemRequest, ctx.body);
+      if (!ctx.install) throw invalid('this build cannot be identified');
+
+      const credentials = appleCredentials();
+      if (!credentials) {
+        // Nothing is granted on trust. Better a refusal the phone can retry
+        // than credits handed out because a key was not configured.
+        throw unavailable('purchases cannot be checked with Apple just yet');
+      }
+
+      const transaction = await fetchTransaction(
+        credentials,
+        claim.transactionId,
+        claim.sandbox === true
+      );
+
+      /*
+       * Apple's answer wins over the phone's claim. They should never differ;
+       * if they do, the phone is either broken or lying and neither is a
+       * reason to grant anything.
+       */
+      if (transaction.productId !== claim.productId) {
+        throw invalid('that purchase was for a different product');
+      }
+
+      const grant = grantFor(transaction.productId);
+      if (!grant) {
+        /*
+         * A real purchase of something this service has not been taught yet.
+         * Refusing leaves it unfinished with Apple, so it can be redeemed
+         * after a deploy rather than being lost.
+         */
+        throw invalid('this version does not know that product yet');
+      }
+
+      const account = await accountFor(creditStore, ctx.install);
+
+      if (grant.kind === 'pro') {
+        /*
+         * Nothing to store. A non-consumable lives with Apple for ever and
+         * comes back from getAvailablePurchases on any phone the buyer signs
+         * into, so Apple is already the record and a second one here could
+         * only disagree with it.
+         */
+        ctx.note({ note: `redeemed pro txn=${transaction.transactionId}` });
+        return json({ productId: transaction.productId, pro: true });
+      }
+
+      if (!sellable(creditStore)) {
+        throw unavailable('credits cannot be granted just yet');
+      }
+
+      const { balance, granted } = await redeem(
+        creditStore,
+        account,
+        transaction.transactionId,
+        grant.credits
+      );
+
+      ctx.note({
+        note: `redeemed ${transaction.productId} txn=${transaction.transactionId} granted=${granted} account=${account}`,
+      });
+      return json({ productId: transaction.productId, credits: grant.credits, balance, granted });
     },
   },
 

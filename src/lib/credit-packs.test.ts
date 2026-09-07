@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
+import { PRO_PRODUCT_ID } from '@/lib/products';
 import { CREDIT_COST_USD } from '@/domain/credits';
 import { costToHonour, PACKS, pagesIn, priceOf, revenueFrom } from '@/lib/credit-packs';
 
@@ -90,5 +92,51 @@ describe('the price shown matches the storefront', () => {
         expect(pack.prices[country]).toBeTruthy();
       }
     }
+  });
+});
+
+/**
+ * The phone draws the top-up screen from PACKS. The service decides what a
+ * purchase is actually worth, from its own catalogue in server/products.ts,
+ * because a number the phone reports is a number a modified phone can choose.
+ *
+ * So the same figures live in two runtimes that cannot import from each other,
+ * which is exactly the pair that drifts. Neither suite can see the other's
+ * modules, but both can read a file, so this reads the service's catalogue as
+ * text and fails the moment the two stop agreeing.
+ */
+describe('the app and the service agree on what is for sale', () => {
+  const catalogue = readFileSync('server/products.ts', 'utf8');
+  const NEWLINE = String.fromCharCode(10);
+
+  /** The credits the service would grant for a product, read from its source. */
+  function serverCredits(productId: string): number | null {
+    const line = catalogue
+      .split(NEWLINE)
+      .find((l) => l.includes(`id: '${productId}'`) && l.includes('credits:'));
+    const found = line?.match(/credits:\s*([\d_]+)/)?.[1];
+    return found ? Number(found.replace(/_/g, '')) : null;
+  }
+
+  it('grants exactly the credits each pack promises', () => {
+    for (const pack of PACKS) {
+      expect(serverCredits(pack.id), `${pack.id} is missing from server/products.ts`).toBe(
+        pack.credits
+      );
+    }
+  });
+
+  it('sells nothing the service has never heard of', () => {
+    for (const pack of PACKS) {
+      expect(catalogue).toContain(`id: '${pack.id}'`);
+    }
+    expect(catalogue).toContain(`id: '${PRO_PRODUCT_ID}'`);
+  });
+
+  /* Proves the reader works, so a broken parser cannot pass as agreement. */
+  it('would notice a disagreement', () => {
+    expect(serverCredits('credits.small')).toBe(1500);
+    expect(serverCredits('credits.small')).not.toBe(1501);
+    expect(serverCredits('nothing.like.this')).toBeNull();
   });
 });

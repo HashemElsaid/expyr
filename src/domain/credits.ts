@@ -109,6 +109,27 @@ function makeEntry(kind: EntryKind, detail: string, delta: Credits, at: Date, id
   return { id, at: at.toISOString(), kind, detail, delta: Math.round(delta) };
 }
 
+/** Whether this ledger already records an entry with this id. */
+export function hasEntry(ledger: Ledger, id: string): boolean {
+  return ledger.entries.some((entry) => entry.id === id);
+}
+
+/**
+ * Adds credits, once, for a given id.
+ *
+ * The id is Apple's transaction identifier for a real purchase, and the
+ * repetition is not an edge case: iOS replays every unfinished transaction on
+ * each app launch, which is exactly how a purchase survives a crash between
+ * paying and being credited. A network retry does the same. So this is asked
+ * to add the same purchase over and over in the ordinary course of working,
+ * and `apply` on its own would say yes every time.
+ *
+ * The one hole left is the entry list being trimmed at MAX_ENTRIES: a
+ * transaction old enough to have fallen off the end would be credited again.
+ * Two hundred entries is far more than any plausible replay window, and the
+ * service keeps the balance that actually counts. This one is what the phone
+ * shows.
+ */
 export function topUp(
   ledger: Ledger,
   credits: Credits,
@@ -116,6 +137,7 @@ export function topUp(
   at: Date,
   id: string
 ): Ledger {
+  if (hasEntry(ledger, id)) return ledger;
   return apply(ledger, makeEntry('topup', detail, Math.abs(Math.round(credits)), at, id));
 }
 

@@ -115,6 +115,7 @@ Rules:
 
 fields is everything else the document states about itself, so that a person gets something useful out of the scan today rather than only on the day it expires.
 
+- Never use an em dash in a label or a value. Use a full stop, a comma, or a colon.
 - Include what somebody would actually want back later: the full name as printed, the document or policy or account number, who issued it, the place it was issued, the dates it carries other than the expiry, and any amount of money on it — a premium, a rent, a subscription price, a fee.
 - Include the issue date and any start date as their own fields. They are useful and they are not the expiry.
 - label is what a person would call it: "Full name", "Issuing authority", "Policy number", "Annual rent", "Date of birth". Sentence case, no colon, no abbreviations they would have to decode.

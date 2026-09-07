@@ -271,20 +271,17 @@ export default function DocumentDetailScreen() {
                   ]}
                 />
                 {/*
-                  * A reminder already sent is punched out of the filled part
-                  * in the page colour; one still to come is a mark on the bare
-                  * rail. Drawn in one ink they were a grey line on a brown
-                  * band, which is neither.
+                  * Only the warnings still ahead, so every mark here sits on
+                  * the bare rail and means one thing: you will be told again
+                  * on this day. The sent ones were punched through the filled
+                  * part in the page colour and read as the screen tearing.
                   */}
                 {runway.reminders.map((at, i) => (
                   <View
                     key={i}
                     style={[
                       styles.runwayNotch,
-                      {
-                        backgroundColor: at <= runway.now ? theme.background : theme.textTertiary,
-                        left: `${at * 100}%`,
-                      },
+                      { backgroundColor: theme.textTertiary, left: `${at * 100}%` },
                     ]}
                   />
                 ))}

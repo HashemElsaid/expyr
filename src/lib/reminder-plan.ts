@@ -232,3 +232,27 @@ export function snoozeDate(days: number, now: Date = new Date()): string {
   date.setDate(date.getDate() + days);
   return toISODate(date);
 }
+
+/**
+ * A lead time in the words somebody would use for it.
+ *
+ * The picker labelled the first option "1 day", the last "180 days", and every
+ * one in between as a bare number, so the row read "1 day, 3, 7, 14, 30, 60,
+ * 90, 180 days". Three different grammars in one control, and the middle six
+ * were numbers with no unit at all.
+ *
+ * Seven days is a week to everybody who is not a computer, and ninety is three
+ * months. Saying it that way also makes the options a scale a person can feel
+ * rather than a row of integers they have to convert.
+ */
+export function leadLabel(days: number): string {
+  if (days % 30 === 0 && days >= 30) {
+    const months = days / 30;
+    return `${months} month${months === 1 ? '' : 's'}`;
+  }
+  if (days % 7 === 0 && days >= 7) {
+    const weeks = days / 7;
+    return `${weeks} week${weeks === 1 ? '' : 's'}`;
+  }
+  return `${days} day${days === 1 ? '' : 's'}`;
+}

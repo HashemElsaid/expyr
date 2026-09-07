@@ -192,7 +192,14 @@ rearms itself is not one.
 
 ---
 
-## The cost the free plan creates
+## The cost the free plan created, and why it is no longer a cost
+
+**Resolved: Render is on the paid Starter plan, with a disk at `/var/data` and
+both cache directories set.** The analysis below is kept because it is the
+argument that produced that outcome, and because the arithmetic still explains
+what a persistent cache is worth. Nothing in it is an open problem any more.
+
+### The finding, as it stood
 
 Measured 7 September against the live service. `/health` returns
 `guidanceCache: "memory"` and `guidanceHeld: 0`, and the same request took
@@ -214,9 +221,14 @@ point is the direction: **the free plan is not free, it converts a one-off cost
 into a recurring one**, and the saving it produces is smaller than the spend it
 causes as soon as there is any traffic at all.
 
-Keeping the service warm with an external ping fixes most of this for nothing,
-because the memory cache survives as long as the process does. It does not fix
-the credit ledger, which needs durable storage rather than a live process.
+Two things fixed it, in the end. An external ping keeps the process alive, so
+the memory cache survives between requests. And the disk arrived anyway, which
+is the real fix: the guidance cache now survives a deploy, not merely an idle
+period, and the credit ledger has somewhere durable to live.
+
+**So the $7 bought back something like $84 a month of regenerated guidance at
+the ceiling, plus the ability to sell credits at all.** It was the cheapest line
+item on the list and the one with the largest downside attached.
 
 ---
 

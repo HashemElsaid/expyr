@@ -1,5 +1,11 @@
 import { getLocales } from 'expo-localization';
 
+import { PRO_PRODUCT_ID, type CreditPackId } from '@/lib/products';
+import { redeemWithService } from '@/lib/redeem';
+import { buy, sweep, type Redeemed } from '@/lib/store';
+
+export { PRO_PRODUCT_ID } from '@/lib/products';
+
 /**
  * Purchase surface for the paywall.
  *
@@ -21,6 +27,7 @@ import { getLocales } from 'expo-localization';
  */
 
 export type Plan = {
+  /** Ours, internal. Apple's identifier is PRO_PRODUCT_ID. */
   id: 'lifetime';
   title: string;
   price: string;
@@ -47,26 +54,57 @@ export type Plan = {
  * to list here.
  */
 const PRICE_POINTS: Record<string, string> = {
+  /*
+   * Read off App Store Connect on 7 September, against a base of AED 149.00.
+   * These are what Apple actually generated, not what anybody expected: the
+   * Saudi price was twenty per cent low and every euro storefront was five
+   * euros out.
+   */
   AE: 'AED 149',
-  SA: 'SAR 149.99',
+  SA: 'SAR 179.99',
   QA: 'QAR 149.99',
+  US: '$39.99',
+  GB: '£39.99',
+  DE: '€44.99',
+  FR: '€44.99',
+  ES: '€44.99',
+  IT: '€44.99',
+  NL: '€44.99',
+
+  /*
+   * Not yet read off App Store Connect, and therefore wrong until they are.
+   *
+   * Left in rather than deleted because the alternative is worse: with no
+   * entry these storefronts fall back to the dollar price, and quoting dollars
+   * to somebody in Cairo is a number in the wrong currency rather than merely
+   * the wrong amount. Both are wrong; one of them at least looks local while
+   * being close.
+   *
+   * None of this table is shown once the store answers. `priceList` asks
+   * StoreKit for each product's own displayPrice, already localised and
+   * formatted for the buyer's storefront and correct by construction, and the
+   * screens prefer it. This is what they fall back to when the store cannot be
+   * reached, which is the only case where an approximation beats nothing.
+   */
   KW: 'KWD 12.500',
   BH: 'BHD 14.900',
   OM: 'OMR 15.900',
   EG: 'EGP 1,999',
-  US: '$39.99',
-  GB: '£34.99',
   CA: 'CA$54.99',
   AU: 'A$59.99',
   IN: '₹3,500',
   PK: 'Rs 10,900',
   PH: '₱2,290',
-  DE: '€39.99',
-  FR: '€39.99',
-  ES: '€39.99',
-  IT: '€39.99',
-  NL: '€39.99',
 };
+
+/**
+ * The storefronts whose prices have actually been read off App Store Connect.
+ *
+ * Kept because "which of these did somebody check" is otherwise a fact that
+ * lives only in a chat message, and the answer decides whether a number on
+ * screen is a price or a guess.
+ */
+export const VERIFIED_STOREFRONTS = ['AE', 'SA', 'QA', 'US', 'GB', 'DE', 'FR', 'ES', 'IT', 'NL'];
 
 /** The storefront Apple would bill against: the phone's own region. */
 export function region(): string {
@@ -123,19 +161,61 @@ export function plans(): Plan[] {
  * the limits themselves and cannot drift away from them again.
  */
 
-export type PurchaseOutcome = { ok: true } | { ok: false; message: string };
+export type PurchaseOutcome =
+  | { ok: true }
+  /** They changed their mind. Not a failure, and not worth an alert. */
+  | { ok: false; cancelled: true }
+  | { ok: false; cancelled?: false; message: string };
 
+/**
+ * Buys Expyr Pro.
+ *
+ * Nothing is entitled here on the phone's say so. The service asks Apple what
+ * the transaction was, and only a confirmed purchase of PRO_PRODUCT_ID comes
+ * back with pro set.
+ */
 export async function purchase(_plan: Plan['id']): Promise<PurchaseOutcome> {
-  return {
-    ok: false,
-    message:
-      'Payments are not connected yet. This needs an Apple Developer account and products set up in App Store Connect.',
-  };
+  const outcome = await buy(PRO_PRODUCT_ID, redeemWithService);
+  if (!outcome.ok) return outcome;
+  return outcome.redeemed.pro === true
+    ? { ok: true }
+    : { ok: false, message: 'That purchase did not include Expyr Pro.' };
 }
 
+/**
+ * Buys a credit pack.
+ *
+ * Returns what the service granted rather than a bare yes, because the caller
+ * needs Apple's transaction identifier: it is what keys the phone's copy of
+ * the ledger, so the same purchase arriving twice is written once.
+ */
+export async function purchaseCredits(
+  packId: CreditPackId
+): Promise<{ ok: true; redeemed: Redeemed } | Exclude<PurchaseOutcome, { ok: true }>> {
+  const outcome = await buy(packId, redeemWithService);
+  if (!outcome.ok) return outcome;
+  if (typeof outcome.redeemed.credits !== 'number') {
+    return { ok: false, message: 'That purchase did not include any credits.' };
+  }
+  return { ok: true, redeemed: outcome.redeemed };
+}
+
+/**
+ * Restores a previous purchase.
+ *
+ * On iOS this is the same operation as recovering an interrupted one: Apple
+ * hands back everything it is still holding for this Apple Account, and each
+ * is put through the same verification a fresh purchase gets. Somebody on a
+ * new phone and somebody whose app died mid-purchase are doing the same thing
+ * and get the same code.
+ */
 export async function restore(): Promise<PurchaseOutcome> {
-  return {
-    ok: false,
-    message: 'There is nothing to restore until payments are connected.',
-  };
+  const redeemed = await sweep(redeemWithService);
+  return redeemed.some((item) => item.pro === true)
+    ? { ok: true }
+    : {
+        ok: false,
+        message:
+          'Apple has no previous purchase of Expyr Pro for this Apple Account. If you bought it with a different one, sign in with that Apple Account and try again.',
+      };
 }

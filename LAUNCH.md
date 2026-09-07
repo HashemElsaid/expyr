@@ -12,11 +12,6 @@ design that had been replaced, and the tests that catch that for pricing
 arithmetic cannot catch it for prose. If something here is ticked, it is done;
 if it is open, it is not.
 
-The business side of the launch lives in `business/`, which is run from a
-separate session: the App Store Connect runbook, the unit economics, the
-company and tax position, go-to-market, and support. Start at
-`business/README.md`.
-
 Two documents sit under this one. `APP-REVIEW.md` is the App Store compliance
 audit and why each item is there. `PRICING.md` is what everything costs to run
 and how the credits are priced. `STORE.md` is the listing copy and the review
@@ -38,250 +33,144 @@ exist and are tested. Three things stop it working: it cannot take payments,
 the balance is held on the phone where it is editable, and reading a long PDF
 still does not reliably finish.
 
-**App Store Connect is finished, as of 7 September.** The account, the listing
-and all four products are configured, and nothing there is waiting on a
-decision any more. Two things block submission and both need the app itself:
-screenshots, and a build.
+**Which means there are two possible v1s, and the choice decides the next
+fortnight.** Shipping the tracker alone needs one non-consumable and nothing
+else: no accounts, no sign-in, no server-side balance, no account deletion, and
+the privacy policy stays true exactly as written. Shipping Expyr AI with it
+needs all of those, plus the paid Render plan, plus the one feature that still
+does not work. Section 5 onward assumes the second; if the answer is the first,
+sections 5, 6 and 7 move behind the launch instead of in front of it.
 
 ---
 
-## Handover to the coding session, 7 September
+## What is left for the coding session, 7 September
 
-Everything here was done or found in App Store Connect today. It sits in this
-file rather than in `business/` because it is work for whoever is writing code.
+Almost everything the business session wrote down as a handover had already been
+done on main by the time the branches met: the HEAD 404 on `/health` is fixed
+and deployed and returns 200 live, the three wrong prices in `PRICE_POINTS` are
+corrected, the product identifiers are pinned, and Render is on the paid plan
+with a disk. One item survives.
 
-### The three values `eas.json` needs
-
-`submit.production` is empty and now has real values:
-
-```
-appleId:     hashimsherif2005@gmail.com
-ascAppId:    6809437011
-appleTeamId: BZ5RDB2NVC
-```
-
-### The four product identifiers, fixed forever
-
-```
-pro.lifetime     Non-Consumable, AED 149.00, Family Sharing ON
-credits.small    Consumable, $2.99
-credits.medium   Consumable, $4.99
-credits.large    Consumable, $9.99
-```
-
-StoreKit matches these literally. Family Sharing on `pro.lifetime` is
-irreversible and was confirmed deliberately: the flat-rate product is shared,
-credits are not, and Apple does not offer sharing on consumables anyway.
-
-### Three wrong prices in `purchases.ts`
-
-Apple generated the whole matrix from a base of AED 149.00. `PRICE_POINTS` is
-wrong in three places. **A Saudi user would currently be quoted SAR 149.99 and
-charged SAR 179.99**, which is precisely what that table's own comment says
-Guideline 3.1.2 exists to prevent.
-
-```
-SA: 'SAR 149.99'        ->  'SAR 179.99'     (20% low)
-GB: '£34.99'            ->  '£39.99'
-DE, FR, ES, IT, NL:
-    '€39.99'            ->  '€44.99'
-```
-
-Confirmed correct, leave alone: `AE 'AED 149'`, `QA 'QAR 149.99'`, `US '$39.99'`.
-
-Still unverified and should be treated as wrong until read off App Store
-Connect: `KW`, `BH`, `OM`, `EG`, `CA`, `IN`, `PK`, `PH`.
-
-The table dies when StoreKit is wired, since `displayPrice` comes back already
-localised. Until then it is what the paywall shows.
-
-### `/health` answers 404 to a HEAD request
-
-GET returns 200. `server/routes.ts` registers `/health` as `method: 'GET'` and
-matches exactly, so every load balancer, uptime checker and platform probe that
-leads with HEAD reads this service as broken. Found the hard way: a new uptime
-monitor reported the service down while it was demonstrably up.
-
-### The credit ledger needs a durable store that is not a Render disk
-
-Render stays on the free plan by decision, so there is no persistent disk.
-`server/credit-ledger.ts` correctly refuses to sell into a store that forgets,
-which means **credits cannot reach a paying user at all** in the current shape.
-It needs a free durable backend: Postgres, Turso, Upstash, whatever fits. The
-same question applies to `EXPYR_GUIDANCE_DIR`, which is memory-only today.
-
-### The service is now kept awake, deliberately
-
-An UptimeRobot keyword monitor hits `/health` every five minutes, looking for
-the string `"ok":true`. Cold start was measured at **52.7 seconds** and is now
-about 0.2. So the free instance no longer sleeps, and the in-memory guidance
-cache survives between requests. That is intentional, not a fluke.
-
-### A Bill category would make the listing honest
-
-The App Store description now mentions bills. Today they are reachable only
-through **Other plus recurrence**, which works but is thin. A first-class Bill
-type in `src/data/document-types.ts`, with a sensible default lead time and a
-generic label, would make the claim solid rather than merely defensible. No
+**A Bill category.** `src/data/document-types.ts` still has thirteen types and
+none of them is a bill. The App Store listing now says `Documents, bills &
+renewals` in the subtitle and describes "a payment that falls due every month"
+in the body, and today that is reachable only through **Other plus recurrence**.
+It works, and it is thin. A first-class Bill type with a sensible default lead
+time and a generic label would make the claim solid rather than defensible. No
 UAE-specific guidance needed.
 
-### International work, already briefed separately
-
-- `trade-license` has no `genericLabel`, so a US user sees a UAE concept
-- `driving-license` carries the British spelling in a listing now declared as
-  English (U.S.)
-- The type picker may still offer Emirates ID to somebody in Canada
-- **Do not remove the verified/generated distinction.** It is what stops AI
-  guidance reading as authoritative, and the App Review notes now describe it
-  to Apple explicitly
+**And one for whoever holds the account**: the privacy labels published today
+say Data Not Linked to You. Sign in with Apple makes that false. They have to
+change in the same week, not after.
 
 ---
 
 ## 1. Apple admits you — YOU, done
 
 - [x] Enrol as an **Individual**, $99, paid 6 September
-- [x] **Admitted**, confirmed 7 September. The third attempt was the one that
-      worked, after the name on the Apple Account was corrected to match the
-      government ID. Support case 102951349112 was never needed
+- [x] **Admitted 7 September.** App Store Connect access confirmed by email
 
 ## 2. App Store Connect — YOU, done 7 September
 
-**All of it is finished.** The ordered version, with the reasoning and the
-exact screens, is **`business/APP-STORE-CONNECT.md`**. What was done:
+**All of it.** The ordered version, with the reasoning and the exact screens, is
+`business/APP-STORE-CONNECT.md`. What was done, in the order Apple forces:
 
-- [x] **Digital Services Act trader question**, answered 7 September: not a
-      trader, because there is no plan to sell in the EU. Active. Declaring
-      trader would
-      have published a home address and phone number on the product page in all
-      27 EU territories, and would have needed business documents that do not
-      exist. Reversible per account and per app
-- [x] **Legal entity information** updated
-- [x] **Paid Apps agreement signed**, 7 September
-- [x] **Small Business Program**, submitted 7 September. All four
-      associated-account questions No, proceeds declaration ticked.
-
-      This entry used to say "before setting any prices", and that is not
-      Apple's rule. The rule is a lag: the reduced rate applies fifteen days
-      after the end of the fiscal month in which enrolment is approved
-- [x] **Two tax forms**, both Active, 7 September. Apple asked for the U.S.
-      Certificate of Foreign Status first, which carries no treaty section and
-      no TIN field, then the W-8BEN itself, which carries both. Part II left
-      empty because there is no US treaty with the UAE, and both TIN fields
-      left empty because the UAE issues no tax number to individuals
-- [x] **Banking**, FAB, AED. **Active** the same afternoon, faster than the 24
-      hours Apple warned about, which took the Paid Apps agreement to Active
-      with it.
-
+- [x] **Digital Services Act trader question.** Answered *not a trader*, because
+      there is no plan to sell in the EU. Declaring trader would have published a
+      home address and phone number on the product page in all 27 EU
+      territories, and would have needed business documents that do not exist.
+      Reversible per account and per app
+- [x] **Legal entity information**, which blocks the agreement until it is set
+- [x] **Paid Applications agreement signed**, and **Active** the same afternoon
+- [x] **Banking**, FAB, AED. Active faster than the 24 hours Apple warned about.
       One thing still worth a look: royalty currency reads USD against an AED
-      account, so FAB may be taking the conversion spread rather than Apple.
+      account, so FAB may be taking the conversion spread rather than Apple
+- [x] **Two US tax forms**, both Active. Apple asked for the Certificate of
+      Foreign Status first, which carries no treaty section and no TIN field,
+      then the W-8BEN, which carries both. Part II left empty because there is
+      no US treaty with the UAE, and both TIN fields left empty because the UAE
+      issues no tax number to individuals
+- [x] **Small Business Program submitted.** All four associated-account
+      questions No. Apple's own page says the reduced rate applies **fifteen
+      days after the end of the fiscal month in which enrolment is approved**,
+      so roughly six weeks, which is why it was worth doing before there was
+      anything to sell
 - [x] **App record created.** Apple ID `6809437011`, bundle `com.expyr.app`,
       SKU `expyr-ios-01`, name `Expyr: Expiry Reminders`, primary language
-      **English (U.S.)**, not U.K. as this entry used to say. All 17 user-facing
-      "colour" spellings turned out to be code comments, and the user-facing
-      "licence" spellings stay British because the RTA issues a driving licence
-      and the document in the reader's hand says so
-- [x] **Subtitle, categories, content rights, age rating.** Subtitle
-      `Documents, bills & renewals`, Productivity and Utilities, content rights
-      answered **yes** because brand logos are third-party content shown under
-      nominative use, age rating **4+** with no override
-- [x] **Pricing and availability.** Free app, **all 175 storefronts** and
-      future ones automatically. Apple Silicon Mac and Apple Vision Pro both
-      unticked: untested platforms, and Apple itself flagged 1.0 as
-      incompatible with Vision Pro
-- [x] **App Privacy published.** Three data types, all **Data Not Linked to
-      You**, all App Functionality, none used for tracking: Photos or Videos,
-      Other User Content, Device ID. **These labels expire the day Sign in with
-      Apple ships**, because an Apple subject identifier and a server-side
-      balance are data linked to identity
-- [x] **All four in-app purchases created**, priced and localised. See the
-      handover above for the identifiers and the three price corrections they
-      revealed
-- [x] **Sandbox tester** created, UAE region, so it sees AED 149. Idle until a
-      development build exists, because IAPs do not run in Expo Go
-- [x] **The 1.0 version page**: promotional text, description, keywords,
-      support URL, copyright, review notes and the sample document attached.
-      Release set to **manual**, so the app does not go live at 3am
-- [ ] **Screenshots**, 6.7" and 6.5", plus one purchase-screen shot attached to
-      each of the four products. **Needs the app running.** This and a build
-      are the only things left before submission
+      **English (U.S.)**. The user-facing "licence" spellings stay British
+      anyway, because the RTA issues a driving licence and the document in the
+      reader's hand says so
+- [x] **Subtitle, categories, content rights.** `Documents, bills & renewals`,
+      Productivity and Utilities, content rights answered **yes** because brand
+      logos are third-party content shown under nominative use
+- [x] **Age rating: 4+**, no override
+- [x] **Pricing and availability.** Free app, **all 175 storefronts** and future
+      ones automatically. Apple Silicon Mac and Vision Pro both unticked:
+      untested platforms, and Apple itself flagged 1.0 as incompatible with
+      Vision Pro
+- [x] **App Privacy published.** Photos or Videos, Other User Content and Device
+      ID, all **Data Not Linked to You**, all App Functionality, none used for
+      tracking. **These labels expire the day Sign in with Apple ships**,
+      because a subject identifier and a server-side balance are linked to
+      identity
+- [x] **All four products created**, priced and localised. The identifiers match
+      `PRO_PRODUCT_ID` and `PACKS` in the code, which is the authority:
 
-## 3. Render — YOU, deferred 7 September
+      | Identifier | Type | Base price |
+      |---|---|---|
+      | `pro.lifetime` | Non-Consumable, **Family Sharing on, irreversibly** | AED 149.00, UAE |
+      | `credits.small` | Consumable | $2.99, US |
+      | `credits.medium` | Consumable | $4.99, US |
+      | `credits.large` | Consumable | $9.99, US |
 
-**Decision: no upgrade until there is revenue.** Recorded rather than argued.
-The consequences are specific and they land on other steps rather than on this
-one.
+      Pro is based in the UAE because AED 149 is a judgment about what the home
+      market pays. Credits are based in the US because the cost is in dollars
+      and the margin test in `credit-packs.test.ts` is written in dollars.
 
-The $7 Starter plan bought three things, and deferring it keeps all three
-problems:
+      **What Apple generated pays less at home than abroad.** After local tax
+      and the 15% commission: UAE **AED 120.62** (~$32.84), US **$33.99**,
+      eurozone **€32.14**, UK **£28.33**, Saudi **SAR 133.03**, Qatar
+      **QAR 127.49**. The UAE is the lowest of the six
+- [x] **Sandbox tester**, UAE region so it sees AED 149. Idle until there is a
+      development build, because IAPs do not run in Expo Go
+- [x] **The 1.0 version page**: promotional text, description, keywords, support
+      URL, copyright, review notes, sample document attached. Release set to
+      **manual**, so the app does not go live at 3am
 
-- **Credits cannot be sold.** The ledger needs a **persistent disk**. Without
-  one `server/credit-ledger.ts` falls back to memory and refuses to sell into a
-  store that forgets. That refusal is correct behaviour, not a bug, and it is
-  absolute rather than degraded
-- **The cold start stays, and it is far worse than this file used to say.**
-  Measured on 7 September against the live service, cold: **52.7 seconds** to
-  answer `/health`. This file recorded 22 seconds. Scanning is the app's core
-  action, so that is most of a minute of nothing happening on the one thing the
-  app is for, and it is a Guideline 2.1 rejection waiting to be met.
+## 3. Upgrade Render to the $7 plan — YOU, done 7 September
 
-  Corroborated the same evening: the first check from the new uptime monitor,
-  run from North Virginia, timed out during the wake and reported the service
-  **down**. It was not down, it was asleep. That is the conclusion an automated
-  client reached about this service, unprompted, and it is the conclusion a
-  reviewer would reach too
-- **The guidance cache is wiped every time the service sleeps.** `/health`
-  reports `guidanceCache: "memory"` and `guidanceHeld: 0`, because there is no
-  disk. The cache lives in the process, and on the free plan the process dies
-  every fifteen idle minutes. So renewal guidance is not generated once and
-  shared forever, as `PRICING.md` describes. It is regenerated after every idle
-  period, at roughly $0.07 of Sonnet and web search each time, capped at
-  `EXPYR_GUIDANCE_DAILY_NEW` of 40 a day. That ceiling is **$2.80 a day**, or
-  $84 a month, against a $7 disk and a $20 monthly Anthropic cap
-- **The reading bug stays undiagnosed.** The paid plan was the last untested
-  explanation for a 14 page contract stopping at page 12
+Not optional any more, and it buys three things at once:
 
-Two of the three have free workarounds. The third does not.
+- The credit ledger needs a **persistent disk**. Without one it falls back to
+  memory and refuses to sell, which is correct and also means credits cannot
+  work at all
+- The **22 second cold start** goes. App Review would read that as a broken app
+- It is the leading remaining explanation for **reading not finishing**: a
+  tenth of a shared CPU parsing multi-megabyte PDFs
 
-- [x] **Service kept warm by an external ping**, done 7 September. UptimeRobot free plan. **Keyword** monitor named Expyr scanner, 5 minute interval, email alerts to hashim.elsaeed@gmail.com, raising an incident when the string ok true is absent from /health. Keyword rather than plain HTTP for the reason below, and it is the better check anyway: it asks whether the service reported itself healthy, not merely whether something answered. Measured before and after against the live service: **52.673s cold, then 0.241s, 0.429s, 0.188s warm**.
+- [x] Upgrade the instance. Starter, 0.5 CPU rather than 0.1
+- [x] Attach a disk at `/var/data` and set `EXPYR_CREDITS_DIR`
+- [x] Set `EXPYR_GUIDANCE_DIR` too, so the guidance cache survives a deploy
+- [x] Set the three Apple keys, or `/purchase/redeem` refuses every purchase:
 
-      One thing found in the doing: **/health answers 404 to a HEAD request**
-      and 200 to a GET. UptimeRobot sends HEAD by default, so the monitor sat
-      red while the service was demonstrably awake. UptimeRobot only exposes the HTTP
-      method setting on paid plans, so it cannot be changed to GET. Worked
-      around with a Keyword monitor, which has to download the body to search
-      it and therefore sends a GET regardless of the locked setting. The underlying bug is still there:
-      server/routes.ts registers /health as method GET and matches exactly, so
-      every load balancer, uptime checker and platform probe that leads with
-      HEAD will read this service as broken. Worth fixing in the router. A free scheduler hitting
-      `https://renewly-scanner.onrender.com/health` every 5 to 10 minutes stops
-      it sleeping. That endpoint is unauthenticated, unmetered and costs
-      nothing, which is why it is the right one to hit.
+      | Variable | Value |
+      |---|---|
+      | `EXPYR_APPLE_KEY_ID` | `2AX49534J2` |
+      | `EXPYR_APPLE_ISSUER_ID` | `51eccb44-a2ab-4d3c-852f-362796657233` |
+      | `EXPYR_APPLE_KEY` | the contents of the .p8, which never goes in this repo |
 
-      This does two jobs, not one. It removes the 52 second cold start, and it
-      keeps the process alive so the in-memory guidance cache survives. On the
-      free plan those are the same fix.
+      **Paste the whole .p8, including the BEGIN and END lines.** Without them
+      it is base64 text rather than a PEM key, and it fails at the first
+      purchase as a 401 from Apple with no explanation. It happened.
 
-      The arithmetic is tighter than it first looks. Render allows **750
-      instance hours per workspace per month**, shared across every free
-      service, and hours are only consumed while the service is awake. Staying
-      awake all month costs 720 hours in a 30 day month and **744 in a 31 day
-      month**, against an allowance of 750. It fits, with six hours of margin,
-      and only if renewly-scanner is the sole free service in the workspace.
+- [x] **Verified live.** `GET /health` reports every one of these, so a deploy
+      that half worked says so instead of looking identical to one that did:
 
-      Running out suspends **all** free web services until the start of the
-      next month, so the counter is worth checking in the first week rather
-      than assuming
-- [ ] **Move the ledger to a free durable store** if credits are to ship at
-      all: a free Postgres, Upstash, Turso or equivalent. This substitutes
-      engineering time for $7 a month, and it is work the coding session has
-      not yet been asked for
-- [ ] **Reading may stay broken.** There is no free substitute for a faster
-      CPU. If it does not finish on the free plan, the choice is to pay the $7
-      or to ship without it
-
-This sits against §5 and §7, which both assume credits can be sold and reading
-can be made to work. Version one was kept at both features on the same day this
-was deferred. The collision is noted here so it is not discovered later.
+      ```
+      creditStore: disk        credits can be sold
+      appleKeyUsable: true     the key actually signs, not merely exists
+      guidanceCache: disk      the disk is mounted and writable
+      ```
 
 ## 4. A development build — ME, needs 1
 
@@ -293,11 +182,28 @@ This is the wall between here and credits surviving a new phone.
 
 ## 5. Make the money work — ME, needs 2 and 3
 
-- [ ] Wire StoreKit: `purchase()` and `restore()` in `src/lib/purchases.ts`
-      currently return `ok: false`, which is a guaranteed rejection under
-      Guideline 2.1
-- [ ] Grant credits on a completed consumable purchase, in the one place
-      `top-up.tsx` reserves for it
+- [x] **StoreKit wired**, on expo-iap rather than a third party. `purchase()`,
+      `purchaseCredits()` and `restore()` are real; the paywall and the top-up
+      screen call them; an interrupted purchase is recovered at launch
+- [x] **Credits granted on a verified purchase.** The service asks Apple's App
+      Store Server API what the transaction was, `server/products.ts` decides
+      what it is worth, and the ledger pays a transaction identifier once
+- [x] **Tested on the phone, 7 September.** All three of them: a credit pack
+      credited 0 to 1,500, a second pack added rather than replaced, and Expyr
+      Pro entitled instantly. The balance survived a force quit, which is the
+      one that proves the credits live on Render's disk rather than in the
+      phone's memory, and is what the paid plan was bought for.
+
+      Two things had to be true that were not obvious. The sandbox account is
+      signed in under **Settings, Developer, Sandbox Apple Account**, not
+      Settings, App Store, where Apple's own documentation still points; and a
+      real Apple Account cannot buy in the sandbox at all, which surfaces as
+      "not authorised to make purchases" and reads like a code fault.
+
+- [x] **Paid Applications agreement Active, 7 September.** With banking
+      (AED, royalties in USD), both tax forms, and the Digital Services Act
+      declaration, across 175 countries. Nothing commercial blocks selling any
+      more; what remains before launch is the app itself
 - [ ] Move spending to the server. `/read` and `/ask` still trust the balance
       the phone reports, and a balance in local storage is a number its owner
       can edit
@@ -380,47 +286,47 @@ work removed.
 
 - [x] **App icon** — already exists at `assets/images/icon.png`: a sheet of
       paper with the corner turned, deep green on warm off-white, built from
-      the design system on 31 August. Android adaptive and splash variants too.
-      Worth one check at home-screen size, where the fold may be too fine to
-      read, but this is not an outstanding item
+      the design system on 31 August. Android adaptive and splash variants too
 - [x] **Sample document attached** to App Review Information, so a reviewer can
       test scanning without owning a UAE document
-- [x] **App Privacy labels published.** Photos or Videos, Other User Content and
-      Device ID, all Data Not Linked to You, all App Functionality, none used
-      for tracking. Declaring "no data collected" would have contradicted both
-      the privacy policy and the observable traffic
+- [x] **App Privacy labels published.** Declared as collected rather than not,
+      because Apple's definition of "collect" covers what a third-party partner
+      can access, and Anthropic can. Not linked to identity, not used for
+      tracking
 - [x] **Age rating: 4+**, no override. This entry used to warn that Apple's
       questionnaire asks about AI and chatbots. **It does not.** Walked end to
-      end on 7 September: seven steps, none of them about AI. The nearest is
-      "Messaging and Chat", defined as users communicating with one another,
-      which Expyr has none of. The AI is disclosed in the review notes instead,
-      which is where a reviewer actually reads it
+      end on 7 September: seven steps, none about AI. The nearest is "Messaging
+      and Chat", defined as users communicating *with one another*, which Expyr
+      has none of. The AI is disclosed in the review notes instead, which is
+      where a reviewer actually reads it
 - [x] **Review notes pasted**, from `review-notes.txt` rather than `STORE.md`.
       **The block in `STORE.md` is 6,034 characters and the field caps at
-      4,000.** It would have truncated silently, mid-way through the business
-      model section, which is the part that prevents a 3.1.1 rejection. The
-      cut version is 3,993 characters
+      4,000.** It would have truncated silently, part-way through the business
+      model section, which is the part that prevents a 3.1.1 rejection. The cut
+      version is 3,993
 - [ ] **Screenshots**, 6.7" and 6.5". Guideline 2.3.3 rejects title art and
       splash screens; show the app in use. **One should show the subscription
-      scan working**, since that feature sells itself by being seen rather than
-      listed, and the listing now leads on it
+      scan working**, since the listing now leads on it and that feature sells
+      itself by being seen rather than listed
+- [ ] **One purchase-screen shot attached to each of the four products.** Apple
+      will not let a product leave Prepare for Submission without it
 
 ## 10. Submit
 
 - [ ] Test everything on the development build, not Expo Go
 - [x] **Cold start handled.** Measured at 52.7 seconds on the free plan, which
-      an uptime monitor read as the service being down. Now about 0.2 seconds,
-      because an UptimeRobot keyword monitor hits `/health` every five minutes
-      and the instance never sleeps. Free, and inside Render's 750 monthly
-      instance hours with roughly six to spare in a 31 day month
+      an uptime monitor read as the service being *down* the first time it
+      looked. That is the conclusion App Review would have reached. An
+      UptimeRobot keyword monitor now hits `/health` every five minutes looking
+      for `"ok":true`, and the paid plan does not sleep in any case
 - [ ] **Raise the Anthropic spend limit.** Still $20/month with a $10
       notification, sized for one developer rather than an audience. At roughly
       $0.08 of API cost per install that runs out at about **250 installs in a
       month**, and the failure is not a bill you regret: the API starts
       refusing, scanning stops working, and the first reviews Expyr ever gets
       are about a feature that had simply stopped. Raise to **$150 with the
-      notification at $50** before launch. Auto-reload stays off; a breaker
-      that rearms itself is not one
+      notification at $50** before launch. Auto-reload stays off; a breaker that
+      rearms itself is not one
 
 ---
 

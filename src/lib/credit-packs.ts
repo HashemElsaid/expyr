@@ -1,4 +1,5 @@
 import { CREDIT_COST_USD, CREDITS_PER_PAGE, type Credits } from '@/domain/credits';
+import type { CreditPackId } from '@/lib/products';
 
 /**
  * What a top-up costs, and what it buys.
@@ -19,7 +20,7 @@ import { CREDIT_COST_USD, CREDITS_PER_PAGE, type Credits } from '@/domain/credit
  */
 export type Pack = {
   /** Matches the product identifier in App Store Connect. */
-  id: 'credits.small' | 'credits.medium' | 'credits.large';
+  id: CreditPackId;
   credits: Credits;
   /**
    * Apple's price points for this pack, by storefront. Placeholders until

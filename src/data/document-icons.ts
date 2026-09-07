@@ -14,6 +14,7 @@ export const DOCUMENT_ICONS: Record<DocumentTypeId, string> = {
   'health-insurance': 'hospital-box-outline',
   'tenancy-ejari': 'home-outline',
   'trade-license': 'briefcase-outline',
+  'professional-license': 'certificate-outline',
   'labor-card': 'badge-account-outline',
   membership: 'ticket-outline',
   warranty: 'wrench-outline',

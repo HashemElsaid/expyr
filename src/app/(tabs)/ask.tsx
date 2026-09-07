@@ -285,7 +285,7 @@ export default function AskScreen() {
                   Nothing to ask about yet
                 </ThemedText>
                 <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                  Add something and you can ask about it here — when it expires, what it cost,
+                  Add something and you can ask about it here. When it expires, what it cost,
                   who it belongs to. Attach a contract and Expyr reads it too, so you can ask what
                   it actually says and get the clause back.
                 </ThemedText>

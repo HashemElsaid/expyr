@@ -122,7 +122,19 @@ const server = createServer(async (req, res) => {
   const note = (extra: Partial<LogFields>) => Object.assign(fields, extra);
 
   try {
-    if (!route || route.method !== req.method) {
+    /*
+     * HEAD is GET without the body, and HTTP says so. Anything answering GET
+     * has to answer HEAD, and node discards the body for us.
+     *
+     * This was found the hard way: an uptime monitor reported the service down
+     * while it was demonstrably serving every request, because it led with
+     * HEAD and got a 404. Load balancers, uptime checkers and platform health
+     * probes nearly all do, so the service read as broken to every automated
+     * thing that looked at it while looking perfect to everything that used
+     * it.
+     */
+    const wanted = req.method === 'HEAD' ? 'GET' : req.method;
+    if (!route || route.method !== wanted) {
       throw new ServiceError('not_found', 'Not found');
     }
 

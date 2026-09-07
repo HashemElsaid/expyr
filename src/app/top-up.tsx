@@ -7,11 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION } from '@/domain/credits';
+import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, topUp } from '@/domain/credits';
+import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
 import { pagesIn, PACKS, priceOf, type Pack } from '@/lib/credit-packs';
 import { region } from '@/lib/purchases';
-import { tapFeedback } from '@/lib/haptics';
+import { successFeedback, tapFeedback } from '@/lib/haptics';
+import { purchaseCredits } from '@/lib/purchases';
 import { useSettings } from '@/store/settings';
 
 /**
@@ -27,7 +29,7 @@ import { useSettings } from '@/store/settings';
 export default function TopUpScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   /** The middle pack, which is the one most people should take. */
   const [chosen, setChosen] = useState<Pack>(PACKS[1]);
   const [busy, setBusy] = useState(false);
@@ -39,6 +41,13 @@ export default function TopUpScreen() {
    * against another is the app looking like two apps.
    */
   const here = region();
+  /*
+   * Apple's own prices, which are right for all 175 storefronts rather than
+   * the nineteen written down, and right when they change. `priceOf` is the
+   * fallback for a build with no store in it.
+   */
+  const storePrices = useStorePrices();
+  const priceFor = (pack: Pack): string => storePrices[pack.id] ?? priceOf(pack, here);
 
   function close() {
     if (router.canGoBack()) router.back();
@@ -48,17 +57,27 @@ export default function TopUpScreen() {
   async function buy() {
     tapFeedback();
     setBusy(true);
-    /*
-     * Nothing is granted until StoreKit is wired. A screen that handed out
-     * credits on a tap would be a way to read documents for free, and the
-     * pretence would have to be unpicked later anyway. When it is wired, the
-     * grant belongs here and nowhere else.
-     */
+    const outcome = await purchaseCredits(chosen.id);
     setBusy(false);
-    Alert.alert(
-      'Not available yet',
-      'Buying credits needs App Store Connect. Everything else works.'
-    );
+
+    // Changing your mind is not an error, and an alert about it is a scolding.
+    if (!outcome.ok) {
+      if (outcome.cancelled) return;
+      Alert.alert('That did not go through', outcome.message);
+      return;
+    }
+
+    /*
+     * The service has already granted them and its balance is the one that
+     * counts. This writes the phone's copy, keyed on Apple's transaction id so
+     * the same purchase arriving twice, which it will, is recorded once.
+     */
+    const { credits = 0, transactionId } = outcome.redeemed;
+    update({
+      credits: topUp(settings.credits, credits, `${credits.toLocaleString('en-US')} credits`, new Date(), transactionId),
+    });
+    successFeedback();
+    close();
   }
 
   return (
@@ -137,7 +156,7 @@ export default function TopUpScreen() {
                   }}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: picked }}
-                  accessibilityLabel={`${pack.credits} credits for ${priceOf(pack, here)}`}>
+                  accessibilityLabel={`${pack.credits} credits for ${priceFor(pack)}`}>
                   {({ pressed }) => (
                     <View
                       style={[
@@ -161,7 +180,7 @@ export default function TopUpScreen() {
                           {pagesIn(pack).toLocaleString('en-US')} pages
                         </ThemedText>
                       </View>
-                      <ThemedText type="numeral">{priceOf(pack, here)}</ThemedText>
+                      <ThemedText type="numeral">{priceFor(pack)}</ThemedText>
                     </View>
                   )}
                 </Pressable>
@@ -179,7 +198,7 @@ export default function TopUpScreen() {
                     (pressed || busy) && styles.dim,
                   ]}>
                   <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
-                    {busy ? 'One moment' : `Buy for ${priceOf(chosen, here)}`}
+                    {busy ? 'One moment' : `Buy for ${priceFor(chosen)}`}
                   </ThemedText>
                 </View>
               )}

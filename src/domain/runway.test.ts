@@ -36,7 +36,8 @@ describe('buildRunway on the run-up scale', () => {
    * 99.0% and 99.9% — inside twelve pixels of each other.
    */
   it('gives the reminders room to sit apart', () => {
-    const runway = buildRunway(19, LEADS, EMIRATES_ID);
+    // 45 days out, so all three warnings are still ahead and all three draw.
+    const runway = buildRunway(45, LEADS, EMIRATES_ID);
 
     expect(runway?.scale).toBe('runUp');
     expect(runway?.span).toBe(90);
@@ -44,6 +45,29 @@ describe('buildRunway on the run-up scale', () => {
 
     const gaps = runway!.reminders.slice(1).map((r, i) => r - runway!.reminders[i]);
     for (const gap of gaps) expect(gap).toBeGreaterThan(0.05);
+  });
+
+  /*
+   * A sent reminder used to be drawn as a slot punched through the filled part
+   * in the page colour, and a hairline gap in a solid bar is indistinguishable
+   * from the screen tearing. It was reported as a glitch, which is exactly
+   * what it looked like.
+   */
+  it('draws only the warnings still to come', () => {
+    // 19 days left: the 30-day warning went out eleven days ago.
+    const runway = buildRunway(19, LEADS, EMIRATES_ID);
+
+    expect(runway?.reminders.map((r) => Math.round(r * 1000) / 10)).toEqual([92.2, 98.9]);
+    for (const at of runway!.reminders) expect(at).toBeGreaterThan(runway!.now);
+  });
+
+  it('draws no warnings at all once every one has been sent', () => {
+    // Netflix, three days out, warning at 14 and 3. Both have fired.
+    expect(buildRunway(3, [14, 3], 365)?.reminders).toEqual([]);
+  });
+
+  it('draws none on something already expired', () => {
+    expect(buildRunway(-4, LEADS, EMIRATES_ID)?.reminders).toEqual([]);
   });
 
   it('puts today where today is', () => {
@@ -65,7 +89,7 @@ describe('buildRunway on the run-up scale', () => {
   });
 
   it('draws a run-up even for a type with no known validity', () => {
-    const runway = buildRunway(19, LEADS, undefined);
+    const runway = buildRunway(45, LEADS, undefined);
     expect(runway?.scale).toBe('runUp');
     expect(runway?.reminders).toHaveLength(3);
   });

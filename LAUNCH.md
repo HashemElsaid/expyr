@@ -62,12 +62,31 @@ sections 5, 6 and 7 move behind the launch instead of in front of it.
       ever stop doing so. Fifteen per cent is upside on top, not a premise.
 - [ ] Create the app record in App Store Connect, bundle id `com.expyr.app`.
       Everything else in App Store Connect hangs off this existing
-- [ ] Create **one non-consumable**: Expyr Pro, AED 149, Family Shareable
-- [ ] Create **three consumables**: `credits.small`, `credits.medium`,
-      `credits.large`. Set a base price and let Apple generate the other 174
-      storefronts. **The local prices in `src/lib/credit-packs.ts` are
-      placeholders written from memory.** Replace them with what Apple
-      generates
+
+- [ ] **Sign the Paid Applications agreement, and get banking and tax to
+      Active.** Nothing can be sold until all three say Active in Business.
+      Bank details alone are not enough, and the tax forms are the slow part.
+      This blocks selling even after every product below exists.
+
+- [ ] **Create exactly these four products.** The identifiers are permanent:
+      Apple does not allow one to be renamed, reused or deleted once created,
+      so a typo here is a product that has to be abandoned. They are read from
+      the code, not invented, and the code is the authority.
+
+      | Identifier | Type | Credits | Price | Source in repo |
+      |---|---|---|---|---|
+      | `pro.lifetime` | Non-Consumable, Family Shareable | n/a | AED 149 | `PRO_PRODUCT_ID` in `src/lib/purchases.ts` |
+      | `credits.small` | Consumable | 1,500 | $2.99 | `PACKS` in `src/lib/credit-packs.ts` |
+      | `credits.medium` | Consumable | 3,000 | $4.99 | same |
+      | `credits.large` | Consumable | 6,500 | $9.99 | same |
+
+      Set one base price per product and let Apple generate the other 174
+      storefronts. **The local prices in both files are placeholders written
+      from memory**; replace them with whatever Apple actually generates.
+
+- [ ] Create a **sandbox tester** under Users and Access. A real Apple Account
+      cannot buy from a build that is not on the store, so without this there
+      is no way to test a purchase at all
 
 ## 3. Upgrade Render to the $7 plan — YOU
 

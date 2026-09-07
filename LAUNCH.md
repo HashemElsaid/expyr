@@ -139,9 +139,22 @@ This is the wall between here and credits surviving a new phone.
 - [x] **Credits granted on a verified purchase.** The service asks Apple's App
       Store Server API what the transaction was, `server/products.ts` decides
       what it is worth, and the ledger pays a transaction identifier once
-- [ ] **Test a sandbox purchase on the phone.** Needs a new development build,
-      the three Apple environment variables, the paid Render plan, and a
-      sandbox tester. Nothing above has been through a real till
+- [x] **Tested on the phone, 7 September.** All three of them: a credit pack
+      credited 0 to 1,500, a second pack added rather than replaced, and Expyr
+      Pro entitled instantly. The balance survived a force quit, which is the
+      one that proves the credits live on Render's disk rather than in the
+      phone's memory, and is what the paid plan was bought for.
+
+      Two things had to be true that were not obvious. The sandbox account is
+      signed in under **Settings, Developer, Sandbox Apple Account**, not
+      Settings, App Store, where Apple's own documentation still points; and a
+      real Apple Account cannot buy in the sandbox at all, which surfaces as
+      "not authorised to make purchases" and reads like a code fault.
+
+- [ ] **Production purchases still need the Paid Applications agreement
+      Active.** Sandbox works without it. Selling does not, so a build that
+      passes review and cannot take money is the failure this line exists to
+      prevent
 - [ ] Move spending to the server. `/read` and `/ask` still trust the balance
       the phone reports, and a balance in local storage is a number its owner
       can edit

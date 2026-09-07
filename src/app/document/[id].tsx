@@ -22,6 +22,7 @@ import { portalFor, whereFor } from '@/data/regions';
 import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { useUrgency } from '@/hooks/use-urgency';
+import { buildRunway, spanLabel } from '@/domain/runway';
 import { dayMonth, daysUntil, longDate, shortDate, verdictPhrase } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
@@ -201,6 +202,7 @@ export default function DocumentDetailScreen() {
   const canRoll = RENEWAL_PERIOD_DAYS[doc.typeId] !== undefined;
   const period = RENEWAL_PERIOD_DAYS[doc.typeId];
   const reminders = reminderDates(doc);
+  const runway = buildRunway(days, doc.leadDays, period);
   const blockers = guided ? findBlockers(doc, documents) : [];
   const notes = guided ? notesFor(doc.typeId) : [];
   const fired = reminders.filter((r) => r.past);
@@ -254,31 +256,69 @@ export default function DocumentDetailScreen() {
             {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}.
           </ThemedText>
 
-          {period && (
+          {runway && (
             <View style={styles.runway}>
-              <View style={[styles.runwayLine, { backgroundColor: theme.border }]} />
-              {reminders.map((r) => {
-                const elapsed = (period - r.lead) / period;
-                if (elapsed < 0 || elapsed > 1) return null;
-                return (
+              {/*
+                * Inset by the radius of the marker, so the marker still sits
+                * whole inside the track on the day itself, when it is at 100%.
+                */}
+              <View style={styles.runwayTrack}>
+                <View style={[styles.runwayRail, { backgroundColor: theme.border }]} />
+                <View
+                  style={[
+                    styles.runwayFill,
+                    { backgroundColor: color, width: `${runway.now * 100}%` },
+                  ]}
+                />
+                {/*
+                  * A reminder already sent is punched out of the filled part
+                  * in the page colour; one still to come is a mark on the bare
+                  * rail. Drawn in one ink they were a grey line on a brown
+                  * band, which is neither.
+                  */}
+                {runway.reminders.map((at, i) => (
                   <View
-                    key={r.lead}
+                    key={i}
                     style={[
-                      styles.tick,
-                      { backgroundColor: theme.textTertiary, left: `${Math.round(elapsed * 100)}%` },
+                      styles.runwayNotch,
+                      {
+                        backgroundColor: at <= runway.now ? theme.background : theme.textTertiary,
+                        left: `${at * 100}%`,
+                      },
                     ]}
                   />
-                );
-              })}
-              <View
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor: color,
-                    left: `${Math.round(Math.min(1, Math.max(0, (period - days) / period)) * 100)}%`,
-                  },
-                ]}
-              />
+                ))}
+                {/*
+                  * The ring around the marker is the page colour, so wherever
+                  * today has already passed a reminder the marker punches a
+                  * clean hole through it rather than smudging into it.
+                  */}
+                <View
+                  style={[
+                    styles.runwayNow,
+                    {
+                      backgroundColor: color,
+                      borderColor: theme.background,
+                      left: `${runway.now * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+
+              <View style={styles.runwayScale}>
+                <ThemedText type="label" themeColor="textTertiary">
+                  {spanLabel(runway)}
+                </ThemedText>
+                {/*
+                  * Names the end of the axis rather than repeating the date,
+                  * which the sentence two lines above has already given in
+                  * full. A chart caption that echoes the paragraph over it is
+                  * the second time somebody reads the same thing.
+                  */}
+                <ThemedText type="label" themeColor="textTertiary">
+                  {doc.renewsEvery ? 'Renews' : 'Expires'}
+                </ThemedText>
+              </View>
             </View>
           )}
 
@@ -857,10 +897,21 @@ const styles = StyleSheet.create({
   pointRow: { gap: 2, paddingTop: Spacing.two },
   reminderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' },
   sent: { textDecorationLine: 'line-through' },
-  runway: { height: 8, justifyContent: 'center' },
-  runwayLine: { position: 'absolute', left: 0, right: 0, top: 3, height: 2 },
-  tick: { position: 'absolute', top: 0, width: 1, height: 8 },
-  dot: { position: 'absolute', top: 1, width: 6, height: 6, borderRadius: 3, marginLeft: -3 },
+  runway: { paddingTop: Spacing.one, gap: 2 },
+  runwayTrack: { height: 26, marginHorizontal: 8 },
+  runwayRail: { position: 'absolute', left: 0, right: 0, top: 10, height: 6, borderRadius: 3 },
+  runwayFill: { position: 'absolute', left: 0, top: 10, height: 6, borderRadius: 3 },
+  runwayNotch: { position: 'absolute', top: 5, width: 2, height: 16, borderRadius: 1, marginLeft: -1 },
+  runwayNow: {
+    position: 'absolute',
+    top: 3,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 3,
+    marginLeft: -10,
+  },
+  runwayScale: { flexDirection: 'row', justifyContent: 'space-between' },
   fileRow: {
     flexDirection: 'row',
     alignItems: 'center',

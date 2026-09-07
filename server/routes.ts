@@ -102,11 +102,40 @@ export type Route = {
  * store is not durable, so a deployment with no disk cannot take money for
  * something it will forget. Render's free plan has no persistent disk, which
  * is exactly the case that rule exists for.
+ *
+ * The directory being unusable is a third case, and it took the whole service
+ * down once. EXPYR_CREDITS_DIR was set to a path on a disk that had not been
+ * attached yet, FileCreditStore's constructor tried to create it, and the
+ * EACCES from that killed the process at import. Scanning, reading, guidance
+ * and reminders all went with it, because of a directory none of them use.
+ *
+ * So a bad directory now falls back to memory, which refuses to sell rather
+ * than selling into a hole, and says so loudly on the way past. Exactly the
+ * rule the Apple credentials already follow: refusing to start is never the
+ * right answer to "this one feature is not configured".
  */
-const creditsDir = process.env.EXPYR_CREDITS_DIR;
-export const creditStore: CreditStore = creditsDir
-  ? new FileCreditStore(creditsDir)
-  : new MemoryCreditStore();
+function openCreditStore(): CreditStore {
+  const dir = process.env.EXPYR_CREDITS_DIR;
+  if (!dir) return new MemoryCreditStore();
+
+  try {
+    return new FileCreditStore(dir);
+  } catch (error) {
+    /*
+     * Deliberately shouted. Somebody who set this variable meant to sell
+     * credits, and is now running a service that will refuse every purchase.
+     * That has to be findable in the logs without reading this file.
+     */
+    console.error(
+      `[expyr] EXPYR_CREDITS_DIR is set to ${dir} but it cannot be written to, so credits cannot be sold. Attach a disk mounted there, or unset the variable. ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    return new MemoryCreditStore();
+  }
+}
+
+export const creditStore: CreditStore = openCreditStore();
 
 /**
  * The bundle identifier every genuine Apple identity token is issued for. A

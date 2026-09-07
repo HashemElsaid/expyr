@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 /**
@@ -295,5 +298,71 @@ describe('redeeming a purchase', () => {
     const body = (await response.json()) as { credits?: number; balance?: number };
     assert.equal(body.credits, undefined);
     assert.equal(body.balance, undefined);
+  });
+});
+
+/*
+ * A directory that cannot be written to took the whole service down once:
+ * EXPYR_CREDITS_DIR pointed at a disk that had not been attached, the store's
+ * constructor tried to create it, and the EACCES killed the process at import.
+ * Scanning, reading, guidance and reminders all went with it, over a directory
+ * none of them use.
+ */
+describe('a credits directory that cannot be written to', () => {
+  const BROKEN_PORT = 8898;
+  const BROKEN = `http://127.0.0.1:${BROKEN_PORT}`;
+  let broken: ChildProcess;
+  /** An ordinary file. Nothing can be created underneath it. */
+  const blocker = join(mkdtempSync(join(tmpdir(), 'expyr-nodisk-')), 'not-a-directory');
+
+  before(async () => {
+    writeFileSync(blocker, 'this is a file, not a mount point');
+    broken = spawn(process.execPath, ['index.ts'], {
+      cwd: import.meta.dirname,
+      env: {
+        ...process.env,
+        PORT: String(BROKEN_PORT),
+        EXPYR_APP_TOKEN: TOKEN,
+        EXPYR_INSTALL_SECRET: 'a-secret-long-enough-for-tests',
+        ANTHROPIC_API_KEY: '',
+        /*
+         * A directory inside a *file*, which no operating system will create.
+         *
+         * The first attempt used an absolute unix path that cannot exist on
+         * Linux, and on Windows it was cheerfully created at C:\proc — so the
+         * store opened, the service started for the ordinary reason, and the
+         * test passed while proving nothing.
+         */
+        EXPYR_CREDITS_DIR: join(blocker, 'credits'),
+      },
+      stdio: 'ignore',
+    });
+
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        if ((await fetch(`${BROKEN}/health`)).ok) return;
+      } catch {
+        // Not listening yet.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error('the service died over a directory it did not need');
+  });
+
+  after(() => {
+    broken?.kill();
+  });
+
+  it('still starts, and still serves everything that has nothing to do with selling', async () => {
+    assert.equal((await fetch(`${BROKEN}/health`)).status, 200);
+  });
+
+  it('refuses to sell rather than selling into a hole', async () => {
+    const response = await fetch(`${BROKEN}/purchase/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-expyr-token': TOKEN },
+      body: JSON.stringify({ transactionId: '2000000123456789', productId: 'credits.large' }),
+    });
+    assert.notEqual(response.status, 200, 'must never grant into a store it cannot write');
   });
 });

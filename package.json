@@ -9,6 +9,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
     "expo": "^57.0.0",
+    "expo-apple-authentication": "~57.0.1",
     "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.17",
     "expo-document-picker": "~57.0.1",

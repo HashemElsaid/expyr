@@ -26,6 +26,19 @@ export type Account = {
    * Its only job is to stop the move happening twice.
    */
   linkedTo?: string;
+  /**
+   * Set on an install whenever somebody signs in on it: whose balance this
+   * phone is spending now.
+   *
+   * Deliberately not the same field as `linkedTo`, although the first version
+   * tried to be. They are two different facts and they come apart in two
+   * ordinary cases. A phone with no credits that signs in has nothing to move,
+   * so `linkedTo` is never set, and a phone stamped only by the move would go
+   * on spending as itself for ever. And somebody signing in on a phone already
+   * linked to another account should spend as the account they just proved,
+   * while the old move must still never repeat.
+   */
+  signedInAs?: string;
 };
 
 export interface CreditStore {
@@ -97,6 +110,8 @@ export class FileCreditStore implements CreditStore {
         seenAt: parsed.seenAt ?? 0,
         // Carried through, or the guard against linking twice never sees it.
         ...(typeof parsed.linkedTo === 'string' ? { linkedTo: parsed.linkedTo } : {}),
+        // And this one, or a phone forgets who it signed in as at every deploy.
+        ...(typeof parsed.signedInAs === 'string' ? { signedInAs: parsed.signedInAs } : {}),
       };
     } catch {
       /*
@@ -225,13 +240,48 @@ export async function link(
   const alreadyThere = target?.balance ?? 0;
 
   if (!install || install.linkedTo || install.balance <= 0) {
-    // Nothing to move, or it has moved already.
+    // Nothing to move, or it has moved already. The phone is still signed in.
     if (!target) await store.write({ id: accountId, balance: alreadyThere, seenAt: now });
+    await store.write({
+      id: installId,
+      balance: install?.balance ?? 0,
+      seenAt: now,
+      linkedTo: install?.linkedTo,
+      signedInAs: accountId,
+    });
     return alreadyThere;
   }
 
   const moved = alreadyThere + install.balance;
   await store.write({ id: accountId, balance: moved, seenAt: now });
-  await store.write({ id: installId, balance: 0, seenAt: now, linkedTo: accountId });
+  await store.write({
+    id: installId,
+    balance: 0,
+    seenAt: now,
+    linkedTo: accountId,
+    signedInAs: accountId,
+  });
   return moved;
+}
+
+/**
+ * Whose balance this install is spending.
+ *
+ * A phone that signed in once must never be made to show Apple's sheet again
+ * just to read its own balance. Apple's identity token expires in minutes and
+ * the only way to get a fresh one is to put the sheet in front of somebody, so
+ * a service that wanted one on every request would be a service that
+ * interrupted every request.
+ *
+ * It does not need one. Signing in stamps the install durably, and the install
+ * token is already sent on every call, so it resolves the account on its own.
+ * The sheet is needed exactly twice in a person's life: to claim an account,
+ * and to reclaim it on a new phone.
+ *
+ * An install that has never signed in spends as itself, which is what every
+ * install did before any of this existed.
+ */
+export async function accountFor(store: CreditStore, installId: string): Promise<string> {
+  const install = await store.read(installId);
+  return install?.signedInAs ?? installId;
 }

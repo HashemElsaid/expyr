@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 import { pagesToRead } from '@/domain/reading-limits';
 import { postJson } from '@/lib/http';
-import { Attachment, DocumentTypeId } from '@/types';
+import { Attachment } from '@/types';
 
 /**
  * Reading a document, so it can be asked questions.
@@ -250,7 +250,13 @@ export function deleteReading(documentId: string) {
 
 /* ----------------------------------------------------------------- reading */
 
-export type ReadStage = 'transcribing' | 'summarising';
+/**
+ * 'counting' is the free step that makes the price knowable: pdf-lib on the
+ * service, no model, usually a second. It has a name because it happens before
+ * anybody has agreed to anything, and a screen that says nothing for a second
+ * looks like a button that did not work.
+ */
+export type ReadStage = 'counting' | 'transcribing' | 'summarising';
 
 /**
  * How far through a long document the reading has got.
@@ -283,6 +289,27 @@ export class NotEnoughCredits extends Error {
  * tap, so it is the only thing that asks. Passed in rather than imported so
  * this module stays free of the settings store and remains testable.
  */
+/**
+ * How many pages a document has, without reading any of them.
+ *
+ * Free: /pages is pdf-lib on the service and no model at all. That is what
+ * makes it possible to put a price to somebody before anything is spent, which
+ * is the whole reason reading no longer starts on its own.
+ */
+export async function countPages(file: Attachment): Promise<number> {
+  if (Platform.OS === 'web') return 1;
+  if (file.type !== 'pdf') return 1;
+
+  const handle = new File(file.uri);
+  if (!handle.exists) throw new Error('That attachment is missing from this phone.');
+
+  const counted = await post<{ pageCount: number }>('/pages', {
+    fileBase64: handle.base64Sync(),
+    mediaType: 'application/pdf',
+  });
+  return counted.pageCount;
+}
+
 export type ReadBudget = {
   /** Answered once, after the page count is known and before anything is fetched. */
   canAfford: (pages: number) => boolean;
@@ -318,29 +345,15 @@ const PAGES_PER_BATCH = 4;
  */
 const BATCH_CONCURRENCY = 2;
 
-/**
- * Which documents are worth reading unprompted.
+/*
+ * A list of document types worth reading unprompted used to live here.
  *
- * An Emirates ID, a passport, a Mulkiya are cards: a handful of fields the scan
- * already captured, with no terms to explain and nothing to ask about. Reading
- * one costs money and answers nothing. The documents nobody reads and everybody
- * signs are the contracts and policies, so those are read on arrival and the
- * rest stay available on request.
+ * Nothing is read unprompted any more. Reading costs credits, and starting one
+ * because somebody opened a screen spends their money on a transcript they did
+ * not ask for. The list was a reasonable answer to "which of these is worth
+ * reading for free" and there is no such thing now.
  */
-const READ_ON_ARRIVAL: DocumentTypeId[] = [
-  'tenancy-ejari',
-  'car-insurance',
-  'health-insurance',
-  'trade-license',
-  'labor-card',
-  'membership',
-  'warranty',
-  'other',
-];
 
-export function readsOnArrival(typeId: DocumentTypeId): boolean {
-  return READ_ON_ARRIVAL.includes(typeId);
-}
 
 /**
  * Reading is slow and costs money, and two screens can both decide it is time:

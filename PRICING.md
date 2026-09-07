@@ -147,9 +147,16 @@ Still to do:
   `/ask` do not debit it yet. It also needs a durable store, which the free
   Render plan cannot provide, and the ledger correctly refuses to sell into a
   store that forgets.
-- **Cap pages per document at 30.** A 50-page contract is ~$0.40 with no
-  ceiling today. Thirty pages bounds the worst case at ~$0.25 and is honest —
-  say "read the first 30 pages of 52" rather than truncating quietly.
+- ~~Cap pages per document at 30.~~ Done and then undone, and the second
+  decision is the right one. A cap meant a contract read to page thirty could
+  not answer about page forty, so every answer about a long document carried a
+  hole the reader could not see. Half a transcript is worse than none, because
+  none is obviously none.
+
+  What bounds the cost now is the person. Pages are counted first, which is
+  free, and the price is put to them in credits before a page is fetched:
+  "52 pages, about 3 minutes. Costs 520 credits, leaving you 180." Nothing is
+  read that has not been agreed to, and nothing is read in part.
 - **Consider Haiku for the brief** and compare the output.
 
 ---

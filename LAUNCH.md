@@ -124,11 +124,13 @@ that costs nothing, streaming, per-batch banking, a retry pass, half the server
 work removed.
 
 - [ ] Try again on the paid plan, which is the last untested variable
-- [x] Cap a document at **30 pages** — done. The worst case is now 300 credits
-      and one round of batches. Said on screen ("Page 12 of 30, the first 30 of
-      52") and inside the transcript, so a question about page forty is
-      answered with "that part was not read" rather than "the contract does not
-      mention it"
+- [x] **Nothing is read without being agreed to, and nothing is read in part.**
+      The 30 page cap was built and then removed: a contract read to page
+      thirty cannot answer about page forty, and every answer carried a hole
+      the reader could not see. Pages are counted first, which is free, and the
+      price is put to somebody before a page is fetched. Reading no longer
+      starts on its own either, which it used to do the moment a document was
+      opened
 
 ## 8. Decisions still open — YOU
 

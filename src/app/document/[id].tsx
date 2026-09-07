@@ -489,9 +489,11 @@ export default function DocumentDetailScreen() {
                 <MaterialCommunityIcons name="text-search" size={20} color={theme.accent} />
                 <View style={styles.flex}>
                   <ThemedText type="bodyMedium">
-                    {stage === 'transcribing'
-                      ? 'Reading it…'
-                      : stage === 'summarising'
+                    {stage === 'counting'
+                      ? 'Checking the document…'
+                      : stage === 'transcribing'
+                        ? 'Reading it…'
+                        : stage === 'summarising'
                         ? 'Working out what it says…'
                         : shortOfCredits
                           ? 'Not enough credits to read this'
@@ -500,7 +502,9 @@ export default function DocumentDetailScreen() {
                             : 'Read this document'}
                   </ThemedText>
                   <ThemedText type="small" themeColor="textTertiary">
-                    {stage === 'transcribing'
+                    {stage === 'counting'
+                      ? 'Working out how long it is. This part is free.'
+                      : stage === 'transcribing'
                       ? /*
                          * A count when there is one, because the honest number
                          * for fourteen pages is minutes rather than the half a

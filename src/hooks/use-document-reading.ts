@@ -6,15 +6,16 @@ import {
   hasReading,
   isReading,
   loadBrief,
+  countPages,
   NotEnoughCredits,
   readDocumentFully,
-  readsOnArrival,
   summariseDocument,
   type Brief,
   type ReadProgress,
   type ReadStage,
 } from '@/lib/reading';
 import { canAfford, chargeForPages, priceOfPages } from '@/domain/credits';
+import { readingOffer, worthConfirming } from '@/domain/reading-limits';
 import { useSettings } from '@/store/settings';
 import type { TrackedDocument } from '@/types';
 
@@ -100,48 +101,43 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
    * here covers the times that did not finish: the app was closed too soon, the
    * network was gone, the phone suspended the work.
    */
+  /**
+   * Loads what is already known, and starts nothing.
+   *
+   * Reading used to begin the moment a contract was opened. That was fine
+   * while it was free and became indefensible the moment it cost credits:
+   * opening a document to look at its expiry date would quietly spend
+   * somebody's money on a transcript they never asked for.
+   *
+   * A read already in flight is joined rather than ignored, because that one
+   * has been agreed to and paid for, and the person who agreed to it deserves
+   * to see it finish rather than watch a spinner disappear when they come back
+   * to the screen.
+   */
   useEffect(() => {
     if (!doc) return;
     setBrief(loadBrief(doc.id));
     setReadable(hasReading(doc.id));
+    setShortOfCredits(null);
 
+    if (!isReading(doc.id)) return;
     const first = doc.files[0];
-    if (!first || !readsOnArrival(doc.typeId) || loadBrief(doc.id)) return;
-
-    /*
-     * A read already running was started by the screen that saved the document,
-     * and that screen counts it. Join it rather than bailing out, so the brief
-     * arrives here when it finishes instead of leaving this sitting on
-     * "reading it" until the screen is opened again.
-     */
-    const joined = isReading(doc.id);
+    if (!first) return;
 
     let live = true;
-    const money = budgetFor(doc.title);
-    readDocumentFully(doc.id, first, (next, at) => live && report(next, at), money.budget)
+    readDocumentFully(doc.id, first, (next, at) => live && report(next, at))
       .then((result) => {
         if (!live) return;
         setReadable(true);
         setBrief(result.brief);
       })
       .catch((error) => {
-        if (live && error instanceof NotEnoughCredits) setShortOfCredits(error.pages);
-        /*
-         * Offered as a button instead, rather than an alert nobody asked for.
-         *
-         * Quiet for the person is not the same as invisible to us, though: a
-         * read that failed on somebody's phone used to leave no trace at all,
-         * anywhere, which made "it just says reading" impossible to diagnose.
-         * The message is the service's own wording — never the document.
-         */
         console.warn(
-          '[reading] on-arrival read failed:',
+          '[reading] a joined read failed:',
           error instanceof Error ? error.message : String(error)
         );
       })
       .finally(() => {
-        // Settled whether it finished or not: the pages that landed are ours to pay for.
-        if (!joined) money.settle();
         if (!live) return;
         setStage(null);
         setProgress(null);
@@ -150,11 +146,17 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
     return () => {
       live = false;
     };
-    // Deliberately keyed on the document alone: re-running because the settings
-    // object changed would start a second read of the same file.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.id]);
 
+  /**
+   * Reads the document, after saying what it will cost.
+   *
+   * Counting the pages is free, so the price can be put to somebody before a
+   * single page is fetched. Below a few pages it is not worth stopping for and
+   * would make the app feel like it was haggling; above that, being asked is
+   * the difference between a purchase and a surprise.
+   */
   async function readNow() {
     if (!doc || stage) return;
     const first = doc.files[0];
@@ -162,6 +164,47 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
 
     tapFeedback();
     setShortOfCredits(null);
+
+    let pages: number;
+    try {
+      setStage('counting');
+      pages = await countPages(first);
+    } catch (error) {
+      setStage(null);
+      Alert.alert(
+        'Could not read that',
+        error instanceof Error ? error.message : 'Something went wrong.'
+      );
+      return;
+    }
+
+    const offer = readingOffer(pages, settings.credits.balance);
+
+    if (!offer.affordable) {
+      setStage(null);
+      setShortOfCredits(offer.pages);
+      return;
+    }
+
+    if (worthConfirming(offer.pages)) {
+      const agreed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          `Read ${doc.title}?`,
+          `${offer.pages} pages, about ${offer.minutes} minute${offer.minutes === 1 ? '' : 's'}.\n\n` +
+            `Costs ${offer.cost} credits, leaving you ${offer.after}.`,
+          [
+            { text: 'Not now', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Read it', onPress: () => resolve(true) },
+          ],
+          { onDismiss: () => resolve(false) }
+        );
+      });
+      if (!agreed) {
+        setStage(null);
+        return;
+      }
+    }
+
     const money = budgetFor(doc.title);
     try {
       const result = await readDocumentFully(doc.id, first, report, money.budget);
@@ -170,10 +213,6 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
       successFeedback();
     } catch (error) {
       if (error instanceof NotEnoughCredits) {
-        /*
-         * Not an error to apologise for. The screen offers a top-up, so this
-         * only records how short the balance was.
-         */
         setShortOfCredits(error.pages);
       } else {
         Alert.alert(

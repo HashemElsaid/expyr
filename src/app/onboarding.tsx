@@ -157,7 +157,7 @@ export default function OnboardingScreen() {
                   <ThemedText
                     type="small"
                     themeColor={nudgeEmirate ? 'urgentSoft' : 'textTertiary'}>
-                    Vehicles and licences are run by each emirate, not federally — Expyr needs
+                    Vehicles and licences are run by each emirate, not federally, so Expyr needs
                     this to send you to the right one.
                   </ThemedText>
                 </View>

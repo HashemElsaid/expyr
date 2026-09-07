@@ -14,7 +14,7 @@ const CATALOGUE: DocumentType[] = [
     emoji: '🛂',
     numberField: { label: 'Visa / file number', placeholder: 'e.g. 201/2024/1234567' },
     defaultLeadDays: [60, 30, 7],
-    typicalValidity: '1–10 years depending on visa type',
+    typicalValidity: '1-10 years depending on visa type',
     guide: {
       where: 'GDRFA (Dubai) or ICP app/website (other emirates); employer or sponsor usually initiates',
       steps: [
@@ -24,9 +24,9 @@ const CATALOGUE: DocumentType[] = [
         'Apply through your residency authority’s app, or an accredited service centre',
         'Emirates ID renewal is bundled into the same application',
       ],
-      typicalCost: 'AED 300–1,200 in government fees (varies by visa type; medical + insurance extra)',
+      typicalCost: 'AED 300-1,200 in government fees (varies by visa type; medical + insurance extra)',
       lateFee: 'AED 50/day overstay fine after the grace period',
-      processingTime: '5–10 working days including medical results',
+      processingTime: '5-10 working days including medical results',
     },
   },
   {
@@ -50,7 +50,7 @@ const CATALOGUE: DocumentType[] = [
       lateFee: 'AED 20/day, capped at AED 1,000',
       // The 30 days come from the step above: apply within them to avoid fines.
       lateFeeRate: { graceDays: 30, perDay: 20, cap: 1000, currency: 'AED' },
-      processingTime: '3–7 working days',
+      processingTime: '3-7 working days',
     },
   },
   {
@@ -68,9 +68,9 @@ const CATALOGUE: DocumentType[] = [
         'Gather photos, application form, and your Emirates ID / visa copies',
         'After renewal, transfer your UAE residence visa to the new passport if required',
       ],
-      typicalCost: 'Varies by nationality (typically AED 200–1,000)',
+      typicalCost: 'Varies by nationality (typically AED 200-1,000)',
       lateFee: 'No fine, but an expired passport invalidates travel and can complicate visa renewal',
-      processingTime: '1–8 weeks depending on nationality',
+      processingTime: '1-8 weeks depending on nationality',
     },
   },
   {
@@ -90,7 +90,7 @@ const CATALOGUE: DocumentType[] = [
         'Vehicles older than 3 years need a technical inspection (passing test)',
         'Renew online through your emirate’s portal, or in person at a testing centre',
       ],
-      typicalCost: 'AED 350–500 + inspection ~AED 120–170 if required',
+      typicalCost: 'AED 350-500 + inspection ~AED 120-170 if required',
       lateFee: 'Fines apply after the 30-day grace period; driving unregistered risks ~AED 500 fine and vehicle impound',
       processingTime: 'Same day (minutes online if no inspection needed)',
     },
@@ -110,7 +110,7 @@ const CATALOGUE: DocumentType[] = [
         'Buy the new policy before the old one lapses. A gap can void claims and block registration renewal',
         'Keep the policy certificate handy for registration renewal',
       ],
-      typicalCost: 'AED 1,000–3,500+ depending on car value and cover type',
+      typicalCost: 'AED 1,000-3,500+ depending on car value and cover type',
       lateFee: 'No direct fine, but driving uninsured is illegal and blocks Mulkiya renewal',
       processingTime: 'Instant to 1 day',
     },
@@ -150,7 +150,7 @@ const CATALOGUE: DocumentType[] = [
         'Ensure continuous coverage, as a lapse can trigger fines and blocks visa renewal',
         'Save the new insurance card/policy to your phone wallet',
       ],
-      typicalCost: 'AED 700–10,000+ depending on plan and age',
+      typicalCost: 'AED 700-10,000+ depending on plan and age',
       lateFee: 'Fines apply for uninsured periods, and a lapse can block visa renewal',
       processingTime: 'Instant to 3 days',
     },
@@ -172,7 +172,7 @@ const CATALOGUE: DocumentType[] = [
         'Negotiate using the RERA index if the increase exceeds the legal cap',
         'Re-register the contract afterwards, because utilities, visas and school registration depend on it',
       ],
-      typicalCost: 'Ejari registration ~AED 120–220 + rent per your contract',
+      typicalCost: 'Ejari registration ~AED 120-220 + rent per your contract',
       lateFee: 'No fine, but missing notice deadlines locks you into the landlord’s terms',
       processingTime: 'Ejari registration is same-day',
     },
@@ -192,9 +192,9 @@ const CATALOGUE: DocumentType[] = [
         'Pay the renewal through the portal that issued the licence',
         'Update any linked visas and bank records with the renewed license',
       ],
-      typicalCost: 'AED 5,000–25,000 depending on free zone and activity',
+      typicalCost: 'AED 5,000-25,000 depending on free zone and activity',
       lateFee: 'Monthly late fines; expired licenses can freeze bank accounts and visas',
-      processingTime: '1–5 working days',
+      processingTime: '1-5 working days',
     },
   },
   {
@@ -214,7 +214,7 @@ const CATALOGUE: DocumentType[] = [
       ],
       typicalCost: 'Paid by the employer by law',
       lateFee: 'Employer fines; for you, risk of status complications',
-      processingTime: '1–5 working days',
+      processingTime: '1-5 working days',
     },
   },
   {
@@ -252,7 +252,7 @@ const CATALOGUE: DocumentType[] = [
     emoji: '🔧',
     numberField: { label: 'Serial number', placeholder: 'e.g. SN-123456789' },
     defaultLeadDays: [30, 7],
-    typicalValidity: '1–5 years',
+    typicalValidity: '1-5 years',
     guide: {
       where: 'Retailer or manufacturer service centre',
       steps: [

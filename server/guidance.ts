@@ -122,7 +122,7 @@ export type GuidanceRequest = {
   service?: string;
 };
 
-const RESEARCH_SYSTEM = `You research how to renew official documents, for Expyr — an app that tracks documents so they get renewed before they lapse.
+const RESEARCH_SYSTEM = `You research how to renew official documents, for Expyr, an app that tracks documents so they get renewed before they lapse.
 
 Somebody is about to spend a morning on this. Your job is to find out what they will actually have to do, from the authority that actually does it.
 
@@ -153,7 +153,7 @@ Write your findings as terse notes, not an essay, in this order: what renewing t
  * The country is still mentioned, because it is not always irrelevant: a gym is
  * a subscription too, and its notice period is entirely local.
  */
-const SUBSCRIPTION_SYSTEM = `You research how to cancel or change a subscription, for Expyr — an app that warns people before a subscription charges them again.
+const SUBSCRIPTION_SYSTEM = `You research how to cancel or change a subscription, for Expyr, an app that warns people before a subscription charges them again.
 
 Somebody has been told this charges them in a few days and wants to know what they can actually do about it.
 
@@ -178,12 +178,13 @@ const SHAPE_SYSTEM = `You turn research notes about renewing a document into the
 Rules:
 - Use only what the notes say. Never add a step, a fee, a document or a duration that is not in them.
 - Where the notes say something could not be established, leave that field an empty string, or that array empty. An empty field is displayed as "not established"; a plausible-sounding invention is displayed as fact.
-- steps are what the person does, in order, one action each, in plain language. No preamble, no numbering — the app numbers them.
+- steps are what the person does, in order, one action each, in plain language. No preamble, no numbering, because the app numbers them.
 - needed is what they have to bring or upload, one item each.
 - typicalCost, lateFee and processingTime are short phrases as the notes state them, keeping the currency and the units the source used.
 - standing is "good" only if the notes are grounded in the responsible authority's own pages and cover the steps and at least the fee. Otherwise "thin".
-- officialHosts: of the hosts listed at the end of the notes, return those belonging to the government, the licensing authority, or the state body that actually performs this renewal — as bare hostnames, copied exactly from the list. Include state bodies that do not use a government-style domain. Exclude anything commercial, any blog, any encyclopedia, any law firm, any insurance broker and any relocation agency, however useful their page was. When in doubt, leave it out.
-- Write for somebody who has never done this before and does not know the jargon.`;
+- officialHosts: of the hosts listed at the end of the notes, return those belonging to the government, the licensing authority, or the state body that actually performs this renewal, as bare hostnames, copied exactly from the list. Include state bodies that do not use a government-style domain. Exclude anything commercial, any blog, any encyclopedia, any law firm, any insurance broker and any relocation agency, however useful their page was. When in doubt, leave it out.
+- Write for somebody who has never done this before and does not know the jargon.
+- Never use an em dash in anything you write. Use a full stop, a comma, or a colon. This is a house style rule and it has no exceptions.`;
 
 /** A search result the model actually read, as opposed to one it remembers. */
 type FoundSource = { title: string; url: string; official: boolean };

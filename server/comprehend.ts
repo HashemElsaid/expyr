@@ -225,20 +225,21 @@ const ASK_SYSTEM = `You answer questions about somebody's own documents, for Exp
 
 You are given two things.
 
-1. Expyr's file: one line for every item this person tracks — what it is, when it expires, whose it is, and whether its full text has been read. These dates and names came from their own documents and are reliable.
+1. Expyr's file: one line for every item this person tracks. What it is, when it expires, whose it is, and whether its full text has been read. These dates and names came from their own documents and are reliable.
 2. The full text of the documents that have been read. Some tracked items will not be here.
 
 Answer only from those two, and know which one you are using.
 
 - A question about when something expires, whose it is, its number, or what is being tracked: answer from the file. Set answered true, and leave "quote" empty, because a record is not a clause. Give the date as it is written in the file.
-- "source" is only ever the item's name — the words before the colon in the file, such as "Marina Heights tenancy". Never the type, the date, or the whole line.
+- "source" is only ever the item's name, meaning the words before the colon in the file, such as "Marina Heights tenancy". Never the type, the date, or the whole line.
 - A question about what a document says: answer from its text. Set answered true, put the answer in plain language, copy the exact wording into "quote", and put the clause or section into "where".
 - A question about what a document says when that document is in the file but its text is not here: say you know when it expires but have not read it, and that reading it in Expyr would let you answer questions about its wording. Set answered false and name it in "source".
 - A question neither the file nor the text covers: set answered false and say so plainly. Leave quote and where empty. Do not reason from what such documents usually contain, do not infer from silence, and do not offer what is likely. Silence is a real and useful answer, because it tells the person their papers do not restrict them, which is a different thing from their papers permitting them.
 - Where several documents are relevant, answer from the one that addresses the question most directly and name it. If two genuinely conflict, say so and name both.
 - Never give legal advice and never tell the person what they may or may not do. Report what their papers say and let them decide.
 - Keep the answer to a few sentences. Quote the clause rather than paraphrasing it at length.
-- Where a document is ambiguous, say what it says and name the ambiguity rather than resolving it.`;
+- Where a document is ambiguous, say what it says and name the ambiguity rather than resolving it.
+- Never use an em dash. Use a full stop, a comma, or a colon. This is a house style rule and it has no exceptions.`;
 
 export async function askDocument(opts: {
   documents: { title: string; text: string }[];
@@ -266,7 +267,7 @@ export async function askDocument(opts: {
    * about a contract it has never read, which it always knew and could not say.
    */
   const file = opts.records?.length
-    ? `Expyr's file — everything this person tracks:\n${opts.records
+    ? `Expyr's file, everything this person tracks:\n${opts.records
         .map((record) => `- ${record}`)
         .join('\n')}\n\n`
     : '';
@@ -288,7 +289,7 @@ export async function askDocument(opts: {
           {
             type: 'text',
             text: !corpus
-              ? `${file}No document text this time — answer from the file above.`
+              ? `${file}No document text this time. Answer from the file above.`
               : across
                 ? `${file}Here are the documents that have been read:\n\n${corpus}`
                 : `${file}Here is the document that has been read:\n\n${corpus}`,

@@ -62,7 +62,7 @@ export default function SettingsScreen() {
    */
   const reminderSummary =
     reminders.wanted > reminders.booked
-      ? `${bookedWithIOS} booked with iOS, each at ${reminderAt}. The furthest ${reminders.wanted - reminders.booked} are booked as these arrive — iOS holds a limited number at once.`
+      ? `${bookedWithIOS} booked with iOS, each at ${reminderAt}. The furthest ${reminders.wanted - reminders.booked} are booked as these arrive, because iOS holds a limited number at once.`
       : `${bookedWithIOS} booked with iOS, each at ${reminderAt}.`;
 
   useEffect(() => {

@@ -401,8 +401,8 @@ function reportAttachmentFailure(
   report({
     message:
       failed === 1
-        ? 'One attachment could not be saved to this iPhone. The item was saved without it — try attaching it again.'
-        : `${failed} attachments could not be saved to this iPhone. The item was saved without them — try attaching them again.`,
+        ? 'One attachment could not be saved to this iPhone. The item was saved without it. Try attaching it again.'
+        : `${failed} attachments could not be saved to this iPhone. The item was saved without them. Try attaching them again.`,
     retry: async () => {},
   });
 }

@@ -243,11 +243,18 @@ export default function AskScreen() {
                     * reason; told to somebody with five questions left, it is
                     * the thing they need to know before they spend one.
                     */}
+                  {/*
+                    * Counted from the tracked items alone, not from everything
+                    * Expyr can answer about. Archived items are in the pool on
+                    * purpose, but "22 items tracked" beside a Household screen
+                    * saying 20 is the app disagreeing with itself in public,
+                    * and the answer a person would check is Household's.
+                    */}
                   {settings.credits.balance <= CREDITS_PER_QUESTION * 5
                     ? formatCredits(settings.credits.balance)
                     : pool.length > 0
-                      ? `${records.length} tracked · ${pool.length} read in full`
-                      : `${records.length} item${records.length === 1 ? '' : 's'} tracked`}
+                      ? `${documents.length} tracked · ${pool.length} read in full`
+                      : `${documents.length} item${documents.length === 1 ? '' : 's'} tracked`}
                 </ThemedText>
               )
             )}

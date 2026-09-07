@@ -38,6 +38,103 @@ exist and are tested. Three things stop it working: it cannot take payments,
 the balance is held on the phone where it is editable, and reading a long PDF
 still does not reliably finish.
 
+**App Store Connect is finished, as of 7 September.** The account, the listing
+and all four products are configured, and nothing there is waiting on a
+decision any more. Two things block submission and both need the app itself:
+screenshots, and a build.
+
+---
+
+## Handover to the coding session, 7 September
+
+Everything here was done or found in App Store Connect today. It sits in this
+file rather than in `business/` because it is work for whoever is writing code.
+
+### The three values `eas.json` needs
+
+`submit.production` is empty and now has real values:
+
+```
+appleId:     hashimsherif2005@gmail.com
+ascAppId:    6809437011
+appleTeamId: BZ5RDB2NVC
+```
+
+### The four product identifiers, fixed forever
+
+```
+pro.lifetime     Non-Consumable, AED 149.00, Family Sharing ON
+credits.small    Consumable, $2.99
+credits.medium   Consumable, $4.99
+credits.large    Consumable, $9.99
+```
+
+StoreKit matches these literally. Family Sharing on `pro.lifetime` is
+irreversible and was confirmed deliberately: the flat-rate product is shared,
+credits are not, and Apple does not offer sharing on consumables anyway.
+
+### Three wrong prices in `purchases.ts`
+
+Apple generated the whole matrix from a base of AED 149.00. `PRICE_POINTS` is
+wrong in three places. **A Saudi user would currently be quoted SAR 149.99 and
+charged SAR 179.99**, which is precisely what that table's own comment says
+Guideline 3.1.2 exists to prevent.
+
+```
+SA: 'SAR 149.99'        ->  'SAR 179.99'     (20% low)
+GB: '£34.99'            ->  '£39.99'
+DE, FR, ES, IT, NL:
+    '€39.99'            ->  '€44.99'
+```
+
+Confirmed correct, leave alone: `AE 'AED 149'`, `QA 'QAR 149.99'`, `US '$39.99'`.
+
+Still unverified and should be treated as wrong until read off App Store
+Connect: `KW`, `BH`, `OM`, `EG`, `CA`, `IN`, `PK`, `PH`.
+
+The table dies when StoreKit is wired, since `displayPrice` comes back already
+localised. Until then it is what the paywall shows.
+
+### `/health` answers 404 to a HEAD request
+
+GET returns 200. `server/routes.ts` registers `/health` as `method: 'GET'` and
+matches exactly, so every load balancer, uptime checker and platform probe that
+leads with HEAD reads this service as broken. Found the hard way: a new uptime
+monitor reported the service down while it was demonstrably up.
+
+### The credit ledger needs a durable store that is not a Render disk
+
+Render stays on the free plan by decision, so there is no persistent disk.
+`server/credit-ledger.ts` correctly refuses to sell into a store that forgets,
+which means **credits cannot reach a paying user at all** in the current shape.
+It needs a free durable backend: Postgres, Turso, Upstash, whatever fits. The
+same question applies to `EXPYR_GUIDANCE_DIR`, which is memory-only today.
+
+### The service is now kept awake, deliberately
+
+An UptimeRobot keyword monitor hits `/health` every five minutes, looking for
+the string `"ok":true`. Cold start was measured at **52.7 seconds** and is now
+about 0.2. So the free instance no longer sleeps, and the in-memory guidance
+cache survives between requests. That is intentional, not a fluke.
+
+### A Bill category would make the listing honest
+
+The App Store description now mentions bills. Today they are reachable only
+through **Other plus recurrence**, which works but is thin. A first-class Bill
+type in `src/data/document-types.ts`, with a sensible default lead time and a
+generic label, would make the claim solid rather than merely defensible. No
+UAE-specific guidance needed.
+
+### International work, already briefed separately
+
+- `trade-license` has no `genericLabel`, so a US user sees a UAE concept
+- `driving-license` carries the British spelling in a listing now declared as
+  English (U.S.)
+- The type picker may still offer Emirates ID to somebody in Canada
+- **Do not remove the verified/generated distinction.** It is what stops AI
+  guidance reading as authoritative, and the App Review notes now describe it
+  to Apple explicitly
+
 ---
 
 ## 1. Apple admits you — YOU, done
@@ -47,14 +144,14 @@ still does not reliably finish.
       worked, after the name on the Apple Account was corrected to match the
       government ID. Support case 102951349112 was never needed
 
-## 2. App Store Connect — YOU, and it now has its own runbook
+## 2. App Store Connect — YOU, done 7 September
 
-The ordered version of this section, with the reasoning and the exact screens,
-is **`business/APP-STORE-CONNECT.md`**. It is eight steps and each one is
-refused until the one above it is done. The summary:
+**All of it is finished.** The ordered version, with the reasoning and the
+exact screens, is **`business/APP-STORE-CONNECT.md`**. What was done:
 
 - [x] **Digital Services Act trader question**, answered 7 September: not a
-      trader, because distribution is UAE-first. Active. Declaring trader would
+      trader, because there is no plan to sell in the EU. Active. Declaring
+      trader would
       have published a home address and phone number on the product page in all
       27 EU territories, and would have needed business documents that do not
       exist. Reversible per account and per app
@@ -71,22 +168,42 @@ refused until the one above it is done. The summary:
       no TIN field, then the W-8BEN itself, which carries both. Part II left
       empty because there is no US treaty with the UAE, and both TIN fields
       left empty because the UAE issues no tax number to individuals
-- [x] **Banking added**, FAB, AED, 7 September. Processing, verifies within 24
-      hours. The Paid Apps agreement stays at Pending User Info until it does.
+- [x] **Banking**, FAB, AED. **Active** the same afternoon, faster than the 24
+      hours Apple warned about, which took the Paid Apps agreement to Active
+      with it.
 
-      Two things to check when it clears. Royalty currency reads USD against an
-      AED account, so FAB may be taking the conversion rather than Apple. And
-      the account name is the full legal version, which is correct because
-      Apple validates against the bank, but is the first thing to look at if
-      verification fails
-- [ ] Create the app record, bundle id `com.expyr.app`, name
-      `Expyr: Expiry Reminders`, primary language English (U.K.)
-- [ ] Create **one non-consumable**: Expyr Pro, AED 149, Family Shareable
-- [ ] Create **three consumables**: `credits.small`, `credits.medium`,
-      `credits.large`. Set a base price and let Apple generate the other 174
-      storefronts. **The local prices in `src/lib/credit-packs.ts` are
-      placeholders written from memory.** Replace them with what Apple
-      generates
+      One thing still worth a look: royalty currency reads USD against an AED
+      account, so FAB may be taking the conversion spread rather than Apple.
+- [x] **App record created.** Apple ID `6809437011`, bundle `com.expyr.app`,
+      SKU `expyr-ios-01`, name `Expyr: Expiry Reminders`, primary language
+      **English (U.S.)**, not U.K. as this entry used to say. All 17 user-facing
+      "colour" spellings turned out to be code comments, and the user-facing
+      "licence" spellings stay British because the RTA issues a driving licence
+      and the document in the reader's hand says so
+- [x] **Subtitle, categories, content rights, age rating.** Subtitle
+      `Documents, bills & renewals`, Productivity and Utilities, content rights
+      answered **yes** because brand logos are third-party content shown under
+      nominative use, age rating **4+** with no override
+- [x] **Pricing and availability.** Free app, **all 175 storefronts** and
+      future ones automatically. Apple Silicon Mac and Apple Vision Pro both
+      unticked: untested platforms, and Apple itself flagged 1.0 as
+      incompatible with Vision Pro
+- [x] **App Privacy published.** Three data types, all **Data Not Linked to
+      You**, all App Functionality, none used for tracking: Photos or Videos,
+      Other User Content, Device ID. **These labels expire the day Sign in with
+      Apple ships**, because an Apple subject identifier and a server-side
+      balance are data linked to identity
+- [x] **All four in-app purchases created**, priced and localised. See the
+      handover above for the identifiers and the three price corrections they
+      revealed
+- [x] **Sandbox tester** created, UAE region, so it sees AED 149. Idle until a
+      development build exists, because IAPs do not run in Expo Go
+- [x] **The 1.0 version page**: promotional text, description, keywords,
+      support URL, copyright, review notes and the sample document attached.
+      Release set to **manual**, so the app does not go live at 3am
+- [ ] **Screenshots**, 6.7" and 6.5", plus one purchase-screen shot attached to
+      each of the four products. **Needs the app running.** This and a build
+      are the only things left before submission
 
 ## 3. Render — YOU, deferred 7 September
 
@@ -266,25 +383,44 @@ work removed.
       the design system on 31 August. Android adaptive and splash variants too.
       Worth one check at home-screen size, where the fold may be too fine to
       read, but this is not an outstanding item
-- [ ] **Screenshots**, 6.7" and 6.5". Guideline 2.3.3 rejects title art and
-      splash screens; show the app in use
-- [ ] Attach `assets/review/sample-insurance-certificate.jpg` so a reviewer can
+- [x] **Sample document attached** to App Review Information, so a reviewer can
       test scanning without owning a UAE document
-- [ ] **App Privacy labels.** Declare that images and document text are sent
-      for processing, not retained, not linked to identity, not used for
-      tracking. Declaring "no data collected" would contradict the privacy
-      policy and the observable network traffic
-- [ ] **Age rating.** Answer the AI and chatbot questions honestly. Do not
-      assume 4+ any more
-- [ ] Paste the review notes from `STORE.md`, including the section stating all
-      three AI features plainly
+- [x] **App Privacy labels published.** Photos or Videos, Other User Content and
+      Device ID, all Data Not Linked to You, all App Functionality, none used
+      for tracking. Declaring "no data collected" would have contradicted both
+      the privacy policy and the observable traffic
+- [x] **Age rating: 4+**, no override. This entry used to warn that Apple's
+      questionnaire asks about AI and chatbots. **It does not.** Walked end to
+      end on 7 September: seven steps, none of them about AI. The nearest is
+      "Messaging and Chat", defined as users communicating with one another,
+      which Expyr has none of. The AI is disclosed in the review notes instead,
+      which is where a reviewer actually reads it
+- [x] **Review notes pasted**, from `review-notes.txt` rather than `STORE.md`.
+      **The block in `STORE.md` is 6,034 characters and the field caps at
+      4,000.** It would have truncated silently, mid-way through the business
+      model section, which is the part that prevents a 3.1.1 rejection. The
+      cut version is 3,993 characters
+- [ ] **Screenshots**, 6.7" and 6.5". Guideline 2.3.3 rejects title art and
+      splash screens; show the app in use. **One should show the subscription
+      scan working**, since that feature sells itself by being seen rather than
+      listed, and the listing now leads on it
 
 ## 10. Submit
 
 - [ ] Test everything on the development build, not Expo Go
-- [ ] Confirm the scanning service answers from cold
-- [ ] Set an Anthropic spend limit for production traffic. Currently $20/month
-      with a $10 notification, sized for one developer rather than an audience
+- [x] **Cold start handled.** Measured at 52.7 seconds on the free plan, which
+      an uptime monitor read as the service being down. Now about 0.2 seconds,
+      because an UptimeRobot keyword monitor hits `/health` every five minutes
+      and the instance never sleeps. Free, and inside Render's 750 monthly
+      instance hours with roughly six to spare in a 31 day month
+- [ ] **Raise the Anthropic spend limit.** Still $20/month with a $10
+      notification, sized for one developer rather than an audience. At roughly
+      $0.08 of API cost per install that runs out at about **250 installs in a
+      month**, and the failure is not a bill you regret: the API starts
+      refusing, scanning stops working, and the first reviews Expyr ever gets
+      are about a feature that had simply stopped. Raise to **$150 with the
+      notification at $50** before launch. Auto-reload stays off; a breaker
+      that rearms itself is not one
 
 ---
 

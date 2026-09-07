@@ -402,8 +402,18 @@ used rather than once.
   software features only.
 - The purchase is marked Family Shareable, up to six people.
 
-Renewal guidance shown in the app describes official UAE procedures. Expyr does
-not collect government fees, does not act as an agent for any authority, is not
+AVAILABILITY AND WHAT DIFFERS BY COUNTRY
+
+Expyr is available in all storefronts. Its renewal guidance has been checked
+against the responsible authority only for the United Arab Emirates, and the
+app says so rather than pretending otherwise. Outside the UAE, document type
+names fall back to generic ones, guidance is labelled as generated rather than
+verified, and features that depend on checked UAE data are switched off. A user
+anywhere gets a working tracker; a user in the UAE additionally gets guidance
+that has been verified and links to the correct authority.
+
+Renewal guidance for the UAE describes official procedures. Expyr does not
+collect government fees, does not act as an agent for any authority, is not
 affiliated with or endorsed by any government body, and does not transact with
 one. Links open the authority's own website in the browser.
 
@@ -411,8 +421,13 @@ WHAT LEAVES THE DEVICE, AND WHEN
 
 Only an image or a document the user explicitly picks, and only at the moment
 they pick it, plus questions they choose to ask. Images are never written to
-disk on our server and are discarded as soon as the response is produced. They
-are not used to train any model. Question and answer text is not logged.
+disk on our own server and are discarded as soon as the response is produced,
+and question and answer text is not logged by us. The image and the text are
+forwarded to the Anthropic Claude API, which may retain them for a limited
+period for its own trust and safety purposes. They are not used to train any
+model. This is why the App Store privacy labels declare Photos and Other User
+Content as collected rather than claiming no collection: they leave the device,
+even though nothing is kept here.
 
 Nothing else is transmitted. Documents, dates, reference numbers, notes and
 photos are stored only in the app's private storage on the device. Reminders are

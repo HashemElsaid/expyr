@@ -186,11 +186,12 @@ describe('personSummary', () => {
   });
 
   it('does not ask while something needs attention', () => {
-    expect(personSummary(person({ unnamed: true, urgent: 2 }))).toBe('2 need you');
+    expect(personSummary(person({ unnamed: true, urgent: 2 }))).toBe('2 due soon');
   });
 
-  it('counts, and gets the verb right for one', () => {
-    expect(personSummary(person({ urgent: 1 }))).toBe('1 needs you');
-    expect(personSummary(person({ urgent: 3 }))).toBe('3 need you');
+  /* "N need you" read as a plea with the request missing: need you to do what? */
+  it('states how many rather than asking for help', () => {
+    expect(personSummary(person({ urgent: 1 }))).toBe('1 due soon');
+    expect(personSummary(person({ urgent: 3 }))).toBe('3 due soon');
   });
 });

@@ -200,9 +200,13 @@ export default function HomeScreen() {
                   {mastheadDate()}
                 </ThemedText>
                 {/*
-                 * Expired is a different fact from due soon, and saying "four
-                 * need you" flattens the one that is already costing money into
+                 * Expired is a different fact from due soon, and one figure
+                 * covering both flattens the one already costing money into
                  * the three that are not.
+                 *
+                 * "Four need you" was the other half of this and read as a
+                 * plea with the request missing: need you to do what? A
+                 * masthead states, the way "All quiet" and "Two expired" do.
                  */}
                 {documents.length > 0 && (
                   <ThemedText type="verdict" style={styles.verdict}>
@@ -210,7 +214,7 @@ export default function HomeScreen() {
                       ? 'All quiet.'
                       : expired.length > 0
                         ? `${countWord(expired.length)} expired.`
-                        : `${countWord(soon.length)} need${soon.length === 1 ? 's' : ''} you.`}
+                        : `${countWord(soon.length)} due soon.`}
                   </ThemedText>
                 )}
                 {allClear && next && documents.length > 0 && (

@@ -155,7 +155,7 @@ export function buildHousehold(
  * person, or that the app is waiting to be told.
  */
 export function personSummary(person: Person): string {
-  if (person.urgent > 0) return `${person.urgent} need${person.urgent === 1 ? 's' : ''} you`;
+  if (person.urgent > 0) return `${person.urgent} due soon`;
   if (person.unnamed) return 'Tap to add your name';
   if (person.empty) return 'Nothing tracked yet';
   return 'All clear';

@@ -36,6 +36,28 @@ function monthsIn(every: Recurrence): number | null {
  * One period on from `date`, keeping `anchorDay` as the day of the month.
  * Mutates nothing; returns a new Date.
  */
+/**
+ * How often it charges, as a word.
+ *
+ * The timeline row was printing "Subscription / Membership" under every one of
+ * seven subscriptions, on a screen already headed Subscriptions — the same
+ * eleven characters seven times, saying nothing that distinguished one row from
+ * the next. This says something that does: Fitness First is yearly and Netflix
+ * is not.
+ */
+export function recurrenceWord(every: Recurrence): string {
+  switch (every) {
+    case 'weekly':
+      return 'Weekly';
+    case 'monthly':
+      return 'Monthly';
+    case 'quarterly':
+      return 'Quarterly';
+    case 'yearly':
+      return 'Yearly';
+  }
+}
+
 export function addPeriod(date: Date, every: Recurrence, anchorDay: number): Date {
   const next = new Date(date);
   const months = monthsIn(every);

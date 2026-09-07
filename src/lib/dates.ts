@@ -23,7 +23,24 @@ export function formatDate(isoDate: string): string {
   });
 }
 
-export function countdownLabel(days: number): string {
+export function countdownLabel(days: number, renews = false): string {
+  /*
+   * A subscription does not expire, it charges.
+   *
+   * Netflix said "Expires tomorrow", which is the opposite of what happens
+   * tomorrow: nothing lapses, money leaves. The one thing somebody wants from
+   * a subscription reminder is the chance to cancel before being billed, and
+   * the word "expires" tells them there is nothing to do.
+   */
+  if (renews) {
+    if (days < 0) return `Renewed ${-days === 1 ? 'yesterday' : `${-days} days ago`}`;
+    if (days === 0) return 'Renews today';
+    if (days === 1) return 'Renews tomorrow';
+    if (days < 60) return `Renews in ${days} days`;
+    const months = Math.floor(days / 30);
+    return `Renews in ~${months} month${months > 1 ? 's' : ''}`;
+  }
+
   if (days < 0) return `Expired ${-days === 1 ? 'yesterday' : `${-days} days ago`}`;
   if (days === 0) return 'Expires today';
   if (days === 1) return 'Expires tomorrow';

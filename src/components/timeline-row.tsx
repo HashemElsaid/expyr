@@ -9,6 +9,7 @@ import { saysItsOwnType } from '@/domain/timeline';
 import { urgencyColor } from '@/hooks/use-urgency';
 import { guessDomain } from '@/lib/brand-icons';
 import { countdownLabel, daysUntil, urgencyFor } from '@/lib/dates';
+import { recurrenceWord } from '@/lib/recurrence';
 import { useSettings } from '@/store/settings';
 import type { TrackedDocument } from '@/types';
 
@@ -78,13 +79,17 @@ export function TimelineRow({
                  * answer is soon or already past, and last in the line it was
                  * being truncated away on every row.
                  */
-                days <= 30 ? countdownLabel(days) : null,
+                days <= 30 ? countdownLabel(days, Boolean(doc.renewsEvery)) : null,
                 showOwner ? doc.owner : null,
-                // A subscription's plan and price beat repeating its type.
-                doc.renewsEvery ? doc.notes : null,
-                // "Claude Pro - Monthly · AED 73.99 · Subscription / Membership" —
-                // the last part is the only one nobody needed.
-                saysItsOwnType(doc.title, label) || (doc.renewsEvery && doc.notes) ? null : label,
+                /*
+                 * A subscription's plan and price beat repeating its type, and
+                 * how often it charges beats it too. Seven subscriptions all
+                 * read "Subscription / Membership" under a heading that
+                 * already said Subscriptions — eleven characters repeated
+                 * seven times, distinguishing none of them from each other.
+                 */
+                doc.renewsEvery ? doc.notes || recurrenceWord(doc.renewsEvery) : null,
+                saysItsOwnType(doc.title, label) || doc.renewsEvery ? null : label,
               ]
                 .filter(Boolean)
                 .join(' · ')}

@@ -126,17 +126,44 @@ export default function HomeScreen() {
     [found, side]
   );
 
+  /**
+   * Matches for the current search that are sitting on the half you are not
+   * reading.
+   *
+   * Searching "Netflix" from the Documents tab answered "Nothing matches
+   * 'Netflix'", with Netflix one tap away — the app denying it holds something
+   * it holds. The split is a browsing aid and the search is a person looking
+   * for one named thing; the search has to win, or at least say where it went.
+   */
+  const elsewhere = useMemo(
+    () =>
+      query.trim()
+        ? found.filter((doc) => isSubscription(doc) !== (side === 'subscriptions')).length
+        : 0,
+    [found, query, side]
+  );
+
   const sections = useMemo(() => buildSections(inView), [inView]);
-  const expired = inView.filter((d) => daysUntil(d.expiryDate) < 0);
-  const soon = inView.filter((d) => {
+
+  /*
+   * The masthead counts the half you are reading, not the search results.
+   *
+   * It counted what was on screen, so typing "Netflix" turned "One expired."
+   * into "All quiet." — the passport is still four days over, and the app said
+   * everything was fine because the person happened to be looking for
+   * something else. A search narrows a list; it does not settle anything.
+   */
+  const onThisSide = side === 'subscriptions' ? halves.subscriptions : halves.documents;
+  const expired = onThisSide.filter((d) => daysUntil(d.expiryDate) < 0);
+  const soon = onThisSide.filter((d) => {
     const days = daysUntil(d.expiryDate);
     return days >= 0 && days <= 30;
   });
   const urgent = [...expired, ...soon];
   const allClear = urgent.length === 0;
   const next = useMemo(
-    () => [...inView].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))[0],
-    [inView]
+    () => [...onThisSide].sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))[0],
+    [onThisSide]
   );
 
   /**
@@ -293,7 +320,9 @@ export default function HomeScreen() {
                   <TextInput
                     value={query}
                     onChangeText={setQuery}
-                    placeholder="Search your papers"
+                    placeholder={
+                      side === 'subscriptions' ? 'Search your subscriptions' : 'Search your papers'
+                    }
                     placeholderTextColor={theme.textTertiary}
                     autoCorrect={false}
                     style={[styles.searchInput, { color: theme.text }]}
@@ -362,9 +391,30 @@ export default function HomeScreen() {
                 </ThemedText>
               </View>
             ) : query.trim() ? (
-              <ThemedText type="small" themeColor="textTertiary" style={styles.noResults}>
-                Nothing matches “{query.trim()}”.
-              </ThemedText>
+              elsewhere > 0 ? (
+                /*
+                 * Says where the thing went, and goes there. An empty list
+                 * under a search that did match something is the worst of the
+                 * three answers this screen can give.
+                 */
+                <Pressable
+                  onPress={() => setSide(side === 'documents' ? 'subscriptions' : 'documents')}
+                  accessibilityRole="button">
+                  {({ pressed }) => (
+                    <ThemedText
+                      type="small"
+                      themeColor="textTertiary"
+                      style={[styles.noResults, pressed && styles.dim]}>
+                      {elsewhere === 1 ? 'One match' : `${elsewhere} matches`} under{' '}
+                      {side === 'documents' ? 'Subscriptions' : 'Documents'}.
+                    </ThemedText>
+                  )}
+                </Pressable>
+              ) : (
+                <ThemedText type="small" themeColor="textTertiary" style={styles.noResults}>
+                  Nothing matches “{query.trim()}”.
+                </ThemedText>
+              )
             ) : null
           }
           ListFooterComponent={

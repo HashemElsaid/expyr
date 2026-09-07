@@ -93,7 +93,8 @@
       "expo-font",
       "expo-secure-store",
       "expo-localization",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-iap"
     ],
     "experiments": {
       "typedRoutes": true

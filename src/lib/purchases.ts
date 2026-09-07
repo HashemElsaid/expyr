@@ -1,5 +1,7 @@
 import { getLocales } from 'expo-localization';
 
+export { PRO_PRODUCT_ID } from '@/lib/products';
+
 /**
  * Purchase surface for the paywall.
  *
@@ -19,20 +21,6 @@ import { getLocales } from 'expo-localization';
  * nothing to us. Apple caps a family at six and limits how often somebody can
  * switch families, which is a firmer boundary than anything we could enforce.
  */
-
-/**
- * What Expyr Pro is called in App Store Connect.
- *
- * Not the same thing as the plan's `id` below, which is ours and internal.
- * This is the string Apple knows the product by, and it is permanent: Apple
- * does not allow a product identifier to be renamed, reused, or deleted once
- * created, so it has to be right the first time and it has to live somewhere
- * both the app and whoever creates the product can read.
- *
- * Shaped like the credit packs in credit-packs.ts, which are credits.small,
- * credits.medium and credits.large, so the four products read as one set.
- */
-export const PRO_PRODUCT_ID = 'pro.lifetime';
 
 export type Plan = {
   /** Ours, internal. Apple's identifier is PRO_PRODUCT_ID. */

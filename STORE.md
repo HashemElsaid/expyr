@@ -91,30 +91,41 @@ U.S. listing remains the fallback everywhere.
 ## Subtitle (30 characters max)
 
 ```
-Visa, documents & renewals
+Documents, bills & renewals
 ```
 
-26 characters. Universal: visas exist everywhere, documents and renewals are
-plain English.
+27 characters. Changed 7 September from `Visa, documents & renewals`, to widen
+past documents. `visa` moves to the keyword field, where it keeps its search
+value without spending a third of the subtitle, and the UAE listing keeps it in
+the subtitle where it earns its place.
 
 ## Promotional text (170 characters, changeable without review)
 
 ```
-Photograph a passport, license, insurance policy or lease. Expyr reads the expiry date, reminds you in good time, and tells you how to renew it.
+Documents, subscriptions and bills all have dates you cannot afford to miss. Photograph them once. Expyr reads the date, reminds you in time, and tells you how to renew.
 ```
 
-143 characters. Every noun in it means something in every country.
+169 characters, one under the limit. Do not add a word to it without counting.
 
 ## Description
 
 ```
 Expyr makes sure nothing in your life expires without warning.
 
-Photograph a document and Expyr reads the expiry date for you. No typing, no
-forms. It works on passports, driver's licenses, residence permits and visas,
-national ID cards, vehicle registration, insurance policies, leases and tenancy
-contracts, work permits and warranties, from a photo, a PDF, or a screenshot of
-an email.
+Photograph a document and Expyr reads the date for you. No typing, no forms.
+Passports, driver's licenses, residence permits and visas, national ID cards,
+vehicle registration, insurance policies, leases and tenancy contracts, work
+permits and warranties, from a photo, a PDF, or a screenshot of an email.
+
+SUBSCRIPTIONS AND BILLS, NOT JUST DOCUMENTS
+
+Take a screenshot of your App Store subscriptions list and Expyr reads every
+one of them: what it is, what it costs, and when it renews. Add the ones that
+are not on that list by hand, a gym membership, a phone plan, a payment that
+falls due every month, and see what your year costs before it arrives.
+
+Nothing is connected to your bank. Nothing reads your email. You show Expyr a
+screen and it reads the screen.
 
 WHAT IT DOES
 
@@ -123,14 +134,13 @@ WHAT IT DOES
   authority, amounts, so it is useful the moment you scan it
 • Reminds you weeks or months ahead, not the day before
 • Lets you snooze or mark something done from the reminder itself
-• Tracks subscriptions alongside documents, on their own tab: what renews,
-  when, and what it costs you
-• Tells you how to renew: where to go, what it typically costs, and what being
-  late usually costs
+• Rolls the date forward when you renew, and remembers that you did
+• Repeats anything that comes round again, monthly or yearly
 • Keeps the whole family in one place, so you can see what everyone needs
 • Holds both sides of an ID, and shares a copy when someone asks for one
 • Shows your year as a timeline, so you can see what is coming
-• Rolls the date forward when you renew, and remembers that you did
+• Tells you how to renew: where to go, what it typically costs, and what being
+  late usually costs
 
 ASK YOUR PAPERWORK A QUESTION
 
@@ -142,14 +152,14 @@ IT TELLS YOU HOW TO RENEW
 
 Every category carries renewal guidance: the steps, what it typically costs,
 and the penalty for leaving it late. That guidance is compiled for you and
-clearly marked as indicative, because fees and procedures change. Expyr shows
-you the official source and tells you to confirm there before you act. It
-points you at the door. It does not pretend to be the counter behind it.
+marked as indicative, because fees and procedures change. Expyr shows you the
+official source and tells you to confirm there before you act. It points you at
+the door. It does not pretend to be the counter behind it.
 
 The guidance goes deepest in the United Arab Emirates, where every step has
-been checked against the authority that actually handles it, and Expyr opens
-the right government portal for you. Everywhere else it keeps your dates, tells
-you what it can, and says plainly when something has not been verified.
+been checked against the authority that handles it, and Expyr opens the right
+government portal for you. Everywhere else it keeps your dates, tells you what
+it can, and says plainly when something has not been verified.
 
 PRIVATE BY DESIGN
 
@@ -168,30 +178,44 @@ track everything you own, and everyone in your household. One payment. Nothing
 renews, nothing to cancel.
 ```
 
-**Three changes from the UAE original, beyond the obvious.**
+### What changed, and the one thing to watch
 
-The government-portal bullet moved out of the feature list and into the UAE
-paragraph, because opening the right portal only happens in the UAE and a
-bullet promising it to everyone is a promise the app does not keep.
+**Subscriptions got its own section, above the feature list.** It was mentioned
+in a single bullet before, which badly undersold a feature with dedicated code
+behind it: `src/lib/subscriptions.ts` reads an entire App Store subscriptions
+list off one screenshot. That is a demonstration, not a bullet point, and it is
+the thing most likely to make a browsing consumer stop.
 
-"BUILT FOR LIFE IN THE UAE" became "IT TELLS YOU HOW TO RENEW". The UAE is now
-the depth rather than the premise, and the honest sentence about everywhere
-else was promoted out of the footnote it was hiding in.
+**"Nothing is connected to your bank. Nothing reads your email."** This is the
+sharpest competitive line in the whole listing. Every serious subscription
+tracker on the store works by linking a bank account or scraping an inbox.
+Expyr does the same job by reading a screen, which is the one thing a person
+worried about their documents will actually care about.
 
-**Two em dashes were removed.** The original had them in "amounts — so it is
-useful" and "as long as you like — enough for". They read as a tell that copy
-was machine-written, and this is user-facing copy.
+**Bills is the claim to watch.** There is no Bill category. The thirteen types
+are documents, a subscription/membership type, a warranty type and Other. Bills
+are served by **Other plus the recurrence feature**, which does work: a monthly
+recurring item with a due date gets reminders and rolls forward.
+
+So the copy above stays inside what the app does. It says "a payment that falls
+due every month" rather than promising bill tracking as a feature, and the
+subtitle pairs `bills` with `documents` and `renewals` rather than leading on
+it.
+
+**The right fix is a Bill category**, which is a small addition to
+`src/data/document-types.ts` and would make this positioning solid instead of
+merely defensible. Raised with the coding session. Until it exists, do not
+strengthen this language.
 
 ## Keywords (100 characters, comma separated, no spaces)
 
 ```
-passport,license,insurance,warranty,subscriptions,lease,registration,permit,tracker,id,car,expire
+visa,passport,license,insurance,warranty,subscriptions,lease,registration,permit,tracker,id,car
 ```
 
-97 characters. No word here appears in the name or subtitle, because Apple
-indexes all three together and a repeated word buys nothing twice.
-
----
+94 characters. `visa` comes back into the keyword field now that the subtitle no
+longer carries it, and `documents`, `bills` and `renewals` stay out because the
+subtitle indexes them already.
 
 # English (U.K.) — the Middle East listing
 

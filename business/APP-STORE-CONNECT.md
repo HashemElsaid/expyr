@@ -24,6 +24,12 @@ the Apple Account that holds the membership.
       content rights answered **yes** because brand logos are third-party
       content shown under nominative use, and the age rating came out **4+**
       with no override
+- [x] Pricing and Availability, 7 September. **Free** app, base country US
+      (immaterial for a free app), **all 175 storefronts and future ones**,
+      tax category App Store software, Public distribution. Apple Silicon Mac
+      and Apple Vision Pro both **unticked**: untested platforms, and Apple
+      itself flagged version 1.0 as incompatible with Vision Pro
+- [ ] App Privacy
 - [ ] In-app purchases and prices, blocked until the bank verifies
 
 Two details worth keeping. Apple routes payouts by **royalty currency**, and

@@ -101,10 +101,52 @@ it costs an evening, not because it will move installs.
 
 ## The launch sequence
 
-**Phase 0, before anything.** Ship to the **UAE storefront only**. Not a
-soft-launch trick, a real one: the guides, the categories and the portals are
-UAE-specific, and a Norwegian who installs this finds an app about a country
-they do not live in and leaves a two-star review that follows you.
+**Phase 0. Ship worldwide.** Decided 7 September, overriding the UAE-only
+launch this section used to argue for. Availability is set to all 175
+storefronts, and future ones automatically.
+
+The reversal is on evidence rather than ambition. The app already degrades
+honestly outside the UAE rather than breaking. `src/data/countries.ts` says so
+in its own words: the UAE is "the only country whose renewal knowledge we have
+actually checked, portal by portal and fee by fee. Everywhere else gets the
+tracker and nothing more." Concretely, outside the UAE:
+
+- Document labels fall back to generic ones. Mulkiya becomes vehicle
+  registration, Ejari becomes a tenancy contract
+- Guidance still appears but is labelled `generated` rather than `verified`, so
+  nobody is shown UAE instructions dressed as fact
+- Gap analysis and late fees switch off, because those were checked against UAE
+  authorities and nothing else
+
+Someone in Toronto gets a plain working tracker, not a broken app. That is a
+defensible thing to ship.
+
+**Three things to hold on to as a result.**
+
+**The US is where the moat is not.** In the UAE you compete on knowing what a
+Mulkiya is and which portal renews it. In the US that knowledge does not exist
+and the underlying need is thinner, because citizens do not renew residency.
+What remains is passports, driver's licenses, car insurance and warranties,
+against a crowded field of generic reminder apps. Expect UAE and US conversion
+to look very different, and do not read a weak US number as a fault in the app.
+
+**Early reviews now come from a mixed audience.** The first twenty ratings
+weigh more in search ranking than any twenty after them, and a UAE user rating
+the full experience and a US user rating a plain tracker are one to two stars
+apart. This was the argument for launching UAE-first, and it is the price of
+not doing so.
+
+**The guidance cost surface multiplies.** Guidance is cached per document type
+**and region**. UAE-only is thirteen combinations. Worldwide is thirteen times
+however many countries people actually arrive from, against a memory-only cache
+on Render's free plan and a ceiling of `EXPYR_GUIDANCE_DAILY_NEW` at 40 new
+generations a day. That cap prevents a runaway bill and also means users who
+hit it get nothing that day. See `MONEY.md`.
+
+The coding session has been briefed to make the app genuinely good
+internationally rather than merely not-broken: `trade-license` has no generic
+label, `driving-license` carries the British spelling, and the type picker may
+still offer Emirates ID to somebody in Canada.
 
 **Phase 1, two quiet weeks.** No marketing at all. Watch four things:
 
@@ -118,10 +160,11 @@ they do not live in and leaves a two-star review that follows you.
 **Phase 2, the guides go live** and the Reddit presence starts. Still no paid
 anything.
 
-**Phase 3, widen the storefront** to Saudi Arabia and Qatar, which the pricing
-already anticipates, only once the guides for those countries exist. Shipping
-to a storefront whose renewal content is wrong is worse than not shipping to
-it.
+**Phase 3, deepen rather than widen**, since the widening already happened.
+Saudi Arabia and Qatar are the first two countries worth researching guides for
+properly, promoting them from `generated` to `verified`. The pricing already
+anticipates both. Verified guidance is the moat, and it is the only thing that
+makes a storefront worth more than the one next to it.
 
 ---
 

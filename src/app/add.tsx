@@ -43,7 +43,20 @@ export default function AddDocumentScreen() {
   const scheme = useColorScheme();
   const { documents, addDocument, updateDocument } = useDocuments();
   const { settings, update } = useSettings();
-  const params = useLocalSearchParams<{ id?: string; renew?: string; owner?: string }>();
+  const params = useLocalSearchParams<{
+    id?: string;
+    renew?: string;
+    owner?: string;
+    /**
+     * Opens straight on the category list instead of the camera.
+     *
+     * That list is the honest answer to "what can this app track", and it was
+     * three taps down: other ways to add, enter it myself, change. Somewhere
+     * had to be able to point at it, and pointing at the real one means there
+     * is never a second list to keep in step.
+     */
+    start?: string;
+  }>();
 
   /** Set when you arrived from a person, so the form already knows whose this is. */
   const forOwner = typeof params.owner === 'string' ? params.owner : undefined;
@@ -54,7 +67,9 @@ export default function AddDocumentScreen() {
   const outOfScans = !settings.premium && settings.scansUsed >= FREE_SCAN_LIMIT;
   const scansLeft = Math.max(0, FREE_SCAN_LIMIT - settings.scansUsed);
 
-  const [step, setStep] = useState<Step>(editing ? 'form' : 'choose');
+  const [step, setStep] = useState<Step>(
+    editing ? 'form' : params.start === 'type' ? 'type' : 'choose'
+  );
   const [typeId, setTypeId] = useState<DocumentTypeId | null>(editing?.typeId ?? null);
   const [title, setTitle] = useState(editing?.title ?? '');
   /**

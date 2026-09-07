@@ -85,11 +85,14 @@ export default function OnboardingScreen() {
                 * Nothing here names a country. This is the first screen of the
                 * app and it runs before the next one asks where somebody
                 * lives, so "an Emirates ID" was the second example shown to
-                * everyone on earth. All four of these exist everywhere.
+                * everyone on earth. Everything named here exists everywhere.
+                *
+                * Two triads rather than one, because the app tracks two kinds
+                * of thing and this sentence only ever admitted to the first.
                 */}
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                A passport, an ID card, a car registration, a tenancy contract. Photograph it once
-                and Expyr does the remembering.
+                A passport, a tenancy contract, the car insurance. The gym, the internet bill, a
+                streaming plan. Expyr remembers the date so you do not have to.
               </ThemedText>
 
               <View style={styles.points}>

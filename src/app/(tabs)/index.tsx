@@ -376,7 +376,10 @@ export default function HomeScreen() {
           )}
           ListEmptyComponent={
             loaded && documents.length === 0 ? (
-              <EmptyState onAdd={() => router.push('/add')} />
+              <EmptyState
+                onAdd={() => router.push('/add')}
+                onBrowse={() => router.push('/add?start=type')}
+              />
             ) : halves.documents.length > 0 && halves.subscriptions.length > 0 && !query.trim() ? (
               /*
                * The half you are on is empty but the other is not — which only
@@ -448,14 +451,21 @@ export default function HomeScreen() {
   );
 }
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({ onAdd, onBrowse }: { onAdd: () => void; onBrowse: () => void }) {
   const theme = useTheme();
   return (
     <View style={styles.empty}>
       <ThemedText type="verdict">Nothing yet.</ThemedText>
+      {/*
+        * Two halves, because the app has two and only one of them was ever
+        * mentioned. "Photograph a visa, a licence, a tenancy contract" told a
+        * new person this was a document wallet, so the gym membership and the
+        * internet bill went untracked by somebody who would have tracked them.
+        * The second sentence is the whole reason the Subscriptions tab exists.
+        */}
       <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-        Photograph a visa, a licence, a tenancy contract. Expyr reads the date and remembers it for
-        you.
+        A passport, a tenancy contract, the car insurance. The gym, the internet bill, a streaming
+        plan. Anything with a date on it.
       </ThemedText>
       <Pressable onPress={onAdd} accessibilityRole="button">
         {({ pressed }) => (
@@ -464,6 +474,18 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
               Add your first item
             </ThemedText>
           </View>
+        )}
+      </Pressable>
+      {/*
+        * Opens the real category list rather than a second copy of it written
+        * for this screen. Two lists would answer the same question and drift
+        * apart the first time a category is added.
+        */}
+      <Pressable onPress={onBrowse} accessibilityRole="button">
+        {({ pressed }) => (
+          <ThemedText type="small" themeColor="textTertiary" style={pressed && styles.dim}>
+            See everything you can track
+          </ThemedText>
         )}
       </Pressable>
     </View>

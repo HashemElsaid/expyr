@@ -196,3 +196,24 @@ export function appleCredentials(env = process.env): AppleCredentials | null {
   if (!keyId || !issuerId || !privateKeyPem) return null;
   return { keyId, issuerId, privateKeyPem: privateKeyPem.replace(/\\n/g, '\n'), bundleId };
 }
+
+/**
+ * Whether the configured key can actually sign anything.
+ *
+ * Presence is not the same as usability. A .p8 pasted into a dashboard field
+ * that eats newlines is still a string, still passes every check above, and
+ * fails at the one moment that matters: the first real purchase, as a 401 from
+ * Apple with no explanation.
+ *
+ * So this signs a throwaway token at boot and reports whether it worked. It is
+ * the difference between finding out now and finding out from somebody whose
+ * money has already left their account.
+ */
+export function appleKeyUsable(credentials: AppleCredentials | null): boolean {
+  if (!credentials) return false;
+  try {
+    return signToken(credentials).split('.').length === 3;
+  } catch {
+    return false;
+  }
+}

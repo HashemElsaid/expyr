@@ -5,7 +5,7 @@ import { extractFromImage } from './extract.ts';
 import { FileGuidanceStore, isFresh, LayeredGuidanceStore } from './guidance-cache.ts';
 import { generateGuidance, type Guidance } from './guidance.ts';
 import { accountKeyFor, appleKeys, verifyAppleIdentityToken } from './apple-identity.ts';
-import { appleCredentials, fetchTransaction } from './apple-store.ts';
+import { appleCredentials, appleKeyUsable, fetchTransaction } from './apple-store.ts';
 import {
   accountFor,
   balanceOf,
@@ -197,6 +197,20 @@ export const ROUTES: Record<string, Route> = {
         ok: true,
         apiKeyConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
         registrationConfigured: canIssueTokens,
+        /*
+         * Whether credits can be sold, and it is reported for the same reason
+         * the guidance cache is: it is otherwise completely silent. A deploy
+         * whose disk did not mount serves every other route perfectly and
+         * refuses every purchase, and there is no way to tell from outside.
+         */
+        creditStore: creditStore.durable ? 'disk' : 'memory',
+        /*
+         * Not whether the Apple key is set, which proves nothing, but whether
+         * it can sign. A .p8 pasted into a field that ate its newlines is
+         * still a string and still fails at the first real purchase, as a 401
+         * from Apple with no explanation.
+         */
+        appleKeyUsable: appleKeyUsable(appleCredentials()),
         /*
          * Whether guidance survives a restart. Reported because it is the
          * difference between one web search per jurisdiction and one per

@@ -4,6 +4,7 @@ import { test } from 'node:test';
 
 import {
   appleCredentials,
+  appleKeyUsable,
   decodeSignedPayload,
   fetchTransaction,
   PurchaseNotVerified,
@@ -22,6 +23,7 @@ const CREDENTIALS: AppleCredentials = {
 };
 
 const NOW = Date.UTC(2026, 8, 7, 12, 0, 0);
+const NEWLINE = String.fromCharCode(10);
 
 function fromBase64Url(part: string): Buffer {
   return Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
@@ -244,4 +246,26 @@ test('defaults the bundle identifier to ours', () => {
     EXPYR_APPLE_KEY: 'z',
   });
   assert.equal(credentials?.bundleId, 'com.expyr.app');
+});
+
+/*
+ * The failure this exists to catch. A .p8 pasted into a dashboard field that
+ * eats newlines is still a string, passes every presence check, and fails at
+ * the first real purchase as a 401 from Apple with no explanation.
+ */
+test('says a real key can sign', () => {
+  assert.equal(appleKeyUsable(CREDENTIALS), true);
+});
+
+test('says a mangled key cannot', () => {
+  assert.equal(
+    appleKeyUsable({ ...CREDENTIALS, privateKeyPem: CREDENTIALS.privateKeyPem.split(NEWLINE).join(' ') }),
+    false
+  );
+  assert.equal(appleKeyUsable({ ...CREDENTIALS, privateKeyPem: 'not a key at all' }), false);
+  assert.equal(appleKeyUsable({ ...CREDENTIALS, privateKeyPem: '' }), false);
+});
+
+test('says nothing is usable when nothing is configured', () => {
+  assert.equal(appleKeyUsable(null), false);
 });

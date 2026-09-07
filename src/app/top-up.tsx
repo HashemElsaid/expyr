@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { pagesIn, PACKS, priceOf, type Pack } from '@/lib/credit-packs';
 import { region } from '@/lib/purchases';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
+import { canSignIn, signIn } from '@/lib/identity';
 import { purchaseCredits } from '@/lib/purchases';
 import { useSettings } from '@/store/settings';
 
@@ -33,6 +34,32 @@ export default function TopUpScreen() {
   /** The middle pack, which is the one most people should take. */
   const [chosen, setChosen] = useState<Pack>(PACKS[1]);
   const [busy, setBusy] = useState(false);
+  /*
+   * Offered rather than required, and only where it pays for itself: on the
+   * screen where somebody is spending money on something a new phone would
+   * otherwise take from them. Hidden once they have done it, and hidden on any
+   * phone that cannot do it at all.
+   */
+  const [canProtect, setCanProtect] = useState(false);
+
+  useEffect(() => {
+    canSignIn().then(setCanProtect);
+  }, []);
+
+  async function protectCredits() {
+    tapFeedback();
+    setBusy(true);
+    const outcome = await signIn();
+    setBusy(false);
+
+    if (outcome.ok) {
+      update({ account: outcome.account });
+      successFeedback();
+      return;
+    }
+    if (outcome.cancelled) return;
+    Alert.alert('That did not work', outcome.message);
+  }
 
   const balance = settings.credits.balance;
   /*
@@ -203,6 +230,31 @@ export default function TopUpScreen() {
                 </View>
               )}
             </Pressable>
+
+            {/*
+              * Says what is actually at stake rather than "sign in", which
+              * sounds like admin somebody can skip. Credits are a consumable
+              * and Apple keeps no record of one that has been used, so a new
+              * phone takes them unless there is an account to follow.
+              */}
+            {canProtect && settings.account === null && (
+              <Pressable onPress={protectCredits} disabled={busy} accessibilityRole="button">
+                {({ pressed }) => (
+                  <ThemedText
+                    type="small"
+                    themeColor="textSecondary"
+                    style={[styles.legal, pressed && styles.dim]}>
+                    Keep these credits if you change phone
+                  </ThemedText>
+                )}
+              </Pressable>
+            )}
+
+            {settings.account !== null && (
+              <ThemedText type="small" themeColor="textTertiary" style={styles.legal}>
+                These credits follow your Apple Account to a new phone.
+              </ThemedText>
+            )}
 
             {/* Guideline 3.1.2 wants the terms where the purchase is made. */}
             <ThemedText type="small" themeColor="textTertiary" style={styles.legal}>

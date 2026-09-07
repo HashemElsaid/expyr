@@ -69,7 +69,7 @@ export default function DataScreen() {
           <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
             Your items and photos live in Expyr&apos;s private storage on this iPhone, and they
             travel with your iPhone backup. Restore a new phone from iCloud and they come back.
-            Nothing is kept on a server.
+            None of it is kept on a server.
           </ThemedText>
         </View>
 

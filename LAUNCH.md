@@ -159,32 +159,30 @@ This is the wall between here and credits surviving a new phone.
 - [ ] Move spending to the server. `/read` and `/ask` still trust the balance
       the phone reports, and a balance in local storage is a number its owner
       can edit
-- [ ] Sign in with Apple on the phone. The whole server half is done and tested
+- [x] **Sign in with Apple on the phone.** Offered rather than required, and
+      only where it earns its place: on the top-up screen and in Settings, and
+      only once somebody has credits worth protecting. Asks Apple for no scopes
+      at all, so no name and no email is ever received
 
 ## 6. What accounts oblige you to add — ME, needs 5
 
-- [ ] **In-app account deletion.** Guideline 5.1.1(v) requires it the moment an
-      app supports account creation. Expyr is exempt today because it has no
-      accounts; adding sign-in ends that exemption
-- [ ] Decide what happens to unspent credits when somebody deletes
-- [ ] **Rewrite both privacy policies before sign-in ships, not after.** They
-      currently say, in these words, that there is "no account and no server
-      database". That is true today and becomes false the moment an Apple
-      subject identifier and a balance are held on the service. A privacy
-      policy that denies the thing the app does is worse than no policy: it is
-      a statement Apple can read, a user can rely on, and neither would
-      forgive.
+- [x] **In-app account deletion**, under Settings, as Guideline 5.1.1(v)
+      requires. Proved with a fresh Apple sheet rather than the install
+      credential, because an install token is something a stolen phone already
+      has and this erases a balance somebody paid for
+- [x] **Unspent credits are forfeited, and the app says so before you tap.**
+      There is no honest alternative: Apple handles refunds, and a balance kept
+      "just in case" after somebody asked to be deleted is exactly the data
+      they asked us not to hold
+- [x] **Both privacy policies rewritten, in the same change as sign-in.** The
+      absolute claim is gone from all six places; what replaced it is narrower
+      and still true: nothing you track is ever sent to a server. A new section
+      says what an account does hold, which is an opaque identifier and a
+      number, and that deleting it erases both.
 
-      Six places say it, and all six have to change together:
-
-      - `src/app/privacy.tsx` line 11 and line 53
-      - `docs/privacy.html` line 27 and line 72
-      - `docs/index.html` line 37
-      - `src/app/data.tsx` line 72, "Nothing is kept on a server."
-
-      The App Privacy labels in App Store Connect have to change with them:
-      an identifier and a balance held server-side is data collection, and a
-      label saying otherwise contradicts both the policy and the traffic
+      Still to do in App Store Connect: the **App Privacy labels** have to
+      match. An identifier and a balance held server-side is data collection,
+      and a label saying otherwise contradicts both the policy and the traffic.
 
 ## 7. Make reading finish — ME, needs 3
 

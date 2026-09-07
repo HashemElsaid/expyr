@@ -12,6 +12,7 @@ import {
   alreadyRedeemed,
   balanceOf,
   debit,
+  forget,
   grant,
   link,
   redeem,
@@ -402,4 +403,74 @@ test('refuses to redeem into a store that forgets', async () => {
     () => redeem(new MemoryCreditStore(), 'apple_abc', 'txn_1', 3000),
     /forgets/
   );
+});
+
+/*
+ * Guideline 5.1.1(v) requires an app that supports accounts to let somebody
+ * delete theirs from inside it, and a delete that leaves the balance behind
+ * under the same key is not a delete.
+ */
+test('deleting an account erases the balance and the record of it', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', 'txn_1', 3000);
+    assert.equal(await balanceOf(store, 'apple_abc'), 3000);
+
+    await forget(store, 'apple_abc');
+
+    assert.equal(await balanceOf(store, 'apple_abc'), 0);
+    assert.equal(await store.read('apple_abc'), null, 'the record itself is gone');
+  });
+});
+
+test('deleting an account nobody has is not a failure', async () => {
+  await onDisk(async (store) => {
+    await forget(store, 'apple_nobody');
+    assert.equal(await balanceOf(store, 'apple_nobody'), 0);
+  });
+});
+
+/*
+ * Without this the phone keeps resolving to a key that no longer exists, and
+ * reads as a balance of zero it can never explain.
+ */
+test('deleting an account cuts the phone loose from it', async () => {
+  await onDisk(async (store) => {
+    await link(store, 'install-1', 'apple_abc');
+    assert.equal(await accountFor(store, 'install-1'), 'apple_abc');
+
+    await forget(store, 'apple_abc', ['install-1']);
+
+    assert.equal(await accountFor(store, 'install-1'), 'install-1', 'spends as itself again');
+  });
+});
+
+/*
+ * linkedTo is the guard against moving one install's credits twice. Clearing
+ * it on deletion would let the same purchase be claimed again by signing in to
+ * a second account, which is a way to mint credits out of nothing.
+ */
+test('deleting does not reopen the way to claim the same credits twice', async () => {
+  await onDisk(async (store) => {
+    await grant(store, 'install-1', 3000);
+    await link(store, 'install-1', 'apple_abc');
+    assert.equal(await balanceOf(store, 'apple_abc'), 3000);
+
+    await forget(store, 'apple_abc', ['install-1']);
+
+    // Signing in as somebody else must not hand them the same 3,000 again.
+    assert.equal(await link(store, 'install-1', 'apple_xyz'), 0);
+    assert.equal(await balanceOf(store, 'apple_xyz'), 0);
+  });
+});
+
+test('deleting one account leaves everybody else alone', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', 'txn_1', 1500);
+    await redeem(store, 'apple_xyz', 'txn_2', 3000);
+
+    await forget(store, 'apple_abc');
+
+    assert.equal(await balanceOf(store, 'apple_abc'), 0);
+    assert.equal(await balanceOf(store, 'apple_xyz'), 3000);
+  });
 });

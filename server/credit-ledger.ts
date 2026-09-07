@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 /**
@@ -66,6 +66,12 @@ export interface CreditStore {
   readonly durable: boolean;
   read(id: string): Promise<Account | null>;
   write(account: Account): Promise<void>;
+  /**
+   * Erases a record entirely. Guideline 5.1.1(v) requires an app that supports
+   * accounts to let somebody delete theirs from inside the app, and a delete
+   * that leaves the balance behind under the same key is not a delete.
+   */
+  remove(id: string): Promise<void>;
 }
 
 /**
@@ -82,6 +88,10 @@ export class MemoryCreditStore implements CreditStore {
 
   async write(account: Account): Promise<void> {
     this.accounts.set(account.id, account);
+  }
+
+  async remove(id: string): Promise<void> {
+    this.accounts.delete(id);
   }
 }
 
@@ -147,6 +157,12 @@ export class FileCreditStore implements CreditStore {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(temporary, JSON.stringify(account), 'utf8');
     renameSync(temporary, path);
+  }
+
+  async remove(id: string): Promise<void> {
+    const path = this.pathFor(id);
+    // Already gone is the outcome asked for, so it is not a failure.
+    if (existsSync(path)) rmSync(path);
   }
 }
 
@@ -357,4 +373,40 @@ export async function alreadyRedeemed(
 ): Promise<boolean> {
   const account = await store.read(accountId);
   return (account?.redeemed ?? []).includes(transactionId);
+}
+
+/**
+ * Erases an account and cuts every phone loose from it.
+ *
+ * Guideline 5.1.1(v) requires this to exist inside the app the moment accounts
+ * do, and it has to be a real deletion rather than a flag: the balance goes,
+ * the record of which purchases were redeemed goes, and the file goes.
+ *
+ * Unspent credits are forfeited, and the screen that calls this says so before
+ * anybody taps it. There is no honest alternative. Apple handles refunds, not
+ * us, and a balance kept "just in case" after somebody asked to be deleted is
+ * exactly the data they asked us not to have.
+ *
+ * The installs pointing at it are unlinked in the same pass. Without that, the
+ * phone keeps resolving to a key that no longer exists and reads as a balance
+ * of zero it can never explain.
+ */
+export async function forget(
+  store: CreditStore,
+  accountId: string,
+  installIds: readonly string[] = [],
+  now = Date.now()
+): Promise<void> {
+  for (const installId of installIds) {
+    const install = await store.read(installId);
+    if (!install || install.signedInAs !== accountId) continue;
+    /*
+     * linkedTo is deliberately left alone. It is the guard that stops an
+     * install's balance being moved twice, and clearing it would let the same
+     * credits be claimed again by signing in to a second account.
+     */
+    await store.write({ ...install, seenAt: now, signedInAs: undefined });
+  }
+
+  await store.remove(accountId);
 }

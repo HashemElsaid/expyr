@@ -10,6 +10,7 @@ import {
   accountFor,
   balanceOf,
   FileCreditStore,
+  forget,
   link,
   MemoryCreditStore,
   redeem,
@@ -414,6 +415,37 @@ export const ROUTES: Record<string, Route> = {
         note: `redeemed ${transaction.productId} txn=${transaction.transactionId} granted=${granted} account=${account}`,
       });
       return json({ productId: transaction.productId, credits: grant.credits, balance, granted });
+    },
+  },
+
+  /**
+   * Deletes the account, which Guideline 5.1.1(v) requires an app to offer
+   * from the inside the moment it supports accounts at all.
+   *
+   * Proved with a fresh identity token rather than the install credential.
+   * Deleting is the one thing that should cost somebody Apple's own sheet: an
+   * install token is a credential a stolen phone already has, and this erases
+   * a balance somebody paid for.
+   *
+   * Unspent credits are forfeited, and the screen that calls this says so
+   * before anybody taps it. Keeping a balance "just in case" after being asked
+   * to delete is precisely the data they asked us not to hold.
+   */
+  '/account/delete': {
+    method: 'POST',
+    auth: true,
+    metered: true,
+    costs: false,
+    handle: async (ctx) => {
+      const { identityToken } = parse(IdentityRequest, ctx.body);
+
+      const identity = await verifyAppleIdentityToken(identityToken, BUNDLE_ID, appleKeys);
+      const account = accountKeyFor(identity);
+
+      await forget(creditStore, account, ctx.install ? [ctx.install] : []);
+
+      ctx.note({ note: `deleted account=${account}` });
+      return json({ deleted: true });
     },
   },
 

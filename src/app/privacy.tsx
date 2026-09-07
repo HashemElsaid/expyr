@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 const SECTIONS: { title: string; body: string }[] = [
   {
     title: 'What Expyr stores',
-    body: 'Everything you track is stored on your phone only. That means names, dates, reference numbers, notes and photos. Expyr has no account system, no server database, and no analytics that identify you. If you delete the app, that data goes with it, which is why the backup option exists.',
+    body: 'Everything you track is stored on your phone only. That means names, dates, reference numbers, notes and photos. None of it is ever sent to a server or kept on one. If you delete the app, that data goes with it, which is why the backup option exists. Expyr has no analytics that identify you.',
   },
   {
     title: 'Where photos live',
@@ -39,6 +39,10 @@ const SECTIONS: { title: string; body: string }[] = [
     body: 'A backup file contains your items and their photos. Once you save or send it, that file is yours to look after. Treat it like the documents themselves and keep it somewhere private.',
   },
   {
+    title: 'Signing in, and what that stores',
+    body: 'Expyr works without an account and most people never make one. It is offered in one place only: after you have bought credits for Expyr AI, so that those credits follow you to a new phone. If you sign in with Apple, we store two things, an anonymous identifier Apple gives us for you and how many credits you have left. We never ask Apple for your name or your email and we never receive them. Your documents are not part of this and are never sent to us. You can delete the account from Settings at any time, which erases the identifier and the balance immediately; any unspent credits are lost, and the app says so before you confirm.',
+  },
+  {
     title: 'Locking the app',
     body: 'Turning on the app lock requires Face ID, Touch ID or your device passcode to open Expyr. The check is performed by iOS; Expyr never sees your biometric data.',
   },
@@ -50,7 +54,7 @@ const SECTIONS: { title: string; body: string }[] = [
    */
   {
     title: 'Children',
-    body: 'Expyr is not directed at children and does not knowingly collect anything from them. Because there is no account and no server database, we hold no personal data about any user to collect in the first place.',
+    body: 'Expyr is not directed at children and does not knowingly collect anything from them. Nothing you track is ever sent to us, so there is no record of any child to collect in the first place.',
   },
   {
     title: 'Changes and questions',

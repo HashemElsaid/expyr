@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { canSignIn, deleteAccount, signIn } from '@/lib/identity';
 import { useTheme } from '@/hooks/use-theme';
 import { authenticate, checkBiometricSupport } from '@/lib/biometrics';
 import { successFeedback } from '@/lib/haptics';
@@ -41,6 +42,61 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings, update } = useSettings();
+
+  /*
+   * Offered, never required, and only where it earns its place. Somebody who
+   * has never bought credits has nothing an account would protect, and an app
+   * that asks anyway is an app that wanted the account for its own sake.
+   */
+  const [canProtect, setCanProtect] = useState(false);
+
+  useEffect(() => {
+    canSignIn().then(setCanProtect);
+  }, []);
+
+  async function protectCredits() {
+    const outcome = await signIn();
+    if (outcome.ok) {
+      update({ account: outcome.account });
+      successFeedback();
+      return;
+    }
+    if (outcome.cancelled) return;
+    Alert.alert('That did not work', outcome.message);
+  }
+
+  /*
+   * Guideline 5.1.1(v) requires this to be reachable from inside the app, and
+   * the forfeit has to be said before it happens rather than discovered after.
+   * Apple handles refunds; we cannot give credits back once the account that
+   * held them is gone.
+   */
+  function confirmDeleteAccount() {
+    const balance = settings.credits.balance;
+    Alert.alert(
+      'Delete your account?',
+      balance > 0
+        ? `Your ${formatCredits(balance)} will be lost and cannot be restored. Your documents stay on this phone either way.`
+        : 'Your documents stay on this phone either way.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const outcome = await deleteAccount();
+            if (outcome.ok) {
+              update({ account: null, credits: EMPTY_LEDGER });
+              successFeedback();
+              return;
+            }
+            if (outcome.cancelled) return;
+            Alert.alert('Nothing was deleted', outcome.message);
+          },
+        },
+      ]
+    );
+  }
   const { documents, reminders, rescheduleAll } = useDocuments();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
   const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
@@ -149,6 +205,31 @@ export default function SettingsScreen() {
               subtitle={`${formatCredits(settings.credits.balance)} · ${pagesLeft(settings.credits)} pages`}
               action={{ label: 'Top up', onPress: () => router.push('/top-up') }}
             />
+
+            {/*
+              * Only shown once there is something to protect or something to
+              * delete. Somebody who has never bought credits has no reason to
+              * be asked to sign in, and an app that asks anyway is an app that
+              * wanted an account for its own sake.
+              */}
+            {canProtect && settings.account === null && settings.credits.balance > 0 && (
+              <Row
+                icon="account-check-outline"
+                title="Protect my credits"
+                subtitle="Sign in with Apple so they follow you to a new phone"
+                action={{ label: 'Sign in', onPress: protectCredits }}
+              />
+            )}
+
+            {settings.account !== null && (
+              <Row
+                icon="account-check-outline"
+                title="Credits protected"
+                subtitle="They follow your Apple Account to a new phone"
+                destructive
+                action={{ label: 'Delete', onPress: confirmDeleteAccount }}
+              />
+            )}
           </Section>
 
           {/*

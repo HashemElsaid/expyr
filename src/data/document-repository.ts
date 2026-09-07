@@ -5,9 +5,13 @@ import type { TrackedDocument } from '@/types';
  * Where documents are kept, behind an interface.
  *
  * Today there is one implementation and it writes to this phone. That is the
- * whole of Expyr's storage story and, for a product whose privacy screen says
- * "no account system, no server database", it is a deliberate one rather than
- * an unfinished one.
+ * whole of Expyr's storage story for documents, and a deliberate one rather
+ * than an unfinished one: the privacy screen promises that nothing you track
+ * is ever sent to a server, and this file is where that promise is kept.
+ *
+ * Signing in with Apple does not change it. An account holds an opaque
+ * identifier and a credit balance and nothing else; no document has ever gone
+ * near it, and none passes through here on its way anywhere.
  *
  * The interface exists because the day a second implementation is wanted —
  * documents that survive a lost phone, a household sharing a tenancy contract —

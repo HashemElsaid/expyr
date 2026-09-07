@@ -522,7 +522,7 @@ export default function DocumentDetailScreen() {
          */}
         {readable && !brief && stage === null && (
           <SecondaryAction
-            icon="comment-question-outline"
+            icon="creation-outline"
             label="Ask about this document"
             onPress={() => router.navigate(`/ask?id=${doc.id}`)}
           />
@@ -589,7 +589,7 @@ export default function DocumentDetailScreen() {
               ))}
 
             <SecondaryAction
-              icon="comment-question-outline"
+              icon="creation-outline"
               label="Ask about this document"
               onPress={() => router.navigate(`/ask?id=${doc.id}`)}
             />

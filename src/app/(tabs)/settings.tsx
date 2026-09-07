@@ -144,7 +144,7 @@ export default function SettingsScreen() {
               * comes when they want to know.
               */}
             <Row
-              icon="lightning-bolt-outline"
+              icon="creation-outline"
               title="Expyr AI credits"
               subtitle={`${formatCredits(settings.credits.balance)} · ${pagesLeft(settings.credits)} pages`}
               action={{ label: 'Top up', onPress: () => router.push('/top-up') }}

@@ -71,12 +71,27 @@ export default function TabsLayout() {
           tabBarButton: () => <CameraButton />,
         }}
       />
+      {/*
+       * The sparkle, because that is what an AI feature looks like now.
+       *
+       * It wore a speech bubble with a question mark in it, which is the
+       * universal mark for a help centre — the one thing Expyr AI is not. And
+       * the feature had four different faces depending on where you met it: a
+       * speech bubble here, a comment bubble on a document, a magnifying glass
+       * over a page on its own empty screen, and a lightning bolt in Settings.
+       * Four marks is no mark.
+       *
+       * Outline rather than solid so it sits at the same weight as the
+       * calendar, the people and the cog beside it. The cluster of three reads
+       * as a sparkle at 24px where a single four-pointed star reads as a
+       * favourite.
+       */}
       <Tabs.Screen
         name="ask"
         options={{
           title: 'Expyr AI',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="chat-question-outline" size={size} color={color} />
+            <MaterialCommunityIcons name="creation-outline" size={size} color={color} />
           ),
         }}
       />

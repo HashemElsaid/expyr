@@ -269,7 +269,7 @@ export default function AskScreen() {
             {nothingRead ? (
               <View style={styles.blank}>
                 <MaterialCommunityIcons
-                  name="text-box-search-outline"
+                  name="creation-outline"
                   size={28}
                   color={theme.textTertiary}
                 />

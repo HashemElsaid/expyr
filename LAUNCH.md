@@ -1,6 +1,6 @@
 # Expyr, launch checklist
 
-Current as of 6 September 2026, in dependency order. Nothing in a step can
+Current as of 7 September 2026, in dependency order. Nothing in a step can
 start before the step above it is done.
 
 **YOU** means only you can do it: payment, identity, an Apple account, a
@@ -33,22 +33,35 @@ exist and are tested. Three things stop it working: it cannot take payments,
 the balance is held on the phone where it is editable, and reading a long PDF
 still does not reliably finish.
 
+**Which means there are two possible v1s, and the choice decides the next
+fortnight.** Shipping the tracker alone needs one non-consumable and nothing
+else: no accounts, no sign-in, no server-side balance, no account deletion, and
+the privacy policy stays true exactly as written. Shipping Expyr AI with it
+needs all of those, plus the paid Render plan, plus the one feature that still
+does not work. Section 5 onward assumes the second; if the answer is the first,
+sections 5, 6 and 7 move behind the launch instead of in front of it.
+
 ---
 
-## 1. Apple admits you — YOU, in progress
+## 1. Apple admits you — YOU, done
 
 - [x] Enrol as an **Individual**, $99, paid 6 September
-- [ ] Wait. The first two attempts were rejected for a name mismatch, fixed on
-      the third
-- [ ] If nothing arrives in a few days, call rather than email:
-      Mon–Fri, **12:00 to 21:00 Dubai**, from developer.apple.com/contact
+- [x] **Admitted 7 September.** App Store Connect access confirmed by email
 
 ## 2. The day you are admitted — YOU
 
-- [ ] **Enrol in the App Store Small Business Program, before setting any
-      prices.** Apple's cut drops from 30% to 15% for the year. Free, and it
-      roughly doubles the margin on everything
-- [ ] Create the app record in App Store Connect, bundle id `com.expyr.app`
+- [ ] **Enrol in the App Store Small Business Program.** Apple's cut drops from
+      30% to 15%, which doubles what arrives from every sale. Free, no
+      downside, and the only reason to hurry is the calendar: the reduced rate
+      starts on the **first day of the month after Apple approves you**, so a
+      week's delay can cost a whole month at the higher rate.
+
+      It does *not* block pricing, despite what this file used to say. The
+      credit packs in `src/lib/credit-packs.ts` are already priced to clear
+      their own cost at the full 30%, and there is a test that fails if they
+      ever stop doing so. Fifteen per cent is upside on top, not a premise.
+- [ ] Create the app record in App Store Connect, bundle id `com.expyr.app`.
+      Everything else in App Store Connect hangs off this existing
 - [ ] Create **one non-consumable**: Expyr Pro, AED 149, Family Shareable
 - [ ] Create **three consumables**: `credits.small`, `credits.medium`,
       `credits.large`. Set a base price and let Apple generate the other 174

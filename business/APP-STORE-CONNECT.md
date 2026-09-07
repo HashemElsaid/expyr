@@ -29,7 +29,18 @@ the Apple Account that holds the membership.
       tax category App Store software, Public distribution. Apple Silicon Mac
       and Apple Vision Pro both **unticked**: untested platforms, and Apple
       itself flagged version 1.0 as incompatible with Vision Pro
-- [ ] App Privacy
+- [x] App Privacy, 7 September. Three data types declared, all **Data Not
+      Linked to You**, all **App Functionality**, none used for tracking:
+      Photos or Videos, Other User Content, Device ID. Privacy policy URL set
+      to the GitHub Pages page. Deliberately **not** declared: Sensitive Info
+      (Apple defines it narrowly and dates are not biometrics), Financial Info
+      (a premium printed inside a photographed document is not financial data
+      collection), Health, Purchases, Usage Data, Diagnostics. There is no
+      analytics SDK in the app at all, which made most of this straightforward.
+
+      **These labels expire the day Sign in with Apple ships.** An Apple
+      subject identifier and a server-side balance are data linked to identity,
+      and the label would then be false. See LAUNCH.md section 6
 - [ ] In-app purchases and prices, blocked until the bank verifies
 
 Two details worth keeping. Apple routes payouts by **royalty currency**, and

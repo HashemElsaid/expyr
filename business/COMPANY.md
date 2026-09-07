@@ -210,13 +210,29 @@ only visible while logged in.
 | | |
 |---|---|
 | Apple Team ID | BZ5RDB2NVC |
+| App Store Connect Apple ID | 6809437011 |
+| Bundle ID | com.expyr.app |
+| SKU | expyr-ios-01 |
 | Developer account email | hashimsherif2005@gmail.com |
 | Legal name on the membership | Hashem Elsaid |
 | Bank account name at FAB | HASHEM SHERIF MAMDOUH M ELSAID |
 
-The Team ID is what the submit block in eas.json needs, alongside the Apple ID
-and the App Store Connect app id once the app record exists. That block is
-currently empty.
+That is everything the submit block in `eas.json` needs, and it is still empty.
+For the coding session:
+
+```json
+"submit": {
+  "production": {
+    "ios": {
+      "appleId": "hashimsherif2005@gmail.com",
+      "ascAppId": "6809437011",
+      "appleTeamId": "BZ5RDB2NVC"
+    }
+  }
+}
+```
+
+
 
 Note that the **developer account email is not the support address**. The app
 and both policy pages publish hashim.elsaeed@gmail.com, and Apple corresponds

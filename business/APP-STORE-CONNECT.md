@@ -19,7 +19,11 @@ the Apple Account that holds the membership.
 - [x] Bank account added, FAB, AED. **Processing**, verifies within 24 hours
 - [x] Small Business Program, submitted 7 September. Four associated-account questions all No, proceeds declaration ticked. Awaiting approval
 - [x] App record created 7 September. Apple ID **6809437011**, name Expyr: Expiry Reminders, primary language English (U.S.), status 1.0 Prepare for Submission
-- [ ] Subtitle, categories, content rights, age rating
+- [x] Subtitle, categories, content rights, age rating, all 7 September.
+      Subtitle **Visa, documents & renewals**, Productivity and Utilities,
+      content rights answered **yes** because brand logos are third-party
+      content shown under nominative use, and the age rating came out **4+**
+      with no override
 - [ ] In-app purchases and prices, blocked until the bank verifies
 
 Two details worth keeping. Apple routes payouts by **royalty currency**, and

@@ -23,8 +23,20 @@ Expyr: Expiry Reminders
 ## Subtitle (30 characters max)
 
 ```
-Visa, licence & renewal alerts
+Visa, documents & renewals
 ```
+
+26 characters. Changed 7 September, from `Visa, licence & renewal alerts`.
+
+Two reasons. Ten of the thirteen categories are documents and the old subtitle
+never said so, which undersold the app to anybody reading the one line they get
+before deciding to tap. And "alerts" was dead weight: "Reminders" is already in
+the app name, and Apple indexes name and subtitle together, so it was a word
+bought twice.
+
+**Bills were considered and rejected.** There is no bill category. No DEWA, no
+du, no Etisalat, nothing recurring. Advertising one would be Guideline 2.3.1,
+and the same shape as the AED 79/year price this file used to carry.
 
 ## Pricing
 
@@ -123,8 +135,45 @@ renews, nothing to cancel.
 ## Keywords (100 characters, comma separated, no spaces)
 
 ```
-visa,emirates id,expiry,renewal,reminder,mulkiya,ejari,passport,subscription,deadline,insurance
+emirates,id,licence,license,mulkiya,istimara,ejari,tenancy,passport,subscriptions,insurance,warranty
 ```
+
+Exactly 100 characters. Rewritten 7 September.
+
+**Apple indexes the name, the subtitle and this field together**, so a word
+already in the first two buys nothing here. The old list spent 29 of its 100
+characters on four words it already owned:
+
+| Word | Already in |
+|---|---|
+| `visa` | subtitle |
+| `renewal` | subtitle |
+| `expiry` | the app name |
+| `reminder` | the app name |
+
+`deadline` was dropped as well, for being a word nobody types when they mean a
+visa.
+
+What the reclaimed space bought:
+
+- **Both spellings of licence.** The subtitle no longer carries either, and UAE
+  App Store users type both. British because their document says so, American
+  out of habit. They are different strings to Apple's index, so owning one is
+  not owning the other
+- **`id` as its own term**, split out of `emirates id`. Apple recombines single
+  words into phrases on its own, so two words index more than one phrase does
+- **`tenancy`**, which is what somebody types when they cannot spell Ejari
+- **`warranty`**, a real category that was not represented at all
+- **`istimara`**, the Gulf term for vehicle registration outside the UAE. The
+  only speculative entry here, and it is there for the Saudi and Qatari
+  storefronts that `business/GTM.md` phases in later
+
+**Subscriptions is plural here on purpose**, and it belongs in this field rather
+than in the subtitle. Both fields are indexed and neither is weighted more per
+word, so a thirteen-character word costs 13 of 100 here and 13 of 30 there.
+What that feature actually deserves is a screenshot: "photograph your App Store
+subscriptions list and it reads all of them" is a demonstration, not a keyword,
+and nobody buys it from three words in a subtitle.
 
 ## Categories
 
@@ -133,11 +182,47 @@ visa,emirates id,expiry,renewal,reminder,mulkiya,ejari,passport,subscription,dea
 
 ## Age rating
 
-Do **not** assume 4+ any more. Apple's current questionnaire asks about
-AI-generated content and chatbot-style features, and Expyr has both: the Ask tab
-answers free-text questions with an LLM, and renewal guidance is model-generated
-from web search. Answer those questions honestly and accept the rating that
-falls out. A wrong answer is caught later and costs more than a higher rating.
+**4+**, completed 7 September 2026. Every answer across all six content steps
+was NONE or NO, and 4+ is what the questionnaire calculated.
+
+This entry used to say "do not assume 4+ any more", on the grounds that Apple's
+questionnaire asks about AI-generated content and chatbot features. **It does
+not.** Walked end to end on 7 September, the seven steps are: in-app controls
+and capabilities, mature themes, medical or wellness, sexuality or nudity,
+violence, chance-based activities, and then a summary. There is no AI question
+anywhere in it. The nearest thing is "Messaging and Chat", which is defined as
+users communicating *with one another*, and Expyr has no user-to-user anything.
+
+Three answers that needed thought rather than reflex:
+
+- **Unrestricted Web Access: NO.** There is no WebView and no in-app browser.
+  Portal links hand off to Safari through `Linking.openURL`, which is outside
+  the app
+- **Medical or Treatment Information: NONE**, despite Health Insurance being a
+  tracked category. Its guide is administrative: where to renew, what it costs,
+  that a lapse blocks visa renewal. Answering "frequent" would have dragged the
+  app into declaring whether it is a regulated medical device
+- **Loot Boxes: NO.** Credit packs are fixed quantities at fixed prices, stated
+  before purchase. Nothing about them is randomised
+
+### Two options deliberately not taken
+
+**Made for Kids.** Not a label, a separate compliance regime: no third-party
+analytics, no behavioural advertising, and no links out of the app without a
+parental gate. Expyr deep-links to ICP, RTA and MOHRE. Every one would need a
+gate.
+
+**Override to Higher Age Rating.** Considered because the Ask tab runs an LLM
+and LLM output is not fully predictable. Rejected because Ask is scoped to a
+document the user supplied rather than being an open-ended companion chatbot,
+which is the shape Apple actually worries about; and because a voluntary
+override is a signal. A reviewer seeing a document tracker self-rated 12+ asks
+why, and the honest answer is a feature you would rather they understood
+properly.
+
+**The AI gets declared in the review notes instead**, in the section below that
+states all three AI features plainly. Full disclosure where a reviewer reads it,
+rather than a rating bump that says something is wrong without saying what.
 
 ---
 

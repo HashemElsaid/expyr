@@ -371,10 +371,16 @@ export default function AddDocumentScreen() {
   if (overFreeLimit) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText type="verdict">That is {FREE_ITEM_LIMIT}.</ThemedText>
+        {/*
+          * "That is 5." was a statement of a count, and it read as one — a
+          * headline telling somebody how many items they have, in front of
+          * somebody who has more than that. The situation goes in the
+          * headline and the number goes in the sentence that explains it.
+          */}
+        <ThemedText type="verdict">The free plan is full.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-          The free plan holds {FREE_ITEM_LIMIT} items. Unlock Expyr to track everything you own,
-          and everyone in the house.
+          It holds {FREE_ITEM_LIMIT} items. Unlock Expyr to track everything you own, and everyone
+          in the house.
         </ThemedText>
         <View style={styles.wallAction}>
           <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />
@@ -395,7 +401,7 @@ export default function AddDocumentScreen() {
   if (step === 'scansSpent') {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText type="verdict">That is {FREE_SCAN_LIMIT} scans.</ThemedText>
+        <ThemedText type="verdict">Free scans are spent.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
           Reading a date off a photo costs us something every time, so the free plan includes{' '}
           {FREE_SCAN_LIMIT} of them. Unlock Expyr to scan without counting.

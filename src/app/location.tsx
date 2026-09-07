@@ -1,14 +1,14 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { CountrySelect } from '@/components/country-select';
-import { usesEmirates } from '@/data/countries';
-import { EMIRATES } from '@/data/regions';
-import { useTheme } from '@/hooks/use-theme';
-import { tapFeedback } from '@/lib/haptics';
-import { useSettings } from '@/store/settings';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { MaxContentWidth, Radius, Spacing } from "@/constants/theme";
+import { CountrySelect } from "@/components/country-select";
+import { usesEmirates } from "@/data/countries";
+import { EMIRATES } from "@/data/regions";
+import { tapFeedback } from "@/lib/haptics";
+import { useTheme } from "@/hooks/use-theme";
+import { useSettings } from "@/store/settings";
 
 /**
  * Where you live decides whether Expyr gives renewal guidance at all, and
@@ -16,12 +16,14 @@ import { useSettings } from '@/store/settings';
  * lives here rather than taking up a third of Settings for the rest of time.
  */
 export default function LocationScreen() {
-  const theme = useTheme();
   const { settings, update } = useSettings();
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <ThemedText type="label" themeColor="textTertiary">
           Country
         </ThemedText>
@@ -29,13 +31,17 @@ export default function LocationScreen() {
           value={settings.country}
           onChange={(country) =>
             // Leaving the UAE makes any emirate meaningless, so it goes.
-            update(country === 'ae' ? { country } : { country, emirate: null })
+            update(country === "ae" ? { country } : { country, emirate: null })
           }
         />
 
         {usesEmirates(settings.country) && (
           <>
-            <ThemedText type="label" themeColor="textTertiary" style={styles.heading}>
+            <ThemedText
+              type="label"
+              themeColor="textTertiary"
+              style={styles.heading}
+            >
               Emirate
             </ThemedText>
             <View style={styles.chipRow}>
@@ -57,38 +63,48 @@ export default function LocationScreen() {
         <ThemedText type="small" themeColor="textTertiary" style={styles.note}>
           {usesEmirates(settings.country)
             ? settings.emirate
-              ? 'Renewal steps and portals follow your emirate. Vehicles and licences are run locally, not federally.'
-              : 'Pick your emirate and Expyr will point you at the right authority.'
+              ? "Renewal steps and portals follow your emirate. Vehicles and licences are run locally, not federally."
+              : "Pick your emirate and Expyr will point you at the right authority."
             : settings.country
-              ? 'Expyr tracks your dates anywhere. Renewal steps, costs and fines are verified for the UAE only, so they stay hidden rather than being guessed.'
-              : 'Set this so Expyr knows whether it can tell you how to renew things where you are.'}
+              ? "Expyr tracks your dates anywhere. Renewal steps, costs and fines are verified for the UAE only, so they stay hidden rather than being guessed."
+              : "Set this so Expyr knows whether it can tell you how to renew things where you are."}
         </ThemedText>
-
-        <View style={[styles.footnote, { borderTopColor: theme.border }]}>
-          <ThemedText type="small" themeColor="textTertiary">
-            This decides which renewal guidance Expyr will show you.
-          </ThemedText>
-        </View>
       </ScrollView>
     </ThemedView>
   );
 }
 
-function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+function Chip({
+  label,
+  on,
+  onPress,
+}: {
+  label: string;
+  on: boolean;
+  onPress: () => void;
+}) {
   const theme = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+    >
       {({ pressed }) => (
         <View
           style={[
             styles.chip,
             {
-              backgroundColor: on ? theme.accent : 'transparent',
+              backgroundColor: on ? theme.accent : "transparent",
               borderColor: on ? theme.accent : theme.border,
             },
             pressed && styles.dim,
-          ]}>
-          <ThemedText type="smallBold" style={on ? { color: theme.accentContrast } : undefined}>
+          ]}
+        >
+          <ThemedText
+            type="smallBold"
+            style={on ? { color: theme.accentContrast } : undefined}
+          >
             {label}
           </ThemedText>
         </View>
@@ -105,11 +121,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.six,
     gap: Spacing.three,
     maxWidth: MaxContentWidth,
-    width: '100%',
-    alignSelf: 'center',
+    width: "100%",
+    alignSelf: "center",
   },
   heading: { paddingTop: Spacing.three },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
   chip: {
     borderRadius: Radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
@@ -117,6 +133,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   note: { paddingTop: Spacing.two },
-  footnote: { marginTop: Spacing.four, paddingTop: Spacing.three, borderTopWidth: StyleSheet.hairlineWidth },
   dim: { opacity: 0.6 },
 });

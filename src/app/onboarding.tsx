@@ -81,8 +81,14 @@ export default function OnboardingScreen() {
               <ThemedText type="headline" style={styles.centered}>
                 Nothing expires unnoticed.
               </ThemedText>
+              {/*
+                * Nothing here names a country. This is the first screen of the
+                * app and it runs before the next one asks where somebody
+                * lives, so "an Emirates ID" was the second example shown to
+                * everyone on earth. All four of these exist everywhere.
+                */}
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
-                A visa, an Emirates ID, a car registration, a tenancy contract. Photograph it once
+                A passport, an ID card, a car registration, a tenancy contract. Photograph it once
                 and Expyr does the remembering.
               </ThemedText>
 

@@ -241,7 +241,21 @@ and gave up. Everything cheap has been tried: parallel batches, a page count
 that costs nothing, streaming, per-batch banking, a retry pass, half the server
 work removed.
 
-- [ ] Try again on the paid plan, which is the last untested variable
+- [x] **It works.** Tested 7 September on the paid plan against a real Asteco
+      tenancy contract with a Schedule of Fees and a separate Terms and
+      Conditions bundle. It read the whole thing and returned clause-cited
+      findings: the early-termination penalty, the deposit deduction clause,
+      the bounced-cheque escalation, the late-renewal daily charge, the parking
+      fine, the contents-insurance disclaimer. Clause 10, Clause 25, Clause 34,
+      Schedule of Fees.
+
+      **A full CPU was the answer.** Everything cheap had already been tried
+      and none of it was the problem: it was a tenth of a shared core parsing
+      multi-megabyte PDFs. The  plan was the fix.
+
+      Expyr AI ships. The Ask tab does not need hiding, and section 4 of
+      APP-REVIEW.md, which asked whether a parked feature should keep a visible
+      tab, is now moot.
 - [x] **Nothing is read without being agreed to, and nothing is read in part.**
       The 30 page cap was built and then removed: a contract read to page
       thirty cannot answer about page forty, and every answer carried a hole

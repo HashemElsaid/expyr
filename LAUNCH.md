@@ -88,7 +88,7 @@ sections 5, 6 and 7 move behind the launch instead of in front of it.
       cannot buy from a build that is not on the store, so without this there
       is no way to test a purchase at all
 
-## 3. Upgrade Render to the $7 plan — YOU
+## 3. Upgrade Render to the $7 plan — YOU, done 7 September
 
 Not optional any more, and it buys three things at once:
 
@@ -99,16 +99,29 @@ Not optional any more, and it buys three things at once:
 - It is the leading remaining explanation for **reading not finishing**: a
   tenth of a shared CPU parsing multi-megabyte PDFs
 
-- [ ] Upgrade the instance
-- [ ] Attach a disk and set `EXPYR_CREDITS_DIR` to a path on it
-- [ ] Set `EXPYR_GUIDANCE_DIR` too, so the guidance cache survives a deploy
-- [ ] Set the three Apple keys, or `/purchase/redeem` refuses every purchase:
+- [x] Upgrade the instance. Starter, 0.5 CPU rather than 0.1
+- [x] Attach a disk at `/var/data` and set `EXPYR_CREDITS_DIR`
+- [x] Set `EXPYR_GUIDANCE_DIR` too, so the guidance cache survives a deploy
+- [x] Set the three Apple keys, or `/purchase/redeem` refuses every purchase:
 
       | Variable | Value |
       |---|---|
       | `EXPYR_APPLE_KEY_ID` | `2AX49534J2` |
       | `EXPYR_APPLE_ISSUER_ID` | `51eccb44-a2ab-4d3c-852f-362796657233` |
       | `EXPYR_APPLE_KEY` | the contents of the .p8, which never goes in this repo |
+
+      **Paste the whole .p8, including the BEGIN and END lines.** Without them
+      it is base64 text rather than a PEM key, and it fails at the first
+      purchase as a 401 from Apple with no explanation. It happened.
+
+- [x] **Verified live.** `GET /health` reports every one of these, so a deploy
+      that half worked says so instead of looking identical to one that did:
+
+      ```
+      creditStore: disk        credits can be sold
+      appleKeyUsable: true     the key actually signs, not merely exists
+      guidanceCache: disk      the disk is mounted and writable
+      ```
 
 ## 4. A development build — ME, needs 1
 

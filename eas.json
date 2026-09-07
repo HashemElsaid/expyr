@@ -22,6 +22,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "hashimsherif2005@gmail.com",
+        "ascAppId": "6809437011",
+        "appleTeamId": "BZ5RDB2NVC"
+      }
+    }
   }
 }

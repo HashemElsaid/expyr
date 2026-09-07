@@ -101,6 +101,27 @@ describe('routing', () => {
     assert.equal(response.status, 404);
   });
 
+  /*
+   * An uptime monitor reported the service down while it was serving every
+   * request perfectly. It led with HEAD, as load balancers and platform health
+   * probes nearly all do, and got a 404.
+   */
+  it('answers HEAD wherever it answers GET', async () => {
+    const response = await fetch(`${BASE}/health`, { method: 'HEAD' });
+    assert.equal(response.status, 200);
+  });
+
+  it('still refuses HEAD on a path it does not have', async () => {
+    const response = await fetch(`${BASE}/nope`, { method: 'HEAD' });
+    assert.equal(response.status, 404);
+  });
+
+  /* HEAD must not become a way around the method check on a POST route. */
+  it('does not let HEAD reach a route that only takes POST', async () => {
+    const response = await fetch(`${BASE}/register`, { method: 'HEAD' });
+    assert.equal(response.status, 404);
+  });
+
   it('answers a preflight so a browser will follow up', async () => {
     const response = await fetch(`${BASE}/extract`, { method: 'OPTIONS' });
     assert.equal(response.status, 204);

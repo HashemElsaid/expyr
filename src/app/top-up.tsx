@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, pagesLeft } from '@/domain/credits';
+import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION } from '@/domain/credits';
 import { useTheme } from '@/hooks/use-theme';
 import { pagesIn, PACKS, priceOf, type Pack } from '@/lib/credit-packs';
 import { region } from '@/lib/purchases';
@@ -33,7 +33,6 @@ export default function TopUpScreen() {
   const [busy, setBusy] = useState(false);
 
   const balance = settings.credits.balance;
-  const left = pagesLeft(settings.credits);
   /*
    * Read once per render, so the packs are priced in the same currency the
    * paywall quotes Expyr Pro in. Seeing AED against one product and dollars
@@ -82,12 +81,18 @@ export default function TopUpScreen() {
         </View>
 
         <View style={styles.body}>
+          {/*
+            * The label goes above the number and nothing goes below it. A
+            * sentence under a figure that large reads as an apology for it,
+            * and everything it said is derivable from the two rates directly
+            * beneath: ten credits a page, three hundred credits, thirty pages.
+            */}
           <View>
+            <ThemedText type="label" themeColor="textTertiary">
+              Credits
+            </ThemedText>
             <ThemedText type="display" style={styles.balance}>
               {balance.toLocaleString('en-US')}
-            </ThemedText>
-            <ThemedText type="body" themeColor="textSecondary">
-              credits left, enough for {left} more page{left === 1 ? '' : 's'}
             </ThemedText>
           </View>
 
@@ -96,17 +101,27 @@ export default function TopUpScreen() {
               <ThemedText type="body" style={styles.flex}>
                 Read a page
               </ThemedText>
-              <ThemedText type="numeral" themeColor="textSecondary">
-                {CREDITS_PER_PAGE}
-              </ThemedText>
+              <View style={styles.rateValue}>
+                <ThemedText type="numeral" themeColor="textSecondary">
+                  {CREDITS_PER_PAGE}
+                </ThemedText>
+                <ThemedText type="small" themeColor="textTertiary">
+                  credits
+                </ThemedText>
+              </View>
             </View>
             <View style={[styles.rateRow, { borderTopWidth: 1, borderTopColor: theme.border }]}>
               <ThemedText type="body" style={styles.flex}>
                 Ask a question
               </ThemedText>
-              <ThemedText type="numeral" themeColor="textSecondary">
-                {CREDITS_PER_QUESTION}
-              </ThemedText>
+              <View style={styles.rateValue}>
+                <ThemedText type="numeral" themeColor="textSecondary">
+                  {CREDITS_PER_QUESTION}
+                </ThemedText>
+                <ThemedText type="small" themeColor="textTertiary">
+                  credits
+                </ThemedText>
+              </View>
             </View>
           </View>
 
@@ -198,6 +213,7 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   balance: { fontSize: 52, lineHeight: 56 },
+  rateValue: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
   rates: { borderWidth: 1, borderRadius: Radius.medium, overflow: 'hidden' },
   rateRow: {
     flexDirection: 'row',

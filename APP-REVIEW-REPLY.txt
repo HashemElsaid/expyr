@@ -1,0 +1,66 @@
+Thank you for the review. Answers to each point, in order.
+
+1. SCREEN RECORDING
+Attached, captured on a physical iPhone running iOS 26, beginning at app
+launch. It shows onboarding, adding a document by camera and by hand, the
+countdown and renewal steps on a saved item, Expyr AI answering a question,
+buying a credit pack through In-App Purchase, signing in with Apple, and
+deleting that account from Settings.
+Expyr has no user-generated content. Nothing a person enters is visible to
+anyone else, nothing is published, and there is no feed, profile, comment or
+message. There is therefore nothing to report or block.
+
+2. PURPOSE AND AUDIENCE
+Expyr tracks anything with an expiry date and warns you before it lapses:
+passports, visas, ID cards, licences, vehicle registration, insurance, tenancy
+agreements, subscriptions and bills. Missing one is expensive: a fine, lapsed
+cover, a licence that stops you working, a subscription that renews for another
+year. You photograph the document once; the app reads the date, files it, and
+reminds you in good time with the steps for renewing. It is for anyone holding
+paperwork that expires, particularly people living abroad, who hold more.
+
+3. SETUP AND ACCESS
+No account or credentials are needed; leave the sign-in fields blank. Every
+feature is reachable on opening. Step-by-step instructions are in the Notes
+field of App Review Information. To test scanning, use the sample certificate
+attached to this submission, or any card with a printed date.
+
+4. EXTERNAL SERVICES
+- Anthropic (Claude API): reading the expiry date off a photographed document;
+  answering questions about a document the user chose to have transcribed; and
+  researching renewal steps for a document type. All user-initiated; none run
+  in the background.
+- Apple: Sign in with Apple for optional identity, and the App Store Server API,
+  which our service calls to verify a purchase actually happened before any
+  credits are granted.
+- Google and DuckDuckGo favicon services: to fetch a subscription's own logo
+  from its public domain. The request contains a domain name and no user data.
+- Our own service, hosted on Render in Frankfurt, which holds credit balances
+  and nothing else.
+There is no analytics SDK, no advertising SDK and no third-party tracking.
+
+5. REGIONAL DIFFERENCES
+One, deliberate and disclosed. Renewal steps, official fees, late fines and the
+link to the responsible authority have only been verified against primary
+sources for the United Arab Emirates. Outside the UAE the app does not show
+them, and says so during onboarding rather than guessing. Everything else,
+tracking dates, reminders, scanning, Expyr AI, backup and export, works
+identically in all 175 territories.
+
+6. REGULATED INDUSTRY AND PROTECTED MATERIAL
+Neither applies. Expyr is a personal reminder tool. It does not transact with
+any authority, collect any official fee, or submit any application, and is not
+affiliated with any government body. Official procedures are presented as
+indicative, with a link to the authority's own site. Company logos shown
+against subscriptions come from each company's own public domain.
+
+7. IN-APP PURCHASES
+One non-consumable, Expyr Pro (pro.lifetime), family shareable, which removes
+the free limits of 5 tracked items and 10 photo scans. Reach it at Settings,
+Unlock, or by adding a sixth item.
+Three consumables, credits.small, credits.medium and credits.large. Credits are
+spent by Expyr AI: 10 read a page, 20 answer a question. Reach them at
+Settings, Top up. A new install is given 300 credits free.
+Nothing renews and nothing is a subscription. All payment is through In-App
+Purchase: no external payment, no web checkout, no third-party billing, and
+nothing unlocked by any transaction outside it. No physical goods are sold.

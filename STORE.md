@@ -164,11 +164,16 @@ it can, and says plainly when something has not been verified.
 PRIVATE BY DESIGN
 
 Your documents stay on your phone. Photos are kept in Expyr's own storage,
-never your camera roll and never iCloud Photo Library. There is no account, no
-sign-up and no server database. Reminders are scheduled by iOS itself, so
-nobody else needs to know your dates. Everything travels with your iPhone
-backup, so a new phone brings it all back. You can lock Expyr behind Face ID,
-and export a copy only you hold.
+never your camera roll and never iCloud Photo Library. Reminders are scheduled
+by iOS itself, so nobody else needs to know your dates. Everything travels with
+your iPhone backup, so a new phone brings it all back. You can lock Expyr
+behind Face ID, and export a copy only you hold.
+
+Expyr works without an account and most people never make one. Signing in with
+Apple is offered in one place only: after you buy credits, so those credits
+follow you to a new phone. It stores an anonymous identifier and a number.
+Never your name, never your email, never your documents. Delete it from
+Settings whenever you like.
 
 FREE TO START
 

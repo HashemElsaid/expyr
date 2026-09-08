@@ -1,0 +1,76 @@
+NO SIGN-IN IS NEEDED TO REVIEW THIS APP. Leave the credentials blank. Every
+feature is reachable the moment the app opens.
+
+WHAT IT IS
+Expyr tracks anything with an expiry date and warns you before it lapses:
+passports, visas, ID cards, licences, vehicle registration, insurance, tenancy
+agreements, subscriptions and bills. Photograph it once; Expyr reads the date
+off the picture, files it, and reminds you well before the day.
+
+HOW TO SEE EVERYTHING
+1. First launch: choose a country, an emirate if that country is the UAE, then
+   allow or decline notifications. Both paths work.
+2. Camera button: "Take a photo" or "Choose a photo" runs the scanner. "Enter
+   it myself" adds an item by hand, no camera. Use the attached sample
+   certificate, or any card with a printed date. Everything read is shown for
+   confirmation first.
+3. Open a saved item for the countdown, the reminder dates, renewal steps, cost
+   and the link to the authority.
+4. Expyr AI answers questions about a document it has read. A new install gets
+   300 free credits so this can be tried without paying.
+
+ACCOUNTS
+Expyr works fully without one and most people never make one. It is offered in
+one place for one reason: credit packs are consumables, and Apple keeps no
+record of a consumable once used, so credits would otherwise die with the
+phone.
+Sign in: Settings, "Protect my credits" row, shown once the balance is above
+zero. Sign in with Apple only; no password is created.
+Delete: Settings, "Credits protected" row, Delete. It warns that unspent
+credits are lost, asks Apple to confirm identity, then erases the identifier
+and the balance immediately.
+We request no scopes, so no name or email ever reaches us. Stored against an
+account: an opaque Apple identifier and a credit balance. Nothing else.
+
+IN-APP PURCHASES
+One non-consumable, Expyr Pro (pro.lifetime), removes the free limits of 5
+items and 10 scans. Settings, Unlock.
+Three consumables, credits.small/medium/large, spent by Expyr AI: 10 credits
+read a page, 20 answer a question. Settings, Top up.
+Nothing renews and nothing is a subscription. All payment is through In-App
+Purchase; no external payment, no web checkout, no third-party billing. No
+physical goods or services are sold.
+
+USE OF AI
+Three features, all user-initiated, none running in the background.
+1. Scanning: an image the user picks is sent once to our service and on to the
+   Anthropic Claude API to read the expiry date and other fields. Values are
+   shown for confirmation before saving.
+2. Expyr AI: a document the user chooses is transcribed, then their questions
+   are answered from that text.
+3. Renewal guidance: steps and fees for a document type in a country are
+   researched by a model using web search, cached and reused. Presented as
+   indicative, with a link to the official source, never as official
+   instruction.
+
+WHAT LEAVES THE DEVICE
+Only an image or document the user explicitly picks, at the moment they pick
+it, plus questions they choose to ask. Images are never written to disk on our
+server, are discarded once answered, and train nothing. Documents, dates,
+notes and photos are stored only in the app's private storage on the device. Reminders are scheduled locally by iOS, never
+pushed. No analytics SDK, no advertising SDK, no third-party tracking.
+
+REGIONAL DIFFERENCE
+Renewal steps, fees and fines are verified against primary sources for the UAE
+only. Elsewhere the app hides them and says so during onboarding rather than
+guessing. Everything else works identically in all 175 territories.
+
+Expyr does not transact with any authority, collect any fee, or submit
+applications, and is not affiliated with any government body.
+
+PERMISSIONS
+Camera: to photograph a document. Photo library: to open images the user
+picks; it is never enumerated. Face ID: optional lock, off by default.
+Notifications: local reminders, the core function.
+
+iPhone only.

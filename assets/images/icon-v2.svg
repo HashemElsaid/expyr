@@ -10,14 +10,14 @@
     Every colour is from src/constants/theme.ts, with one deliberate exception.
     The track on screen is `border` #E2DCD0, which is a hairline on paper and
     is meant to be almost invisible there. At forty points it stops existing
-    altogether, so the track here is one step darker. Everything else is
-    literal: textTertiary for the two that are fine, urgentSoft for the one
-    that is not.
+    altogether, so the track here is one step darker. Every other colour is
+    literal.
 
-    urgentSoft rather than urgentStrong on purpose. Red is the colour of a
-    thing that has already lapsed, and an icon that permanently announces
-    failure is a strange object to keep on a home screen. Amber is "coming up",
-    which is what the app is for.
+    The three bars are the three urgency colours the Timeline itself uses, in
+    the order a document passes through them: textTertiary while there is time,
+    urgentSoft as the date approaches, urgentStrong once it is on top of you.
+    So the icon is not merely styled like the app, it is showing three real
+    states of the thing the app exists to watch.
   -->
 
   <rect width="1024" height="1024" fill="#1D4B39"/>
@@ -26,17 +26,17 @@
   <path d="M196 150 H678 L828 300 V890 H196 Z" fill="#F7F4EF"/>
   <path d="M678 150 L828 300 H678 Z" fill="#E2DCD0"/>
 
-  <!-- Two documents with time in hand. -->
+  <!-- Time in hand. -->
   <rect x="286" y="378" width="452" height="44" rx="22" fill="#CFC6B6"/>
   <rect x="286" y="378" width="136" height="44" rx="22" fill="#918B7E"/>
   <circle cx="422" cy="400" r="40" fill="#918B7E" stroke="#F7F4EF" stroke-width="11"/>
 
   <rect x="286" y="498" width="452" height="44" rx="22" fill="#CFC6B6"/>
-  <rect x="286" y="498" width="262" height="44" rx="22" fill="#918B7E"/>
-  <circle cx="548" cy="520" r="40" fill="#918B7E" stroke="#F7F4EF" stroke-width="11"/>
+  <rect x="286" y="498" width="262" height="44" rx="22" fill="#87591A"/>
+  <circle cx="548" cy="520" r="40" fill="#87591A" stroke="#F7F4EF" stroke-width="11"/>
 
-  <!-- And one that needs you. -->
+  <!-- Due soon, above. Out of time, here. -->
   <rect x="286" y="618" width="452" height="44" rx="22" fill="#CFC6B6"/>
-  <rect x="286" y="618" width="380" height="44" rx="22" fill="#87591A"/>
-  <circle cx="666" cy="640" r="40" fill="#87591A" stroke="#F7F4EF" stroke-width="11"/>
+  <rect x="286" y="618" width="380" height="44" rx="22" fill="#9E2B20"/>
+  <circle cx="666" cy="640" r="40" fill="#9E2B20" stroke="#F7F4EF" stroke-width="11"/>
 </svg>

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -209,5 +210,56 @@ describe('crediting the same purchase twice', () => {
     let ledger = topUp(EMPTY_LEDGER, 300, 'Welcome credits', AT, 'welcome');
     ledger = topUp(ledger, 300, 'Welcome credits', AT, 'welcome');
     expect(ledger.balance).toBe(300);
+  });
+});
+
+/**
+ * The phone and the service must agree on what everything costs.
+ *
+ * The phone draws the balance and decides what to offer; the service decides
+ * what is actually taken, because a number in local storage is a number its
+ * owner can edit. Two runtimes that cannot import from each other holding the
+ * same figures is the pair that drifts, so this reads the service's prices as
+ * text and fails the moment they disagree.
+ */
+describe('the app and the service agree on what things cost', () => {
+  const pricing = readFileSync('server/pricing.ts', 'utf8');
+
+  /*
+   * Read line by line rather than with a constructed pattern. The first
+   * attempt built one inside a template literal, where a backslash is eaten
+   * before RegExp ever sees it, so every lookup quietly returned null and the
+   * guard would have passed no matter what the service said.
+   */
+  function serverNumber(name: string): number | null {
+    const line = pricing
+      .split('\n')
+      .find((candidate) => candidate.startsWith(`export const ${name} = `));
+    if (!line) return null;
+
+    const digits = line.slice(line.indexOf('=') + 1).replace(/[^0-9]/g, '');
+    return digits ? Number(digits) : null;
+  }
+
+  it('charges the same for a page', () => {
+    expect(serverNumber('CREDITS_PER_PAGE')).toBe(CREDITS_PER_PAGE);
+  });
+
+  it('charges the same for a question', () => {
+    expect(serverNumber('CREDITS_PER_QUESTION')).toBe(CREDITS_PER_QUESTION);
+  });
+
+  /*
+   * The phone shows a new install thirty pages' worth and the service grants
+   * it. If the service granted less, somebody would be shown credits that were
+   * refused the moment they tried to spend them.
+   */
+  it('opens a new account with what the app promises', () => {
+    expect(serverNumber('WELCOME_CREDITS')).toBe(priceOfPages(30));
+  });
+
+  it('would notice a disagreement', () => {
+    expect(serverNumber('CREDITS_PER_PAGE')).not.toBe(CREDITS_PER_PAGE + 1);
+    expect(serverNumber('NOTHING_LIKE_THIS')).toBeNull();
   });
 });

@@ -1,4 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+
+import { WELCOME_CREDITS } from './pricing.ts';
 import { dirname, join } from 'node:path';
 
 /**
@@ -53,6 +55,14 @@ export type Account = {
    * never be offered again.
    */
   redeemed?: string[];
+  /**
+   * Whether this account has had its opening balance.
+   *
+   * Its own field rather than inferred from the balance, because a balance of
+   * zero is exactly what somebody who has spent all of theirs looks like, and
+   * guessing would hand them another thirty pages every time they ran out.
+   */
+  welcomed?: boolean;
 };
 
 export interface CreditStore {
@@ -140,6 +150,8 @@ export class FileCreditStore implements CreditStore {
         ...(Array.isArray(parsed.redeemed)
           ? { redeemed: parsed.redeemed.filter((t): t is string => typeof t === 'string') }
           : {}),
+        // And this, or the free thirty pages arrive again at every deploy.
+        ...(parsed.welcomed === true ? { welcomed: true } : {}),
       };
     } catch {
       /*
@@ -409,4 +421,54 @@ export async function forget(
   }
 
   await store.remove(accountId);
+}
+
+/**
+ * Takes credits for work about to be done, opening the account on the way past.
+ *
+ * The welcome credits are granted here rather than claimed by the phone. The
+ * phone has always shown a new install thirty free pages, and for as long as
+ * that was the only place the number lived it was thirty free pages *per
+ * reinstall* for anybody who noticed. Granting on first sight moves it to the
+ * service, where an install is something we issued rather than something they
+ * can mint.
+ *
+ * Debited before the work rather than after, which is the same choice `debit`
+ * makes and for the same reason: a model call that has already cost us money
+ * should not also be free. `refund` covers the case where it produced nothing.
+ */
+export async function spend(
+  store: CreditStore,
+  accountId: string,
+  credits: number,
+  now = Date.now()
+): Promise<number> {
+  const amount = Math.max(0, Math.floor(credits));
+  const existing = await store.read(accountId);
+  const opening = (existing?.balance ?? 0) + (existing?.welcomed ? 0 : WELCOME_CREDITS);
+
+  if (opening < amount) throw new InsufficientCredits(opening, amount);
+
+  await store.write({
+    ...existing,
+    id: accountId,
+    balance: opening - amount,
+    seenAt: now,
+    welcomed: true,
+  });
+
+  return opening - amount;
+}
+
+/**
+ * What this account can spend, counting an opening balance it has not claimed.
+ *
+ * Unlike `balanceOf`, which reports what is written down. The difference is a
+ * brand new install, which has nothing written down and three hundred credits
+ * to spend.
+ */
+export async function availableTo(store: CreditStore, accountId: string): Promise<number> {
+  const account = await store.read(accountId);
+  if (!account) return WELCOME_CREDITS;
+  return account.welcomed ? account.balance : account.balance + WELCOME_CREDITS;
 }

@@ -8,18 +8,22 @@ import { accountKeyFor, appleKeys, verifyAppleIdentityToken } from './apple-iden
 import { appleCredentials, appleKeyUsable, fetchTransaction } from './apple-store.ts';
 import {
   accountFor,
+  availableTo,
   balanceOf,
   FileCreditStore,
   forget,
   link,
   MemoryCreditStore,
   redeem,
+  refund,
   sellable,
+  spend,
   type CreditStore,
 } from './credit-ledger.ts';
 import { canIssueTokens, issueInstallToken } from './install-token.ts';
 import { openPdf, pagesOf, pdfPageCount } from './pdf.ts';
 import { grantFor } from './products.ts';
+import { CREDITS_PER_QUESTION, priceOfPages } from './pricing.ts';
 import type { LogFields } from './log.ts';
 import {
   AskRequest,
@@ -187,6 +191,49 @@ function mayGenerate(now = Date.now()): boolean {
   return guidanceGenerated < DAILY_NEW_GUIDANCE;
 }
 
+/**
+ * Charges an install for work about to be done, and hands back a way to undo it.
+ *
+ * Until now every price was arithmetic on the phone, and a balance in local
+ * storage is a number its owner can edit. Reading a page and answering a
+ * question both cost real money at Anthropic, so the bill has to be added up
+ * somewhere the payer cannot reach.
+ *
+ * Two things it deliberately does not do.
+ *
+ * It does not refuse when the store is not durable. A deployment with no disk
+ * cannot hold a balance, and enforcing against a store that forgets would mean
+ * refusing everybody the moment it restarted. Selling is already blocked in
+ * that state, which is the half that matters; charging simply waits.
+ *
+ * And it does not take the phone's word for the price. The count of pages
+ * comes from the PDF the service just parsed, not from the request, or the
+ * cheapest read in the world would be one that claimed to be a single page.
+ */
+async function charge(
+  ctx: RequestContext,
+  credits: number
+): Promise<{ balance: number | undefined; refundIfItFails: () => Promise<void> }> {
+  if (!sellable(creditStore) || !ctx.install) {
+    return { balance: undefined, refundIfItFails: async () => {} };
+  }
+
+  const account = await accountFor(creditStore, ctx.install);
+  const balance = await spend(creditStore, account, credits);
+
+  return {
+    balance,
+    refundIfItFails: async () => {
+      // Best effort. A refund that fails must not replace the real error.
+      try {
+        await refund(creditStore, account, credits);
+      } catch {
+        /* The original failure is the one worth reporting. */
+      }
+    },
+  };
+}
+
 export const ROUTES: Record<string, Route> = {
   '/health': {
     method: 'GET',
@@ -315,6 +362,29 @@ export const ROUTES: Record<string, Route> = {
       // The account key is a hash, not a person. Safe to log, and useful.
       ctx.note({ note: `linked account=${account} sellable=${sellable(creditStore)}` });
       return json({ account, balance, sellable: sellable(creditStore) });
+    },
+  },
+
+  /**
+   * What this install can spend, without Apple's sheet.
+   *
+   * Resolved from the install credential, so the phone can reconcile the
+   * number it shows against the one that counts on every launch. The route
+   * below needs a fresh identity token and is for a phone that has just been
+   * set up; this one is for every ordinary day.
+   */
+  '/account/available': {
+    method: 'POST',
+    auth: true,
+    metered: true,
+    costs: false,
+    handle: async (ctx) => {
+      if (!ctx.install) throw invalid('this build cannot be identified');
+      const account = await accountFor(creditStore, ctx.install);
+      return json({
+        balance: await availableTo(creditStore, account),
+        enforced: sellable(creditStore),
+      });
     },
   },
 
@@ -490,10 +560,35 @@ export const ROUTES: Record<string, Route> = {
         if (pages) payload = await pagesOf(doc, pages.from, pages.to);
       }
 
-      const text = await readDocument({ fileBase64: payload, mediaType });
+      /*
+       * Priced from what is actually being read: the pages this batch was
+       * asked for, or the whole document when it asked for no range, or one
+       * for an image. Never from anything the phone said it was.
+       */
+      const billable = pages
+        ? pages.to - pages.from + 1
+        : mediaType === 'application/pdf'
+          ? (pageCount ?? 1)
+          : 1;
+
+      const { balance, refundIfItFails } = await charge(ctx, priceOfPages(billable));
+
+      let text: string;
+      try {
+        text = await readDocument({ fileBase64: payload, mediaType });
+      } catch (error) {
+        // Nothing was produced, so nothing is owed.
+        await refundIfItFails();
+        throw error;
+      }
+
       // Lengths and counts, never the text. The text is the document.
-      ctx.note({ n_chars: text.length, ...(pageCount === undefined ? {} : { n_pages: pageCount }) });
-      return json({ text, pageCount });
+      ctx.note({
+        n_chars: text.length,
+        n_billed: billable,
+        ...(pageCount === undefined ? {} : { n_pages: pageCount }),
+      });
+      return json({ text, pageCount, balance });
     },
   },
 
@@ -517,10 +612,19 @@ export const ROUTES: Record<string, Route> = {
     costs: true,
     handle: async (ctx) => {
       const request = parse(AskRequest, ctx.body);
-      const answer = await askDocument(request);
+      const { balance, refundIfItFails } = await charge(ctx, CREDITS_PER_QUESTION);
+
+      let answer;
+      try {
+        answer = await askDocument(request);
+      } catch (error) {
+        await refundIfItFails();
+        throw error;
+      }
+
       // The question and the answer are the user's business; only the shape.
       ctx.note({ n_documents: request.documents.length, note: `answered=${answer.answered}` });
-      return json(answer);
+      return json({ ...answer, balance });
     },
   },
 

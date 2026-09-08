@@ -4,12 +4,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
+import { WELCOME_CREDITS } from './pricing.ts';
+
 import {
   FileCreditStore,
   InsufficientCredits,
   MemoryCreditStore,
   accountFor,
   alreadyRedeemed,
+  availableTo,
   balanceOf,
   debit,
   forget,
@@ -18,6 +21,7 @@ import {
   redeem,
   refund,
   sellable,
+  spend,
 } from './credit-ledger.ts';
 
 function temporaryDir(): string {
@@ -472,5 +476,82 @@ test('deleting one account leaves everybody else alone', async () => {
 
     assert.equal(await balanceOf(store, 'apple_abc'), 0);
     assert.equal(await balanceOf(store, 'apple_xyz'), 3000);
+  });
+});
+
+/*
+ * The welcome credits used to be claimed by the phone, which meant thirty free
+ * pages per reinstall for anybody who noticed. Granted here they are given
+ * once, against an install the service issued.
+ */
+test('a new account is opened with the welcome credits, once', async () => {
+  await onDisk(async (store) => {
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS);
+
+    assert.equal(await spend(store, 'install-1', 100), WELCOME_CREDITS - 100);
+    assert.equal(await spend(store, 'install-1', 100), WELCOME_CREDITS - 200);
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS - 200);
+  });
+});
+
+/*
+ * Spending to zero is what somebody who used their free pages looks like, and
+ * inferring "new" from a zero balance would hand them another thirty every
+ * time they ran out. Hence a field rather than a guess.
+ */
+test('spending everything does not earn another welcome', async () => {
+  await onDisk(async (store) => {
+    await spend(store, 'install-1', WELCOME_CREDITS);
+    assert.equal(await availableTo(store, 'install-1'), 0);
+    await assert.rejects(() => spend(store, 'install-1', 10), InsufficientCredits);
+  });
+});
+
+test('refuses rather than going negative, and takes nothing when it refuses', async () => {
+  await onDisk(async (store) => {
+    await assert.rejects(() => spend(store, 'install-1', WELCOME_CREDITS + 1), InsufficientCredits);
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS, 'nothing was taken');
+  });
+});
+
+test('credits bought are spendable on top of the welcome ones', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', 'txn_1', 1500);
+    assert.equal(await availableTo(store, 'apple_abc'), 1500 + WELCOME_CREDITS);
+    assert.equal(await spend(store, 'apple_abc', 500), 1500 + WELCOME_CREDITS - 500);
+  });
+});
+
+/* The refund path, for a model call that took the money and produced nothing. */
+test('a refund puts back exactly what the charge took', async () => {
+  await onDisk(async (store) => {
+    const after = await spend(store, 'install-1', 40);
+    assert.equal(await refund(store, 'install-1', 40), after + 40);
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS);
+  });
+});
+
+/*
+ * Having been welcomed has to survive a deploy, or the free thirty pages
+ * arrive again every time the service restarts. Same class of bug as linkedTo
+ * and signedInAs, which both worked in memory and vanished on disk.
+ */
+test('having been welcomed survives the process that wrote it', async () => {
+  const dir = temporaryDir();
+  try {
+    await spend(new FileCreditStore(dir), 'install-1', WELCOME_CREDITS);
+
+    const later = new FileCreditStore(dir);
+    assert.equal(await availableTo(later, 'install-1'), 0);
+    await assert.rejects(() => spend(later, 'install-1', 10), InsufficientCredits);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('one install spending does not touch another', async () => {
+  await onDisk(async (store) => {
+    await spend(store, 'install-1', 200);
+    assert.equal(await availableTo(store, 'install-2'), WELCOME_CREDITS);
   });
 });

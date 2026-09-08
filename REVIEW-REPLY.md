@@ -211,9 +211,80 @@ Sign in again afterwards if you want your own credits back.
 - [ ] `assets/review/sample-insurance-certificate.jpg`, so a reviewer can test
       scanning without owning a UAE document
 
-## And check before resubmitting
+## App Privacy labels — do this before resubmitting
 
-- [ ] **App Privacy labels** must now declare an identifier and a balance are
-      collected. They were written when the app had no accounts. A label saying
-      "no data collected" contradicts both the privacy policy and the traffic a
-      reviewer can observe, and that is its own rejection.
+The labels were set on 7 September, correctly, for an app with no accounts:
+three types, all **Data Not Linked to You**, all **App Functionality**, none
+used for tracking. The note written alongside them said they expire the day
+Sign in with Apple ships. That day was the same evening.
+
+Two data types are now missing, and both are linked to identity. A reviewer can
+watch the app create an account, and a label saying otherwise contradicts the
+privacy policy sitting next to it.
+
+### Where
+
+App Store Connect → **Apps** → Expyr: Expiry Reminders → **App Privacy** in the
+left sidebar → **Edit** next to *Data Types*.
+
+### Add: Identifiers → User ID
+
+The opaque subject identifier Apple gives us for somebody who signs in. It is
+the account key, so it is unambiguously linked to them.
+
+  - Tick **User ID**
+  - Purpose: **App Functionality** only
+  - Linked to the user's identity: **Yes**
+  - Used for tracking: **No**
+
+### Add: Purchases → Purchase History
+
+The credit balance, and the identifiers of purchases already redeemed, held
+against that account so the same purchase cannot be credited twice.
+
+  - Tick **Purchase History**
+  - Purpose: **App Functionality** only
+  - Linked to the user's identity: **Yes**
+  - Used for tracking: **No**
+
+### Change: Identifiers → Device ID, from Not Linked to **Linked**
+
+This is the one that is easy to leave alone and should not be. The install
+credential was genuinely unlinked before, because it pointed at nothing. Signing
+in stamps that install with the account it belongs to, in
+`server/credit-ledger.ts`, which is the whole mechanism that lets a phone spend
+its own credits without showing Apple's sheet on every request.
+
+Apple's rule is about whether the link exists, not how many users have made
+one. It exists.
+
+### Leave alone: Photos or Videos, Other User Content
+
+Both stay **Not Linked to You**. A scanned image is sent, read, and discarded
+without being written to disk, so there is nothing retained for an identity to
+attach to. Same for the text of a document and the questions asked about it.
+
+### Do not add
+
+  - **Contact Info.** We request no scopes from Apple, so no name and no email
+    ever arrives. Worth being deliberate about: most apps with Sign in with
+    Apple do collect an email, and it would be easy to tick this by habit.
+  - **Financial Info.** Apple processes every payment. We see that a
+    transaction happened, never a card.
+  - **Location, Health, Sensitive Info, Contacts, Browsing History, Search
+    History, Usage Data, Diagnostics.** None are collected. There is no
+    analytics SDK in the app at all.
+
+### Tracking
+
+**No** to everything. Nothing is shared with data brokers, no advertising
+network is present, and no identifier is joined with data from other companies.
+
+### Then
+
+The card should read: *Data Linked to You* — User ID, Device ID, Purchase
+History. *Data Not Linked to You* — Photos or Videos, Other User Content. *Data
+Used to Track You* — none.
+
+That matches the rewritten privacy policy, and it matches what a reviewer sees
+if they watch the traffic.

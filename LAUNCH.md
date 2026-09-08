@@ -181,8 +181,11 @@ This is the wall between here and credits surviving a new phone.
       number, and that deleting it erases both.
 
       Still to do in App Store Connect: the **App Privacy labels** have to
-      match. An identifier and a balance held server-side is data collection,
-      and a label saying otherwise contradicts both the policy and the traffic.
+      match. They were set on 7 September for an app with no accounts, and the
+      note written with them said they expire the day sign-in ships, which was
+      the same evening. Exactly what to change is in `REVIEW-REPLY.md`: add
+      User ID and Purchase History as linked, move Device ID to linked, and
+      leave the two content types alone.
 
 ## 7. Make reading finish — ME, needs 3
 

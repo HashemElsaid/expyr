@@ -165,12 +165,31 @@ Guideline 2.3.1 rejects generic notes, and every AI feature must be described
 with specificity.
 
 ```
-THERE IS NO SIGN-IN, AND NO DEMO ACCOUNT IS NEEDED
+NO DEMO ACCOUNT IS NEEDED, AND NOTHING IS GATED BEHIND SIGNING IN
 
-Expyr has no accounts, no login and no server-side user data. Open the app and
-every feature is available immediately. Nothing is gated behind a sign-in, so
-there are no credentials to supply. If the Beta App Review Information asks for
-a username and password, please leave it blank: there is nothing to enter.
+Open the app and every feature is available immediately. There are no
+credentials to supply; if the Beta App Review Information asks for a username
+and password, please leave it blank.
+
+Expyr does have one optional account, and it is worth saying why. Credit packs
+are consumables, and Apple keeps no record of a consumable once it has been
+used, so somebody who buys credits, spends half and changes phone has nothing
+left for Apple to restore. After a credit purchase the app therefore offers
+Sign in with Apple, so those credits can follow the person. It is offered in
+that one place, it is never required, and most people will never use it.
+
+  Sign in: Settings, then Sign in on the "Protect my credits" row, which
+  appears once the credit balance is above zero. One method only, Sign in with
+  Apple. No password is ever created.
+
+  Delete: Settings, then Delete on the "Credits protected" row. It says unspent
+  credits will be lost, asks Apple to confirm identity, then erases the
+  identifier and the balance from our service immediately.
+
+We request no scopes, so we never receive a name or an email. What is stored
+against an account is an opaque identifier Apple generates for this app, and
+how many credits remain. No document, no date, no photograph and no name is
+ever sent to us, signed in or not.
 
 HOW TO SEE THE WHOLE APP IN TWO MINUTES
 
@@ -245,7 +264,10 @@ disk on our server and are discarded as soon as the response is produced. They
 are not used to train any model. Question and answer text is not logged.
 
 Nothing else is transmitted. Documents, dates, reference numbers, notes and
-photos are stored only in the app's private storage on the device. Reminders are
+photos are stored only in the app's private storage on the device. The one
+thing held on our service is a credit balance, and only for somebody who has
+both bought credits and chosen to sign in; it is a number against an opaque
+identifier, and holds nothing about the person or their documents. Reminders are
 scheduled locally by iOS, never pushed from a server. There is no analytics SDK,
 no advertising SDK, and no third-party tracking.
 

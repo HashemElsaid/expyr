@@ -1,201 +1,218 @@
 # How the first thousand people find it
 
-Written 7 September 2026. `STORE.md` holds the listing copy: name, subtitle,
-keywords, description, screenshots. This is everything that happens outside
-the listing.
+Rewritten 9 September 2026, after the app went worldwide and grew a
+subscriptions feature. `STORE.md` holds the listing copy. This is everything
+that happens outside the listing.
+
+---
+
+## The one thing to understand first
+
+**Expyr has two audiences, and they are not the same people.**
+
+**In the UAE** it is a renewal authority. Verified guidance, the right portal,
+the actual fine for being late. The moat is knowledge nobody else has bothered
+to check, and the hook is search intent at the moment somebody is panicking
+about a visa.
+
+**Everywhere else** it is a plain tracker with a subscription scanner. The
+guidance is labelled generated rather than verified, the portals are absent,
+and the categories go generic. What is left is genuinely useful and
+undifferentiated.
+
+Marketing one app to both means **two motions, not one campaign with two
+headlines.** Everything below is organised that way.
 
 ---
 
 ## The distribution problem, stated honestly
 
-Expyr is built to be silent. That is the right product decision and it is a
-marketing problem, because **nobody tells a friend about a reminder that
-worked.** The payoff arrives months after install, invisibly, as a fine that
-did not happen. There is no moment of delight to screenshot.
+Expyr is built to be silent, which is right for the product and a problem for
+growth. **Nobody tells a friend about a reminder that worked.** The payoff
+arrives months later, invisibly, as a fine that did not happen.
 
-Two consequences:
+Two consequences to hold on to:
 
-- **Word of mouth will be weak.** Do not plan around virality. Plan around
-  finding people at the moment they are already in pain
-- **Retention metrics will look bad and be fine.** Somebody who opens the app
-  twice a year and renews on time is a total success and a churned user by any
-  standard dashboard. Do not optimise against that number
-
-The moment of pain is specific and it is searchable: somebody has just been
-fined, or has just realised a document expires soon, and they are typing a
-question into Google or the App Store.
+- **Do not plan around virality for the tracker.** Plan around finding people
+  at the moment they are already in pain
+- **Retention metrics will look terrible and be fine.** Somebody who opens the
+  app twice a year and renews on time is a total success and a churned user on
+  any standard dashboard. Do not optimise against that number
 
 ---
 
-## The asset nobody is using yet
+## What is actually shareable
 
-**The renewal guides are the marketing, and they are locked inside the app.**
+One feature breaks the silence rule: **the subscription scan.**
 
-`src/data/renewal-actions.ts` and the generated guidance answer exactly the
-questions people type at the moment of intent: how to renew an Emirates ID,
-what a Mulkiya renewal costs, what the fine is for a late visa. That content
-already exists, it is already cached and shared, and it is currently visible
-only to people who have already installed.
+"Screenshot your App Store subscriptions list and it reads every one of them,
+what it costs and when it renews" is demonstrable in fifteen seconds, needs no
+explanation, and produces a number about the viewer's own life. Document expiry
+reminders do none of that.
 
-**Publish the guides as web pages on the existing GitHub Pages site.** It is
-free, it needs nothing from the coding session, and it turns the content moat
-into the acquisition channel. Somebody who lands on "how to renew your
-Emirates ID" while panicking about a renewal is the highest-intent visitor
-this app will ever get, and the page can end by offering to remember the next
-one for them.
+**So the subscription scan is the top of the worldwide funnel**, whether or not
+it is the most valuable thing the app does. It is the part that travels.
 
-Three conditions on doing it:
-
-1. **Verify every guide before it is published.** In-app they carry a label
-   saying to check against official sources, which is honest for a tool
-   somebody chose to install. A public web page that ranks in search is read
-   as authoritative whatever the label says, and a wrong fee or a dead portal
-   link damages more than it earns
-2. **Publish a few, well, rather than all of them.** Start with the five
-   highest-volume: Emirates ID, residence visa, Mulkiya, driving licence,
-   Ejari
-3. **Date every page and link the official source at the top**, not the
-   bottom. It is what a person came for and it is what makes the page
-   trustworthy
-
-This is the single highest-leverage marketing item on the list, and I can
-draft the pages once you say go.
+And it carries the line that matters most: **nothing is connected to your bank,
+nothing reads your email.** Every serious subscription tracker works by linking
+a bank account or scraping an inbox. Expyr reads a screen. For an app that also
+holds passports, that is the whole trust argument in one sentence.
 
 ---
 
-## Channels, ranked by what they are actually worth
+## Phase 0. Launch week: do nothing
 
-**1. App Store search.** Highest intent, and free. Covered by `STORE.md`.
-Worth knowing that ranking moves on downloads and on ratings, so the first
-reviews matter disproportionately.
+**No marketing at all for the first seven days.** The purpose of this week is
+information, and marketing on top of an unmeasured product buys noise.
 
-**2. Search, via the published guides.** See above. Slow to start, compounds,
-and it is the only channel here that keeps working while you sleep.
+Watch four things, all free in App Store Connect:
 
-**3. Reddit, r/dubai and r/UAE.** Precisely the audience: expats dealing with
-exactly these documents, asking exactly these questions, every day. Also
-strict about self-promotion and quick to punish it.
+| Number | Why |
+|---|---|
+| Crash rate and scan failure rate | Anything above trivial and stop everything else |
+| Product page views to installs | Tests the screenshots and subtitle, nothing else. Industry is around 30% |
+| Installs to Pro | The only number that pays for anything. **Break-even is 0.29%** |
+| Support messages per 100 installs | Under 3 is normal. Count them by cause, not volume |
 
-The way in is to be useful for weeks before mentioning anything. Answer
-renewal questions properly, from the guides you already have. Mention the app
-rarely and only where it genuinely answers the question asked. One good
-comment thread there is worth more than a hundred impressions anywhere else,
-and one promotional post will cost you the channel permanently.
-
-**4. UAE expat Facebook groups.** Large, active, far less strict than Reddit,
-lower quality per member. Worth doing after Reddit, with the same content.
-
-**5. Instagram and TikTok, short vertical video.** UAE life-admin content
-performs well. The format that fits is "the fine you did not know about",
-built straight from a guide. Cheap to try, hard to sustain, and it needs a
-face or a voice.
-
-**6. Local press.** Gulf News, Khaleej Times and TimeOut Dubai all run app and
-tech roundups, and a UAE-specific utility built by a UAE resident is a story
-they take. Free to pitch, one email each, worth doing in launch week.
-
-**7. Product Hunt.** Low UAE relevance and a mostly US audience. Do it because
-it costs an evening, not because it will move installs.
+Two more that App Store Connect will not give you, and that decide the pricing
+question in `MONEY.md`: **how many installs open Expyr AI at all**, and **how
+many Pro buyers ever top up.**
 
 ---
 
-## The launch sequence
+## Phase 1, weeks 2 to 6. The UAE motion
 
-**Phase 0. Ship worldwide.** Decided 7 September, overriding the UAE-only
-launch this section used to argue for. Availability is set to all 175
-storefronts, and future ones automatically.
+This is where the product is best and the competition is thinnest.
 
-The reversal is on evidence rather than ambition. The app already degrades
-honestly outside the UAE rather than breaking. `src/data/countries.ts` says so
-in its own words: the UAE is "the only country whose renewal knowledge we have
-actually checked, portal by portal and fee by fee. Everywhere else gets the
-tracker and nothing more." Concretely, outside the UAE:
+### The renewal guides, published as web pages
 
-- Document labels fall back to generic ones. Mulkiya becomes vehicle
-  registration, Ejari becomes a tenancy contract
-- Guidance still appears but is labelled `generated` rather than `verified`, so
-  nobody is shown UAE instructions dressed as fact
-- Gap analysis and late fees switch off, because those were checked against UAE
-  authorities and nothing else
+**Still the highest-leverage item on this list, and still not done.**
 
-Someone in Toronto gets a plain working tracker, not a broken app. That is a
-defensible thing to ship.
+`src/data/renewal-actions.ts` answers exactly what people type into Google at
+the moment of intent: how to renew an Emirates ID, what a Mulkiya costs, the
+fine for a late visa. That content exists, is already written, and is currently
+visible only to people who have already installed.
 
-**Three things to hold on to as a result.**
+Publish it on the existing GitHub Pages site. Free, needs nothing from the
+coding session, and it turns the content moat into the acquisition channel.
+Somebody landing on "how to renew your Emirates ID" while panicking is the
+highest-intent visitor this app will ever get, and the page can end by offering
+to remember the next one.
 
-**The US is where the moat is not.** In the UAE you compete on knowing what a
-Mulkiya is and which portal renews it. In the US that knowledge does not exist
-and the underlying need is thinner, because citizens do not renew residency.
-What remains is passports, driver's licenses, car insurance and warranties,
-against a crowded field of generic reminder apps. Expect UAE and US conversion
-to look very different, and do not read a weak US number as a fault in the app.
+Three conditions:
 
-**Early reviews now come from a mixed audience.** The first twenty ratings
-weigh more in search ranking than any twenty after them, and a UAE user rating
-the full experience and a US user rating a plain tracker are one to two stars
-apart. This was the argument for launching UAE-first, and it is the price of
-not doing so.
+1. **Verify every guide before publishing.** In-app it carries a label saying to
+   check official sources, which is honest for a tool somebody chose to install.
+   A public page that ranks in search is read as authoritative whatever the
+   label says
+2. **Five, well, not forty badly.** Emirates ID, residence visa, Mulkiya,
+   driving licence, Ejari
+3. **Date every page and put the official link at the top**, not the bottom
 
-**The guidance cost surface multiplies.** Guidance is cached per document type
-**and region**. UAE-only is thirteen combinations. Worldwide is thirteen times
-however many countries people actually arrive from.
+Slow to start, compounds, and it is the only channel here that works while you
+sleep.
 
-This was the sharpest argument against going wide on the free Render plan, where
-the cache lived in memory and died every fifteen idle minutes. **Render moved to
-the paid plan on 7 September with a disk**, so the cache now survives a deploy
-rather than an idle period, and the multiplication is a one-off generation cost
-per country rather than a recurring one. The ceiling of
-`EXPYR_GUIDANCE_DAILY_NEW` at 40 new generations a day still applies, and still
-means a user who hits it gets nothing that day. See `MONEY.md`.
+### Reddit, r/dubai and r/UAE
 
-The coding session has been briefed to make the app genuinely good
-internationally rather than merely not-broken: `trade-license` has no generic
-label, `driving-license` carries the British spelling, and the type picker may
-still offer Emirates ID to somebody in Canada.
+Precisely the audience: expats dealing with exactly these documents, asking
+exactly these questions, daily. Also strict about self-promotion and quick to
+punish it permanently.
 
-**Phase 1, two quiet weeks.** No marketing at all. Watch four things:
+**Be useful for weeks before mentioning anything.** Answer renewal questions
+properly, from the guides you already have. Mention the app rarely and only
+where it genuinely answers the question asked. One good thread is worth more
+than a hundred impressions anywhere else, and one promotional post costs you
+the channel for good.
 
-- Crash rate and the scan failure rate
-- How many installs open Expyr AI, and how much of the welcome balance they
-  spend. Both numbers in `MONEY.md` are guesses until this
-- Support volume and, more importantly, what it is about
-- Pro conversion. Break-even is 0.29%. If it is under that at fifty installs
-  it means nothing yet, and it will feel like it means something
+### Local press, launch week, one email each
 
-**Phase 2, the guides go live** and the Reddit presence starts. Still no paid
-anything.
+Gulf News, Khaleej Times and TimeOut Dubai all run app roundups. A UAE-specific
+utility built by a UAE resident is a story they take. Free to pitch, and the
+pitch is one paragraph: *a UAE developer built an app that reads your Emirates
+ID and tells you what renewing it costs.*
 
-**Phase 3, deepen rather than widen**, since the widening already happened.
-Saudi Arabia and Qatar are the first two countries worth researching guides for
-properly, promoting them from `generated` to `verified`. The pricing already
-anticipates both. Verified guidance is the moat, and it is the only thing that
-makes a storefront worth more than the one next to it.
+### UAE expat Facebook groups
+
+Large, active, far less strict than Reddit, lower quality per member. Same
+content, after Reddit.
 
 ---
 
-## Money for marketing
+## Phase 2, weeks 4 to 10. The worldwide motion
+
+Different hook, different content, same app.
+
+### One video, made properly, posted everywhere
+
+**The demo:** open the App Store subscriptions list, screenshot it, feed it to
+Expyr, watch five subscriptions and their renewal dates appear. End on the
+yearly total.
+
+Fifteen seconds. No voiceover needed. Post it on TikTok, Reels and Shorts, and
+as the App Preview video on the listing itself.
+
+The caption is the differentiator, not the feature: **"It never touches your
+bank."**
+
+This is the only piece of marketing in this plan that could plausibly reach a
+hundred thousand people, and it costs an afternoon.
+
+### Product Hunt
+
+An evening's work. A mostly US audience with low UAE relevance, so treat it as
+a link and a badge rather than a growth channel.
+
+### App Store search
+
+Free, highest intent, and already handled by the two localisations in
+`STORE.md`. Ranking moves on downloads and ratings, which means **the first
+twenty reviews matter more than any twenty after them.** Ask for a rating only
+after somebody has completed a renewal, never on second launch.
+
+---
+
+## Phase 3. Paid, and only against a measured number
 
 **Start at zero.** Every channel above is free, and paid acquisition against
-unmeasured conversion rates is guessing with a credit card.
+unmeasured conversion is guessing with a credit card.
 
-When there is a measured conversion rate, `MONEY.md` sets the ceiling:
-an install is worth about **$0.62 net**. Anything reliably under **$0.40 per
-install** is worth doing. Anything over sixty cents loses money at the assumed
-rates, and the assumed rates are optimistic until proven.
+When there is a real conversion rate, `MONEY.md` sets the ceiling: an install
+is worth about **$0.62 net**. So:
+
+- Under **$0.40** an install, reliably: worth doing
+- Over **$0.60**: loses money at the assumed rates, and the assumed rates are
+  optimistic until proven
+
+The first place to spend, when that day comes, is **Apple Search Ads on UAE
+document keywords**, because it is the one place where high intent and a real
+moat meet.
 
 ---
 
-## What to measure, and what to ignore
+## What not to do
 
-App Store Connect gives impressions, product page views, installs and
-conversion for free. The four numbers that matter:
+**Do not buy installs before week eight.** You would be paying to find out
+something the free channels tell you for nothing.
 
-| Number | Why | Break-even |
-|---|---|---|
-| Product page view to install | Tests the screenshots and subtitle, nothing else | industry ~30% |
-| Install to Pro | The only number that pays for anything | **0.29%** |
-| Install to AI use | Replaces the 35% guess in `MONEY.md` | n/a |
-| Support tickets per 100 installs | An early warning that something is broken | under 3 |
+**Do not promote in a subreddit before contributing to it.** It is a one-way
+door and both of your best communities are strict.
 
-Ignore day-7 and day-30 retention. They will look terrible, and for this app
-that is what success looks like.
+**Do not lead with AI.** Nobody searches for an AI app. They search for how to
+renew a visa, or for a way to see what their subscriptions cost. The AI is how
+it works, not what it is for.
+
+**Do not chase retention.** See above. Optimising a silent app for daily opens
+would mean making it noisier, which is the one thing that would kill it.
+
+---
+
+## The order, in one list
+
+1. Submit, and do nothing for a week
+2. Read the four numbers, and the two that decide pricing
+3. Publish five renewal guides
+4. Start being useful on r/dubai and r/UAE
+5. Make the subscription video, post it everywhere
+6. Pitch three UAE publications
+7. Reassess at eight weeks against `MONEY.md`
+8. Only then, consider spending money

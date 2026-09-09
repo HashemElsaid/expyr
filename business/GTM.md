@@ -86,31 +86,35 @@ This is where the product is best and the competition is thinnest.
 
 ### The renewal guides, published as web pages
 
-**Still the highest-leverage item on this list, and still not done.**
+**Drafted 9 September, awaiting verification.** Five pages at `docs/guides/`:
+Emirates ID, residence visa, Mulkiya, driving licence and Ejari, linked from
+the landing page and from each other.
 
-`src/data/renewal-actions.ts` answers exactly what people type into Google at
-the moment of intent: how to renew an Emirates ID, what a Mulkiya costs, the
-fine for a late visa. That content exists, is already written, and is currently
-visible only to people who have already installed.
+Each carries the same shape: a short version with cost, time and the late fine;
+the numbered steps; and a section on the part people get wrong, which is what
+makes a page worth linking to rather than skimming. Every page opens by naming
+the responsible authority and telling the reader to confirm there, and closes
+by saying plainly that it is a summary for planning, not official instruction,
+and not affiliated with any government body.
 
-Publish it on the existing GitHub Pages site. Free, needs nothing from the
-coding session, and it turns the content moat into the acquisition channel.
-Somebody landing on "how to renew your Emirates ID" while panicking is the
-highest-intent visitor this app will ever get, and the page can end by offering
-to remember the next one.
+**They must be checked before they go live.** The figures come from
+`document-types.ts`, which is the app's own data and has never been audited for
+a public page that ranks in search. A wrong fee on a page Google surfaces
+damages more than it earns.
 
-Three conditions:
+**Why this is the best channel available.** Somebody landing on "how to renew
+your Emirates ID" while panicking about one is the highest-intent visitor this
+app will ever get, and the page ends by offering to remember the next one. It
+is slow to start, it compounds, and it is the only thing here that works while
+you sleep.
 
-1. **Verify every guide before publishing.** In-app it carries a label saying to
-   check official sources, which is honest for a tool somebody chose to install.
-   A public page that ranks in search is read as authoritative whatever the
-   label says
-2. **Five, well, not forty badly.** Emirates ID, residence visa, Mulkiya,
-   driving licence, Ejari
-3. **Date every page and put the official link at the top**, not the bottom
+**Publishing checklist**, once the figures are verified:
 
-Slow to start, compounds, and it is the only channel here that works while you
-sleep.
+1. Push to `main`, since GitHub Pages serves `docs/` from there
+2. Confirm all five render at hashemelsaid.github.io/expyr/guides/
+3. Submit the guides index to Google Search Console. Without it, indexing takes
+   weeks rather than days
+4. Only then start pointing anybody at them
 
 ### Reddit, r/dubai and r/UAE
 

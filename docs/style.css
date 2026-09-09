@@ -158,3 +158,20 @@ ul.plain {
 ul.plain li {
   margin-bottom: 0.4rem;
 }
+
+/* Guides: ordered steps and fact lists. */
+section ol,
+section ul:not(.plain) {
+  margin: 0 0 1.1rem;
+  padding-left: 1.25rem;
+  color: var(--ink-2);
+}
+
+section li {
+  margin-bottom: 0.55rem;
+}
+
+section li strong {
+  color: var(--ink);
+  font-weight: 600;
+}

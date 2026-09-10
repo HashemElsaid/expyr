@@ -43,30 +43,75 @@ sections 5, 6 and 7 move behind the launch instead of in front of it.
 
 ---
 
-## What is left for the coding session, 7 September
+## 1.0.1, and what goes in it
 
-Almost everything the business session wrote down as a handover had already been
-done on main by the time the branches met: the HEAD 404 on `/health` is fixed
-and deployed and returns 200 live, the three wrong prices in `PRICE_POINTS` are
-corrected, the product identifiers are pinned, and Render is on the paid plan
-with a disk. One item survives.
+**1.0 is live**, released 10 September from Pending Developer Release. Everything
+below is for the next version. The rule for the list: fixes, and things already
+decided. Nothing that depends on data the first week has not produced yet, so
+no pricing changes, no model changes.
 
-**The AED credit pack prices in credit-packs.ts.** Read off real sandbox
-purchases: AED 12.99, 19.99 and 39.99, against guesses of 10.99, 18.99 and
-36.99. StoreKit returns the real ones and the app shows them, so this is the
-fallback being wrong rather than a live bug.
+### For the coding session
 
-**A Bill category.** `src/data/document-types.ts` still has thirteen types and
-none of them is a bill. The App Store listing now says `Documents, bills &
-renewals` in the subtitle and describes "a payment that falls due every month"
-in the body, and today that is reachable only through **Other plus recurrence**.
-It works, and it is thin. A first-class Bill type with a sensible default lead
-time and a generic label would make the claim solid rather than defensible. No
-UAE-specific guidance needed.
+1. **Bundle 500 credits with Expyr Pro.** Today `premium: true` lifts the item
+   and scan ceilings and does nothing else; the 300 welcome credits go to every
+   install regardless. So a Pro buyer who has used them has paid AED 149 and
+   holds zero Expyr AI. Fifty pages or twenty-five questions costs at most
+   $0.50 against AED 120.62 of proceeds, seeds the metered product with the
+   people most likely to buy more of it, and turns the paywall's weakest line
+   into a reason to buy. **Once per device, keyed on the Apple transaction id,
+   never re-granted on restore or reinstall.** Family Sharing means up to six
+   grants for one purchase, which is $3 worst case; accept that rather than
+   build cross-device dedup for it.
 
-**And one for whoever holds the account**: the privacy labels published today
-say Data Not Linked to You. Sign in with Apple makes that false. They have to
-change in the same week, not after.
+2. **A Bill category** in `src/data/document-types.ts`. The listing says
+   `Documents, bills & renewals`; today bills are reachable only through Other
+   plus recurrence. A first-class type with a generic label and a sensible
+   default lead time. No UAE guidance needed.
+
+3. **The AED credit pack fallbacks** in `credit-packs.ts`: 12.99, 19.99 and
+   39.99, read off real sandbox purchases. StoreKit shows the real prices, so
+   this is the fallback being wrong rather than a live bug.
+
+4. **A rating prompt.** There is none in the app. Use `expo-store-review`, and
+   fire it in one place only: **after "I have renewed this"**, when the app has
+   just visibly kept its promise. Never on launch, never on a count of opens.
+   The first twenty reviews weigh more in search ranking than any twenty after.
+
+5. **Verify subscription import against the free ceiling.** `add.tsx:66` gates
+   on `documents.length >= FREE_ITEM_LIMIT` before adding. What happens when
+   someone with two items imports six subscriptions? It should import what
+   fits and show the paywall for the rest, not fail, and not silently drop the
+   last four. This is the single most common first action a new user takes.
+
+6. **Verify Restore Purchases end to end** on a real device: buy, delete the
+   app, reinstall, restore, confirm Pro returns. It was never separately
+   tested before submission.
+
+7. **Bump the version to 1.0.1** so App Store Connect accepts the build
+   against a new version record.
+
+Open and non-blocking, from earlier sections: the dark-mode shadow glow in
+section 8, and the Haiku-versus-Sonnet comparison for the brief in
+`PRICING.md`.
+
+### Not code, but goes on the same version
+
+- **The angled screenshots**, seven frames at 1284 x 2778 in
+  `Downloads/expyr-appstore-angled`. Screenshots cannot change on an approved
+  version, so they wait for this one
+- **The App Preview video**, once recorded. Shot list is in `business/GTM.md`
+- **The Expyr Pro product description** in App Store Connect, if the credit
+  grant ships: `Unlimited items and scans. 50 AI pages free.` is 44 of 45
+  characters. Changing an in-app purchase's localisation resubmits that
+  product for review, so it rides with the version
+- **English (U.K.) localisation** for the Middle East storefronts, if not yet
+  added. Copy is in `STORE.md`
+
+### Already done on main, kept here so nobody redoes it
+
+The HEAD 404 on `/health`, the three wrong Pro prices in `PRICE_POINTS`, the
+product identifiers, server-side spending in `routes.ts` via `charge()`,
+Sign in with Apple, account deletion, and the four policy rewrites.
 
 ---
 
@@ -348,7 +393,8 @@ work removed.
 - [x] **Approved, 10 September 2026, 21:18.** First submission, no rejection,
       three days after the developer account was admitted. Status is Pending
       Developer Release because release was set to manual, so nothing goes live
-      until the button is pressed.
+      until the button is pressed. **Released the same evening.** Apple says up
+      to 24 hours to appear in every storefront.
 
       **The angled screenshots do not go on this version.** Screenshots,
       description and keywords require a new version once approved; only

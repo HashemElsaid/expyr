@@ -204,8 +204,12 @@ stopped.
    read that then fails on our side must come back, and the failure should
    name itself as ours
 
-Auto-reload stays off. The cap is a circuit breaker, and a breaker that
-rearms itself is not one.
+**Auto-reload on**, $25 when the balance drops below $10. An earlier version of
+this document said to leave it off, because a breaker that rearms itself is
+not one. That was wrong for a prepaid account. With auto-reload off, the
+*balance* becomes the breaker, at whatever amount was last loaded, which nobody
+chose for the purpose. The monthly limit is the breaker; auto-reload only stops
+the balance being the accidental one, and the limit still caps what it can buy.
 
 ---
 

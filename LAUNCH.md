@@ -458,8 +458,12 @@ work removed.
       month**, and the failure is not a bill you regret: the API starts
       refusing, scanning stops working, and the first reviews Expyr ever gets
       are about a feature that had simply stopped. Raise to **$150 with the
-      notification at $50** before launch. Auto-reload stays off; a breaker that
-      rearms itself is not one
+      notification at $50** before launch. **Auto-reload on**, $25 when the balance drops below $10. This file used to
+      say leave it off, on the grounds that a breaker which rearms itself is
+      not one. That was wrong for a prepaid account: with auto-reload off the
+      *balance* becomes the breaker, at whatever number was last loaded, which
+      nobody chose for the purpose. The monthly limit is the breaker; auto-reload
+      only stops the balance being the accidental one
 
 ---
 
@@ -476,4 +480,4 @@ Kept so nothing gets redone by accident.
 - Apple identity verification and account linking on the service
 - Every React Native 0.86 deprecation cleared
 - Anthropic spending capped three ways: $10 notification, $20 limit,
-  auto-reload off
+  auto-reload off. Superseded: see the Anthropic item in section 10

@@ -345,6 +345,20 @@ work removed.
 
 ## 10. Submit
 
+- [x] **Approved, 10 September 2026, 21:18.** First submission, no rejection,
+      three days after the developer account was admitted. Status is Pending
+      Developer Release because release was set to manual, so nothing goes live
+      until the button is pressed.
+
+      **The angled screenshots do not go on this version.** Screenshots,
+      description and keywords require a new version once approved; only
+      promotional text, URLs, copyright, pricing and availability can change
+      without re-review. Cancelling the release to swap them would mean a
+      fresh reviewer and one to three more days against an approval already in
+      hand. They ship with 1.0.1, which needs a new build anyway. The finished
+      set is in Downloads/expyr-appstore-angled, seven frames at 1284 x 2778.
+
+
 - [x] **Build 1.0.0 (2) uploaded to App Store Connect**, 7 September, 23:43.
       Production profile, App Store distribution provisioning, and EAS confirmed
       loading both production environment variables, so the shipped app reaches

@@ -16,10 +16,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { topUp } from '@/domain/credits';
 import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
+import { PRO_CREDITS, PRO_PAGES } from '@/lib/credit-packs';
 import { successFeedback } from '@/lib/haptics';
-import { PRO_PRODUCT_ID, plans, purchase, restore } from '@/lib/purchases';
+import { PRO_PRODUCT_ID, plans, purchase, restore, type PurchaseOutcome } from '@/lib/purchases';
 import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 
 /** Shorter than the word, and it reads the same in any language. */
@@ -38,7 +40,7 @@ const COMPARISON: { label: string; free: string }[] = [
 export default function PaywallScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { update } = useSettings();
+  const { settings, update } = useSettings();
   const [busy, setBusy] = useState(false);
   /*
    * Read once per render rather than at module load, so the price follows the
@@ -64,13 +66,42 @@ export default function PaywallScreen() {
     else router.replace('/settings');
   }
 
+  /**
+   * Writes down what the purchase turned out to be worth.
+   *
+   * The service has already granted the credits that come with Pro and its
+   * balance is the one that counts; this is the phone's copy, keyed on Apple's
+   * transaction identifier so the entitlement Apple replays at every launch is
+   * only ever written once.
+   *
+   * `credits` is whatever the service said, never PRO_CREDITS. The constant is
+   * for the sentence on this screen; the grant is the service's business.
+   */
+  function keep(outcome: Extract<PurchaseOutcome, { ok: true }>) {
+    const { credits = 0, transactionId } = outcome.redeemed;
+    update({
+      premium: true,
+      ...(credits > 0
+        ? {
+            credits: topUp(
+              settings.credits,
+              credits,
+              `${credits.toLocaleString('en-US')} credits with Expyr Pro`,
+              new Date(),
+              transactionId
+            ),
+          }
+        : {}),
+    });
+  }
+
   async function buy() {
     setBusy(true);
     const outcome = await purchase(plan.id);
     setBusy(false);
 
     if (outcome.ok) {
-      update({ premium: true });
+      keep(outcome);
       successFeedback();
       close();
       return;
@@ -86,7 +117,7 @@ export default function PaywallScreen() {
     setBusy(false);
 
     if (outcome.ok) {
-      update({ premium: true });
+      keep(outcome);
       successFeedback();
       close();
       return;
@@ -158,7 +189,8 @@ export default function PaywallScreen() {
             </View>
 
             <ThemedText type="small" themeColor="textTertiary" style={styles.footnote}>
-              Expyr AI is bought separately, in credits.
+              Pro comes with {PRO_CREDITS.toLocaleString('en-US')} Expyr AI credits, enough to
+              read {PRO_PAGES} pages. More can be bought any time.
             </ThemedText>
           </Enter>
 
@@ -216,8 +248,9 @@ export default function PaywallScreen() {
               <ThemedText type="small" themeColor="textTertiary">
                 {plan.title}, {price}, {plan.cadence}. Payment is charged to your Apple Account
                 at confirmation. This is a one-off purchase: it does not renew, there is nothing to
-                cancel, and you will not be charged again. It can be shared with your Apple Family
-                group, up to six people.
+                cancel, and you will not be charged again. It removes the free limits on tracked
+                items and photo scans, and includes {PRO_CREDITS.toLocaleString('en-US')} Expyr AI
+                credits. It can be shared with your Apple Family group, up to six people.
               </ThemedText>
 
               <View style={styles.legalLinks}>

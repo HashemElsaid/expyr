@@ -1,11 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { roomFor, splitImport } from '@/domain/capacity';
 import { useTheme } from '@/hooks/use-theme';
 import { ensureBrandIcon } from '@/lib/brand-icons';
 import { longDate } from '@/lib/dates';
@@ -19,7 +20,7 @@ import {
   type FoundSubscription,
 } from '@/lib/subscriptions';
 import { useDocuments } from '@/store/documents';
-import { FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
+import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 import type { Recurrence } from '@/types';
 
 /**
@@ -84,9 +85,36 @@ export default function SubscriptionsScreen() {
 
   async function addChosen() {
     if (!found || chosen.size === 0) return;
+
+    /*
+     * The ceiling, which this screen used to walk straight past.
+     *
+     * Everywhere else adds one item at a time and asks first. Here a
+     * screenshot can arrive with seven subscriptions on it, so a free account
+     * holding two of its five could tap once and end up tracking nine. The
+     * limit was enforced on every screen except the only one that could break
+     * it in a single tap.
+     *
+     * What fits is added. Nothing is silently dropped: whoever is holding the
+     * phone is told how many did not fit and offered the thing that would
+     * hold them, because believing you are being reminded about a payment
+     * nothing is watching is the worst outcome available here.
+     */
+    const room = roomFor({
+      tracked: documents.length,
+      limit: FREE_ITEM_LIMIT,
+      premium: settings.premium,
+    });
+    const { take, blocked } = splitImport(chosen.size, room);
+
+    if (take === 0) {
+      router.push('/paywall');
+      return;
+    }
+
     setSaving(true);
     try {
-      for (const index of [...chosen].sort((a, b) => a - b)) {
+      for (const index of [...chosen].sort((a, b) => a - b).slice(0, take)) {
         const sub = found[index];
         if (!sub.renewsOn) continue;
         const period: Recurrence = sub.period === 'unknown' ? 'monthly' : sub.period;
@@ -108,6 +136,19 @@ export default function SubscriptionsScreen() {
         void ensureBrandIcon(sub.domain);
       }
       successFeedback();
+
+      if (blocked > 0) {
+        Alert.alert(
+          `${take} added. ${blocked} more need Expyr Pro.`,
+          `The free plan holds ${FREE_ITEM_LIMIT} items. Pro takes the limit off, so the rest of your subscriptions can be tracked too.`,
+          [
+            { text: 'Not now', style: 'cancel', onPress: () => router.back() },
+            { text: 'See Pro', onPress: () => router.replace('/paywall') },
+          ]
+        );
+        return;
+      }
+
       router.back();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Those could not be saved.');

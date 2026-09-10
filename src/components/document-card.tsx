@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
 import { getDocumentType, labelFor } from '@/data/document-types';
+import { isSubscription } from '@/domain/documents';
 import { saysItsOwnType } from '@/domain/timeline';
 import { guessDomain } from '@/lib/brand-icons';
 import { useTheme } from '@/hooks/use-theme';
@@ -49,10 +50,7 @@ export function DocumentCard({ doc, onPress }: { doc: TrackedDocument; onPress: 
           style={[styles.card, { borderColor: theme.border }]}>
           <DocIcon
             typeId={doc.typeId}
-            iconDomain={doc.iconDomain ??
-              (doc.renewsEvery || doc.typeId === 'membership'
-                ? guessDomain(doc.title)
-                : undefined)}
+            iconDomain={doc.iconDomain ?? (isSubscription(doc) ? guessDomain(doc.title) : undefined)}
           />
 
           <View style={styles.info}>

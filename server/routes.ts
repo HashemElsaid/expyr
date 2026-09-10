@@ -461,13 +461,37 @@ export const ROUTES: Record<string, Route> = {
 
       if (grant.kind === 'pro') {
         /*
-         * Nothing to store. A non-consumable lives with Apple for ever and
-         * comes back from getAvailablePurchases on any phone the buyer signs
-         * into, so Apple is already the record and a second one here could
-         * only disagree with it.
+         * The entitlement itself is not stored. A non-consumable lives with
+         * Apple for ever and comes back from getAvailablePurchases on any
+         * phone the buyer signs into, so Apple is already the record and a
+         * second one here could only disagree with it.
+         *
+         * The credits that come with it are ours to remember, and are granted
+         * against Apple's transaction identifier, so the replay that carries
+         * the entitlement across a reinstall does not also pay twice.
+         *
+         * A store that cannot hold them yet is not a reason to refuse the
+         * purchase: the entitlement is what was bought, and because Apple
+         * replays a non-consumable on every launch for ever, the credits are
+         * granted by the next sweep after the store comes back. Refusing here
+         * would take Pro away from somebody who paid for it, over a fault of
+         * ours that repairs itself.
          */
-        ctx.note({ note: `redeemed pro txn=${transaction.transactionId}` });
-        return json({ productId: transaction.productId, pro: true });
+        let bundled: { credits: number; balance: number; granted: boolean } | null = null;
+        if (grant.credits > 0 && sellable(creditStore)) {
+          const outcome = await redeem(
+            creditStore,
+            account,
+            transaction.transactionId,
+            grant.credits
+          );
+          bundled = { credits: grant.credits, ...outcome };
+        }
+
+        ctx.note({
+          note: `redeemed pro txn=${transaction.transactionId} bundled=${bundled?.granted === true}`,
+        });
+        return json({ productId: transaction.productId, pro: true, ...bundled });
       }
 
       if (!sellable(creditStore)) {

@@ -28,6 +28,14 @@ export type Pack = {
    * arrangement `purchases.ts` uses for Expyr Pro: nobody converts currency
    * here, because Apple charges the price set for that storefront and a figure
    * we worked out is a figure nobody is about to be charged.
+   *
+   * The AED entries are the only ones read off a real purchase, in the sandbox
+   * on 9 September, and they were each two dirhams under what Apple actually
+   * charges. Every other row is still a guess and still wrong until somebody
+   * buys with it.
+   *
+   * All of them are dead the moment the store answers, which it does on any
+   * build with expo-iap in it. This is the fallback for a build without one.
    */
   prices: Record<string, string>;
   /** USD, which is what the economics are worked out against. Never shown. */
@@ -44,21 +52,38 @@ export const PACKS: Pack[] = [
     id: 'credits.small',
     credits: 1_500,
     usd: 2.99,
-    prices: { AE: 'AED 10.99', SA: 'SAR 12.99', QA: 'QAR 12.99', GB: '£2.99', EU: '€2.99', US: '$2.99' },
+    prices: { AE: 'AED 12.99', SA: 'SAR 12.99', QA: 'QAR 12.99', GB: '£2.99', EU: '€2.99', US: '$2.99' },
   },
   {
     id: 'credits.medium',
     credits: 3_000,
     usd: 4.99,
-    prices: { AE: 'AED 18.99', SA: 'SAR 22.99', QA: 'QAR 21.99', GB: '£4.99', EU: '€4.99', US: '$4.99' },
+    prices: { AE: 'AED 19.99', SA: 'SAR 22.99', QA: 'QAR 21.99', GB: '£4.99', EU: '€4.99', US: '$4.99' },
   },
   {
     id: 'credits.large',
     credits: 6_500,
     usd: 9.99,
-    prices: { AE: 'AED 36.99', SA: 'SAR 44.99', QA: 'QAR 42.99', GB: '£9.99', EU: '€9.99', US: '$9.99' },
+    prices: { AE: 'AED 39.99', SA: 'SAR 44.99', QA: 'QAR 42.99', GB: '£9.99', EU: '€9.99', US: '$9.99' },
   },
 ];
+
+/**
+ * The credits that come with Expyr Pro, and what they read.
+ *
+ * The service's copy in `server/products.ts` is the authority, as it is for
+ * the packs above, and the same test that keeps those two in step keeps this
+ * one. The figure is here so the paywall can say what is included without
+ * asking the service what it is about to sell.
+ *
+ * Pro used to include nothing beyond taking the ceilings off, which left the
+ * one feature that costs money per use metered for somebody who had just paid
+ * for everything.
+ */
+export const PRO_CREDITS: Credits = 500;
+
+/** How many pages those read. Arithmetic, since a credit is a tenth of a page. */
+export const PRO_PAGES = Math.floor(PRO_CREDITS / CREDITS_PER_PAGE);
 
 /** Storefronts billed in euros, so one entry can serve all of them. */
 const EURO = new Set(['DE', 'FR', 'ES', 'IT', 'NL', 'IE', 'BE', 'AT', 'PT', 'FI', 'GR']);

@@ -9,13 +9,15 @@ export { PRO_PRODUCT_ID } from '@/lib/products';
 /**
  * Purchase surface for the paywall.
  *
- * Real in-app purchases need three things Expyr does not have yet: a paid
- * Apple Developer account, products configured in App Store Connect, and a
- * RevenueCat project. Until then this module keeps the entitlement locally so
- * the whole flow can be built and tested.
+ * Real purchases, through StoreKit. `src/lib/store.ts` runs the sheet and the
+ * listener, the service asks Apple what was actually bought, and this is the
+ * thin layer the screens see: a plan to show and two things they can do with
+ * it. Nothing here decides what a purchase is worth.
  *
- * To go live, replace `restore` and `purchase` with RevenueCat calls and read
- * the entitlement from its customer info instead of settings.premium.
+ * The entitlement is still kept in settings.premium, which is the phone's copy
+ * of an answer Apple owns. It is rebuilt at every launch from the transactions
+ * Apple replays, so it cannot drift far, and losing it costs a launch rather
+ * than a purchase.
  *
  * Both products must be marked Family Shareable in App Store Connect. Apple
  * gives no way to read a family roster — it is hidden by design — so the only
@@ -162,7 +164,13 @@ export function plans(): Plan[] {
  */
 
 export type PurchaseOutcome =
-  | { ok: true }
+  /**
+   * Carries what the service granted, because Expyr Pro is no longer only an
+   * entitlement: it comes with credits, and the caller needs Apple's
+   * transaction identifier to write them down once rather than once per
+   * launch.
+   */
+  | { ok: true; redeemed: Redeemed }
   /** They changed their mind. Not a failure, and not worth an alert. */
   | { ok: false; cancelled: true }
   | { ok: false; cancelled?: false; message: string };
@@ -178,7 +186,7 @@ export async function purchase(_plan: Plan['id']): Promise<PurchaseOutcome> {
   const outcome = await buy(PRO_PRODUCT_ID, redeemWithService);
   if (!outcome.ok) return outcome;
   return outcome.redeemed.pro === true
-    ? { ok: true }
+    ? { ok: true, redeemed: outcome.redeemed }
     : { ok: false, message: 'That purchase did not include Expyr Pro.' };
 }
 
@@ -211,8 +219,9 @@ export async function purchaseCredits(
  */
 export async function restore(): Promise<PurchaseOutcome> {
   const redeemed = await sweep(redeemWithService);
-  return redeemed.some((item) => item.pro === true)
-    ? { ok: true }
+  const pro = redeemed.find((item) => item.pro === true);
+  return pro
+    ? { ok: true, redeemed: pro }
     : {
         ok: false,
         message:

@@ -316,6 +316,39 @@ const CATALOGUE: DocumentType[] = [
     },
   },
   {
+    id: 'bill',
+    label: 'Bill',
+    emoji: '🧾',
+    numberField: { label: 'Account number', placeholder: 'If you have one' },
+    /*
+     * A week to find the money, and the day before as the last call. Shorter
+     * than everything above it because a bill is not renewed, it is paid, and
+     * a reminder a month early about something that arrives monthly is noise.
+     */
+    defaultLeadDays: [7, 1],
+    typicalValidity: 'Monthly or quarterly',
+    /*
+     * No guidance, on purpose, and not for want of writing it.
+     *
+     * How a bill is paid is a fact about the company that sent it, not about
+     * the country the person is in. The nearest thing to a universal step is
+     * "open their app", which is not worth a paragraph. The late fee is the
+     * exception: something bad happening when a bill goes unpaid is true of
+     * every provider there is.
+     *
+     * This is the same reasoning as the subscription category above, which had
+     * to have three UAE gym steps taken out of it after they were shown to
+     * somebody opening iCloud.
+     */
+    guide: {
+      where: '',
+      steps: [],
+      typicalCost: '',
+      lateFee: 'A late fee, and the service cut off if it stays unpaid',
+      processingTime: '',
+    },
+  },
+  {
     id: 'warranty',
     label: 'Warranty',
     emoji: '🔧',
@@ -373,6 +406,7 @@ const DISPLAY_ORDER: DocumentTypeId[] = [
   'professional-license',
   'passport',
   'membership',
+  'bill',
   'warranty',
   'other',
 ];

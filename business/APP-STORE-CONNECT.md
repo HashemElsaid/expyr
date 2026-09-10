@@ -38,9 +38,12 @@ the Apple Account that holds the membership.
       collection), Health, Purchases, Usage Data, Diagnostics. There is no
       analytics SDK in the app at all, which made most of this straightforward.
 
-      **These labels expire the day Sign in with Apple ships.** An Apple
-      subject identifier and a server-side balance are data linked to identity,
-      and the label would then be false. See LAUNCH.md section 6
+      **Updated during the review exchange, 7 to 8 September, and correct as of 10
+      September:** five types. Photos or Videos and Other User Content stay Not
+      Linked, read and discarded. User ID, Device ID and Purchase History are
+      Linked to identity, all App Functionality, none used for tracking. No
+      Contact Info, because no email scope is requested. Verified against the
+      live App Privacy page.
 - [x] **All four in-app purchases created, 7 September.** Paid Apps agreement
       and the FAB account both went Active the same afternoon, faster than the
       24 hours Apple warned about.

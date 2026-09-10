@@ -160,9 +160,12 @@ Sign in with Apple, account deletion, and the four policy rewrites.
       Vision Pro
 - [x] **App Privacy published.** Photos or Videos, Other User Content and Device
       ID, all **Data Not Linked to You**, all App Functionality, none used for
-      tracking. **These labels expire the day Sign in with Apple ships**,
-      because a subject identifier and a server-side balance are linked to
-      identity
+      tracking. **Updated during the review exchange, 7 to 8 September, and correct as of 10
+      September:** five types. Photos or Videos and Other User Content stay Not
+      Linked, read and discarded. User ID, Device ID and Purchase History are
+      Linked to identity, all App Functionality, none used for tracking. No
+      Contact Info, because no email scope is requested. Verified against the
+      live App Privacy page.
 - [x] **All four products created**, priced and localised. The identifiers match
       `PRO_PRODUCT_ID` and `PACKS` in the code, which is the authority:
 
@@ -278,12 +281,10 @@ This is the wall between here and credits surviving a new phone.
       says what an account does hold, which is an opaque identifier and a
       number, and that deleting it erases both.
 
-      Still to do in App Store Connect: the **App Privacy labels** have to
-      match. They were set on 7 September for an app with no accounts, and the
-      note written with them said they expire the day sign-in ships, which was
-      the same evening. Exactly what to change is in `REVIEW-REPLY.md`: add
-      User ID and Purchase History as linked, move Device ID to linked, and
-      leave the two content types alone.
+      **The App Privacy labels match, done during the review exchange and
+      verified on the live page 10 September.** User ID and Purchase History
+      added as linked, Device ID moved to linked, the two content types left
+      unlinked, no Contact Info. The reasoning is in `REVIEW-REPLY.md`.
 
 ## 7. Make reading finish — ME, needs 3
 

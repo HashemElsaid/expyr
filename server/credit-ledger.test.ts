@@ -4,19 +4,24 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
+import { WELCOME_CREDITS } from './pricing.ts';
+
 import {
   FileCreditStore,
   InsufficientCredits,
   MemoryCreditStore,
   accountFor,
   alreadyRedeemed,
+  availableTo,
   balanceOf,
   debit,
+  forget,
   grant,
   link,
   redeem,
   refund,
   sellable,
+  spend,
 } from './credit-ledger.ts';
 
 function temporaryDir(): string {
@@ -402,4 +407,151 @@ test('refuses to redeem into a store that forgets', async () => {
     () => redeem(new MemoryCreditStore(), 'apple_abc', 'txn_1', 3000),
     /forgets/
   );
+});
+
+/*
+ * Guideline 5.1.1(v) requires an app that supports accounts to let somebody
+ * delete theirs from inside it, and a delete that leaves the balance behind
+ * under the same key is not a delete.
+ */
+test('deleting an account erases the balance and the record of it', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', 'txn_1', 3000);
+    assert.equal(await balanceOf(store, 'apple_abc'), 3000);
+
+    await forget(store, 'apple_abc');
+
+    assert.equal(await balanceOf(store, 'apple_abc'), 0);
+    assert.equal(await store.read('apple_abc'), null, 'the record itself is gone');
+  });
+});
+
+test('deleting an account nobody has is not a failure', async () => {
+  await onDisk(async (store) => {
+    await forget(store, 'apple_nobody');
+    assert.equal(await balanceOf(store, 'apple_nobody'), 0);
+  });
+});
+
+/*
+ * Without this the phone keeps resolving to a key that no longer exists, and
+ * reads as a balance of zero it can never explain.
+ */
+test('deleting an account cuts the phone loose from it', async () => {
+  await onDisk(async (store) => {
+    await link(store, 'install-1', 'apple_abc');
+    assert.equal(await accountFor(store, 'install-1'), 'apple_abc');
+
+    await forget(store, 'apple_abc', ['install-1']);
+
+    assert.equal(await accountFor(store, 'install-1'), 'install-1', 'spends as itself again');
+  });
+});
+
+/*
+ * linkedTo is the guard against moving one install's credits twice. Clearing
+ * it on deletion would let the same purchase be claimed again by signing in to
+ * a second account, which is a way to mint credits out of nothing.
+ */
+test('deleting does not reopen the way to claim the same credits twice', async () => {
+  await onDisk(async (store) => {
+    await grant(store, 'install-1', 3000);
+    await link(store, 'install-1', 'apple_abc');
+    assert.equal(await balanceOf(store, 'apple_abc'), 3000);
+
+    await forget(store, 'apple_abc', ['install-1']);
+
+    // Signing in as somebody else must not hand them the same 3,000 again.
+    assert.equal(await link(store, 'install-1', 'apple_xyz'), 0);
+    assert.equal(await balanceOf(store, 'apple_xyz'), 0);
+  });
+});
+
+test('deleting one account leaves everybody else alone', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', 'txn_1', 1500);
+    await redeem(store, 'apple_xyz', 'txn_2', 3000);
+
+    await forget(store, 'apple_abc');
+
+    assert.equal(await balanceOf(store, 'apple_abc'), 0);
+    assert.equal(await balanceOf(store, 'apple_xyz'), 3000);
+  });
+});
+
+/*
+ * The welcome credits used to be claimed by the phone, which meant thirty free
+ * pages per reinstall for anybody who noticed. Granted here they are given
+ * once, against an install the service issued.
+ */
+test('a new account is opened with the welcome credits, once', async () => {
+  await onDisk(async (store) => {
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS);
+
+    assert.equal(await spend(store, 'install-1', 100), WELCOME_CREDITS - 100);
+    assert.equal(await spend(store, 'install-1', 100), WELCOME_CREDITS - 200);
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS - 200);
+  });
+});
+
+/*
+ * Spending to zero is what somebody who used their free pages looks like, and
+ * inferring "new" from a zero balance would hand them another thirty every
+ * time they ran out. Hence a field rather than a guess.
+ */
+test('spending everything does not earn another welcome', async () => {
+  await onDisk(async (store) => {
+    await spend(store, 'install-1', WELCOME_CREDITS);
+    assert.equal(await availableTo(store, 'install-1'), 0);
+    await assert.rejects(() => spend(store, 'install-1', 10), InsufficientCredits);
+  });
+});
+
+test('refuses rather than going negative, and takes nothing when it refuses', async () => {
+  await onDisk(async (store) => {
+    await assert.rejects(() => spend(store, 'install-1', WELCOME_CREDITS + 1), InsufficientCredits);
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS, 'nothing was taken');
+  });
+});
+
+test('credits bought are spendable on top of the welcome ones', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', 'txn_1', 1500);
+    assert.equal(await availableTo(store, 'apple_abc'), 1500 + WELCOME_CREDITS);
+    assert.equal(await spend(store, 'apple_abc', 500), 1500 + WELCOME_CREDITS - 500);
+  });
+});
+
+/* The refund path, for a model call that took the money and produced nothing. */
+test('a refund puts back exactly what the charge took', async () => {
+  await onDisk(async (store) => {
+    const after = await spend(store, 'install-1', 40);
+    assert.equal(await refund(store, 'install-1', 40), after + 40);
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS);
+  });
+});
+
+/*
+ * Having been welcomed has to survive a deploy, or the free thirty pages
+ * arrive again every time the service restarts. Same class of bug as linkedTo
+ * and signedInAs, which both worked in memory and vanished on disk.
+ */
+test('having been welcomed survives the process that wrote it', async () => {
+  const dir = temporaryDir();
+  try {
+    await spend(new FileCreditStore(dir), 'install-1', WELCOME_CREDITS);
+
+    const later = new FileCreditStore(dir);
+    assert.equal(await availableTo(later, 'install-1'), 0);
+    await assert.rejects(() => spend(later, 'install-1', 10), InsufficientCredits);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('one install spending does not touch another', async () => {
+  await onDisk(async (store) => {
+    await spend(store, 'install-1', 200);
+    assert.equal(await availableTo(store, 'install-2'), WELCOME_CREDITS);
+  });
 });

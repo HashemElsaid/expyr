@@ -93,6 +93,20 @@ export type Settings = {
    * and left blank when that does not parse.
    */
   ownName: string;
+  /**
+   * The account credits belong to, once somebody has signed in with Apple.
+   *
+   * An opaque key derived from Apple's subject identifier, prefixed `apple_`.
+   * Not an email, not a name, and nothing that identifies a person to anybody
+   * who has not already got their phone. Null until they choose to sign in,
+   * and most people never will: it is offered where it matters, which is when
+   * they have paid for something worth protecting.
+   *
+   * Kept only so the app can say whether the credits are protected. Every
+   * request still authenticates with the install credential, which the service
+   * resolves to this account on its own.
+   */
+  account: string | null;
 };
 
 const DEFAULTS: Settings = {
@@ -108,6 +122,7 @@ const DEFAULTS: Settings = {
   lockOffered: false,
   people: [],
   ownName: '',
+  account: null,
 };
 
 /**
@@ -258,6 +273,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             typeof parsed.ownName === 'string' && parsed.ownName
               ? parsed.ownName
               : nameFromDevice(Constants.deviceName),
+          /*
+           * Named explicitly, like everything above it. This object is rebuilt
+           * field by field, so anything not listed here is silently dropped at
+           * the next launch, and an account dropped is credits stranded on the
+           * service under a key the phone can no longer name.
+           */
+          account: typeof parsed.account === 'string' ? parsed.account : null,
         });
       })
       .catch(() => {})

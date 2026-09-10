@@ -387,3 +387,33 @@ describe('a credits directory that cannot be written to', () => {
     assert.notEqual(response.status, 200, 'must never grant into a store it cannot write');
   });
 });
+
+/*
+ * Every price used to be arithmetic on the phone, and a balance in local
+ * storage is a number its owner can edit. These run against the booted service
+ * and pin the parts that do not need an API key: the route exists, it is
+ * behind the credential, and it reports what can be spent rather than what the
+ * caller claims.
+ */
+describe('what the service says can be spent', () => {
+  it('needs the app credential like everything that costs', async () => {
+    assert.equal((await post('/account/available')).status, 401);
+  });
+
+  it('needs an install credential, since that is what it resolves', async () => {
+    const response = await post('/account/available', {}, authed);
+    assert.equal(response.status, 400);
+    assert.equal(((await response.json()) as { code: string }).code, 'invalid_request');
+  });
+
+  /*
+   * Reading and asking are charged before the model is called, so a request
+   * with no credential must not reach the model at all. Without an API key the
+   * service cannot answer anyway, and the point is that it fails on the
+   * credential rather than on the key.
+   */
+  it('turns away reading and asking without the credential', async () => {
+    assert.equal((await post('/read', { fileBase64: 'x', mediaType: 'image/jpeg' })).status, 401);
+    assert.equal((await post('/ask', { question: 'x', documents: [] })).status, 401);
+  });
+});

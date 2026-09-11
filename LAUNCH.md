@@ -518,6 +518,17 @@ day-first date reads day-first. Part A of `business/TEST-PASS.md`, all six.
     audit on every other screen: Settings (which is right), the paywall's
     plan row, the reminder picker, category picker, Whose is it, appearance.
 
+**Items 17 to 21 complete on main, 11 September evening**, fourteen
+commits from b1c2818 to 96bf351: every screen restructured in Apple's
+vocabulary, no dead ends, the four-row rule, reading on add, the new free
+tier. 437 app tests, 196 service tests, expo export clean. Deferred past
+1.0.1 by decision: the collapsing Large Title and the add flow as a native
+route stack, both structural. Two server changes ride along on the push:
+extract returns page text, and `WELCOME_CREDITS` is 0, so a 1.0 install from
+now on has no free Expyr AI, which is the decided model arriving early.
+Next: Part B of `business/TEST-PASS.md` on the phone, one batch of fixes,
+then the version bump, `expo export`, and the build.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

@@ -427,6 +427,20 @@ They are on Hashem's phone and stay out of the repo.
     Settings and kept the forest-green accent.** Remaining: Top up, Paywall,
     Add, the document screen, Household, Expyr AI.
 
+18. **Reading is not a step.** Hashem, 11 September: a person adds a
+    document and Expyr AI can only answer about it after they scroll to the
+    bottom of the document page and tap "Read this document", which nobody
+    finds. Design: a photo scan comes back already read, the extract call
+    returning the page text alongside the fields at no extra credits, since
+    Sonnet has already looked at the page; an attached PDF is read on attach,
+    charged per page, silently up to 10 pages and with one sheet beyond
+    ("Read all 24 pages for 240 credits?"); with no credits the document
+    saves unread and the page says "Not read yet. Top up to ask Expyr AI";
+    the button becomes a tinted "Ask Expyr AI about this" row; subscriptions
+    are never read; a Settings toggle "Read documents automatically", on by
+    default. Ordered after the screen restructure since it changes the
+    document page's bottom half.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

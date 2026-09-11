@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: Spacing.three, paddingTop: Spacing.six },
   centered: { textAlign: 'center' },
   cta: {
-    borderRadius: Radius.pill,
+    borderRadius: Radius.medium,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     marginTop: Spacing.two,

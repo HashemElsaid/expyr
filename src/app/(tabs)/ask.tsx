@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
   },
   topUp: { alignSelf: 'flex-start', marginTop: Spacing.two },
   topUpButton: {
-    borderRadius: Radius.pill,
+    borderRadius: Radius.medium,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
   },

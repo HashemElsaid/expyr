@@ -261,7 +261,7 @@ export default function OnboardingScreen() {
                   { backgroundColor: theme.accent },
                   (pressed || asking) && styles.dim,
                 ]}>
-                <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
+                <ThemedText type="headline" style={{ color: theme.accentContrast }}>
                   {needsCountry
                     ? 'Choose your country'
                     : needsEmirate
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   footer: { padding: Spacing.four, gap: Spacing.three },
-  primary: { borderRadius: Radius.pill, paddingVertical: Spacing.three, alignItems: 'center' },
+  primary: { borderRadius: Radius.medium, paddingVertical: 14, alignItems: 'center' },
   skip: { alignItems: 'center' },
   dim: { opacity: 0.6 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.two },

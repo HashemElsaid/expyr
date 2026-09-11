@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
   rowBody: { flex: 1, gap: 3 },
   action: {
-    borderRadius: Radius.pill,
+    borderRadius: Radius.medium,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },

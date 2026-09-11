@@ -320,9 +320,7 @@ export default function AskScreen() {
                     */}
                   {settings.credits.balance <= CREDITS_PER_QUESTION * 5
                     ? formatCredits(settings.credits.balance)
-                    : pool.length > 0
-                      ? `${documents.length} tracked · ${pool.length} read in full`
-                      : `${documents.length} item${documents.length === 1 ? '' : 's'} tracked`}
+                    : `${documents.length} ${documents.length === 1 ? 'document' : 'documents'} read`}
                 </ThemedText>
               )
             )}
@@ -349,7 +347,7 @@ export default function AskScreen() {
                   * simply not added anything, and is wrong twice over: dates can
                   * be answered from what Expyr already knows, with nothing read.
                   */}
-                <ThemedText type="largeTitle" style={styles.centered}>
+                <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
                   Nothing to ask about yet
                 </ThemedText>
                 <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
@@ -365,7 +363,7 @@ export default function AskScreen() {
                         { backgroundColor: theme.accent },
                         pressed && styles.dim,
                       ]}>
-                      <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
+                      <ThemedText type="headline" style={{ color: theme.accentContrast }}>
                         Add a document
                       </ThemedText>
                     </View>
@@ -375,12 +373,10 @@ export default function AskScreen() {
             ) : turns.length === 0 ? (
               <View style={styles.intro}>
                 <ThemedText type="body" themeColor="textTertiary" style={styles.centered}>
-                  {scoped
-                    ? `Ask ${scoped.title} anything.`
-                    : 'Ask your own paperwork anything.'}
+                  {scoped ? `Ask ${scoped.title} anything` : 'Ask your own paperwork anything'}
                 </ThemedText>
                 <ThemedText type="footnote" themeColor="textTertiary" style={styles.centered}>
-                  Every answer quotes the clause it came from.
+                  Every answer quotes the clause it came from
                 </ThemedText>
               </View>
             ) : null}
@@ -490,7 +486,7 @@ export default function AskScreen() {
                         { backgroundColor: theme.accent },
                         pressed && styles.dim,
                       ]}>
-                      <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
+                      <ThemedText type="headline" style={{ color: theme.accentContrast }}>
                         Top up
                       </ThemedText>
                     </View>

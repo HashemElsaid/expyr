@@ -1,18 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  Animated,
-  Easing,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -20,23 +11,34 @@ import { topUp } from '@/domain/credits';
 import { trackedSentence } from '@/domain/renewal-value';
 import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
-import { PRO_CREDITS, PRO_PAGES } from '@/lib/credit-packs';
+import { PRO_CREDITS } from '@/lib/credit-packs';
 import { successFeedback } from '@/lib/haptics';
 import { PRO_PRODUCT_ID, plans, purchase, restore, type PurchaseOutcome } from '@/lib/purchases';
 import { useDocuments } from '@/store/documents';
-import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
+import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, WELCOME_CREDITS, useSettings } from '@/store/settings';
 
 /** Shorter than the word, and it reads the same in any language. */
 const UNLIMITED = '∞';
 
 /*
- * Only the three ceilings the app actually enforces. Reminders, renewal steps,
- * PDF copies and backups are the same on both plans, and a comparison that
- * quietly implies otherwise is the kind of thing App Review reads closely.
+ * Only the ceilings the app actually enforces. Reminders, renewal steps, PDF
+ * copies and backups are the same on both plans, and a comparison that quietly
+ * implies otherwise is the kind of thing App Review reads closely.
+ *
+ * Credits are the third row, and the only one whose Pro side is a number
+ * rather than an infinity: the two ceilings come off, and the credits are a
+ * larger allowance rather than an endless one. That was a grey paragraph under
+ * the table, which is where a claim goes to be skipped. One figure each says
+ * it, and says it in the one place a person is comparing the two plans.
  */
-const COMPARISON: { label: string; free: string }[] = [
-  { label: 'Items you track', free: String(FREE_ITEM_LIMIT) },
-  { label: 'Photos scanned', free: String(FREE_SCAN_LIMIT) },
+const COMPARISON: { label: string; free: string; pro: string }[] = [
+  { label: 'Items you track', free: String(FREE_ITEM_LIMIT), pro: UNLIMITED },
+  { label: 'Photos scanned', free: String(FREE_SCAN_LIMIT), pro: UNLIMITED },
+  {
+    label: 'Expyr AI credits',
+    free: String(WELCOME_CREDITS),
+    pro: String(WELCOME_CREDITS + PRO_CREDITS),
+  },
 ];
 
 export default function PaywallScreen() {
@@ -151,234 +153,160 @@ export default function PaywallScreen() {
             accessibilityRole="button"
             accessibilityLabel="Close">
             {({ pressed }) => (
-              <MaterialCommunityIcons
-                name="close"
-                size={24}
-                color={pressed ? theme.text : theme.textTertiary}
+              <Icon
+                name="xmark.circle.fill"
+                size={26}
+                color={pressed ? theme.textSecondary : theme.textTertiary}
               />
             )}
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Enter step={0} style={styles.hero}>
-            <ThemedText type="largeTitle">Free, or everything.</ThemedText>
-            {opener && (
-              <ThemedText type="body" themeColor="textSecondary">
-                {opener}.
-              </ThemedText>
-            )}
-          </Enter>
+          {/*
+            * The name of the thing being sold. It was "Free, or everything.",
+            * which is a slogan with a full stop where iOS puts the title of
+            * the screen, and a person who has just been stopped by a ceiling
+            * does not need to be sold a mood.
+            */}
+          <ThemedText type="largeTitle">Expyr Pro</ThemedText>
 
-          <Enter step={1}>
-            <View style={[styles.table, { borderColor: theme.border }]}>
-              <View style={styles.tableHead}>
-                <View style={styles.flex} />
-                <View style={[styles.cell, styles.headCell]}>
-                  <ThemedText type="footnote" themeColor="textTertiary">
-                    Free
-                  </ThemedText>
-                </View>
-                <View
-                  style={[styles.cell, styles.headCell, { backgroundColor: theme.backgroundSelected }]}>
-                  <ThemedText type="footnote" style={{ color: theme.accent }}>
-                    Pro
-                  </ThemedText>
-                </View>
+          {opener && (
+            <ThemedText type="body" themeColor="textSecondary" style={styles.opener}>
+              {opener}.
+            </ThemedText>
+          )}
+
+          {/*
+            * A card on the grouped background, like every other group in the
+            * app now, rather than a bordered box. Three rows, two columns, and
+            * the Pro column tinted so the eye lands on the side being offered.
+            */}
+          <View style={[styles.table, { backgroundColor: theme.backgroundElement }]}>
+            <View style={styles.tableHead}>
+              <View style={styles.flex} />
+              <View style={styles.cell}>
+                <ThemedText type="footnote" themeColor="textSecondary">
+                  Free
+                </ThemedText>
               </View>
+              <View style={[styles.cell, { backgroundColor: theme.backgroundSelected }]}>
+                <ThemedText type="footnote" style={{ color: theme.accent }}>
+                  Pro
+                </ThemedText>
+              </View>
+            </View>
 
-              {COMPARISON.map((row, index) => (
-                <View
-                  key={row.label}
-                  style={[styles.tableRow, index > 0 && { borderTopColor: theme.border }]}>
+            {COMPARISON.map((row, index) => (
+              <View key={row.label}>
+                {index > 0 && (
+                  <View style={[styles.separator, { backgroundColor: theme.border }]} />
+                )}
+                <View style={styles.tableRow}>
                   <ThemedText type="body" style={styles.flex}>
                     {row.label}
                   </ThemedText>
                   <View style={styles.cell}>
-                    <ThemedText type="figure" themeColor="textTertiary">
+                    <ThemedText type="figure" themeColor="textSecondary">
                       {row.free}
                     </ThemedText>
                   </View>
                   <View style={[styles.cell, { backgroundColor: theme.backgroundSelected }]}>
                     <ThemedText type="figure" style={{ color: theme.accent }}>
-                      {UNLIMITED}
+                      {row.pro}
                     </ThemedText>
                   </View>
                 </View>
-              ))}
-            </View>
-
-            <ThemedText type="footnote" themeColor="textTertiary" style={styles.footnote}>
-              Pro comes with {PRO_CREDITS.toLocaleString('en-US')} Expyr AI credits, enough to
-              read {PRO_PAGES} pages. More can be bought any time.
-            </ThemedText>
-          </Enter>
-
-          <Enter step={2} style={styles.buy}>
-            <View
-              style={[
-                styles.price,
-                { borderColor: theme.accent, backgroundColor: theme.backgroundSelected },
-              ]}>
-              <View style={styles.flex}>
-                <ThemedText type="headline">{plan.title}</ThemedText>
-                {plan.footnote && (
-                  <ThemedText type="footnote" themeColor="textTertiary">
-                    {plan.footnote}
-                  </ThemedText>
-                )}
               </View>
-              <View style={styles.priceFigure}>
-                <ThemedText type="figure">{price}</ThemedText>
-                <ThemedText type="footnote" themeColor="textTertiary">
-                  {plan.cadence}
+            ))}
+          </View>
+        </ScrollView>
+
+        <View style={styles.foot}>
+          {/*
+            * The price is on the button, which is where iOS puts it, so the
+            * bordered box that quoted it above the button is gone. Guideline
+            * 3.1.2 wants the title, the price and the terms on the screen
+            * where the purchase is made: the first two are on this button and
+            * the third is the line under it.
+            */}
+          <Pressable onPress={buy} disabled={busy} accessibilityRole="button">
+            {({ pressed }) => (
+              <View
+                style={[
+                  styles.primary,
+                  { backgroundColor: theme.accent },
+                  (pressed || busy) && styles.dim,
+                ]}>
+                <ThemedText type="headline" style={{ color: theme.accentContrast }}>
+                  {busy ? 'One moment' : `Unlock ${plan.title} for ${price}`}
                 </ThemedText>
               </View>
-            </View>
+            )}
+          </Pressable>
 
-            <Pressable onPress={buy} disabled={busy} accessibilityRole="button">
+          {/*
+            * One line, from seven sentences. What the guideline needs is that
+            * a person can see what they are buying, what it costs and on what
+            * terms before they buy it; what it does not need is the whole of
+            * the terms, which is what Terms of Use is for and why it is linked
+            * here. Nothing renews, so the auto-renewal disclosure does not
+            * apply and claiming one would be worse than leaving it out.
+            */}
+          <ThemedText type="footnote" themeColor="textTertiary" style={styles.legal}>
+            One-time purchase. Nothing renews. Shares with your Apple Family.
+          </ThemedText>
+
+          <View style={styles.links}>
+            <Pressable onPress={restorePurchases} accessibilityRole="button" hitSlop={8}>
               {({ pressed }) => (
-                <View
-                  style={[
-                    styles.primary,
-                    { backgroundColor: theme.accent },
-                    (pressed || busy) && styles.dim,
-                  ]}>
-                  <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
-                    {busy ? 'One moment…' : 'Unlock Expyr Pro'}
-                  </ThemedText>
-                </View>
+                <ThemedText type="footnote" style={[{ color: theme.accent }, pressed && styles.dim]}>
+                  Restore
+                </ThemedText>
               )}
             </Pressable>
-
-            <Pressable onPress={restorePurchases} style={styles.restore} accessibilityRole="button">
-              <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
-                Restore a previous purchase
-              </ThemedText>
-            </Pressable>
-
-            {/*
-             * Guideline 3.1.2 asks for the title, price and terms of the
-             * purchase on the screen where it is made, with working links to
-             * the Terms and Privacy Policy. The auto-renewal disclosure it also
-             * requires is for subscriptions — there is none here, and claiming
-             * one would be worse than leaving it out.
-             */}
-            <View style={[styles.legal, { borderTopColor: theme.border }]}>
-              <ThemedText type="footnote" themeColor="textTertiary">
-                {plan.title}, {price}, {plan.cadence}. Payment is charged to your Apple Account
-                at confirmation. This is a one-off purchase: it does not renew, there is nothing to
-                cancel, and you will not be charged again. It removes the free limits on tracked
-                items and photo scans, and includes {PRO_CREDITS.toLocaleString('en-US')} Expyr AI
-                credits. It can be shared with your Apple Family group, up to six people.
-              </ThemedText>
-
-              <View style={styles.legalLinks}>
-                <Pressable accessibilityRole="link" onPress={() => router.push('/terms')}>
-                  <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
-                    Terms of Use
-                  </ThemedText>
-                </Pressable>
-                <ThemedText type="footnote" themeColor="textTertiary">
-                  ·
+            <Pressable accessibilityRole="link" onPress={() => router.push('/terms')} hitSlop={8}>
+              {({ pressed }) => (
+                <ThemedText type="footnote" style={[{ color: theme.accent }, pressed && styles.dim]}>
+                  Terms of Use
                 </ThemedText>
-                <Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}>
-                  <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
-                    Privacy Policy
-                  </ThemedText>
-                </Pressable>
-              </View>
-            </View>
-          </Enter>
-        </ScrollView>
+              )}
+            </Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/privacy')} hitSlop={8}>
+              {({ pressed }) => (
+                <ThemedText type="footnote" style={[{ color: theme.accent }, pressed && styles.dim]}>
+                  Privacy Policy
+                </ThemedText>
+              )}
+            </Pressable>
+          </View>
+        </View>
       </SafeAreaView>
     </ThemedView>
-  );
-}
-
-/**
- * Each band rises into place a beat after the one above it, so the screen
- * arrives in the order it is meant to be read rather than all at once.
- */
-function Enter({
-  step,
-  style,
-  children,
-}: {
-  step: number;
-  style?: object;
-  children: React.ReactNode;
-}) {
-  const progress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 420,
-      delay: step * 90,
-      easing: Easing.out(Easing.cubic),
-      // react-native-web has no native driver, and says so loudly in the console.
-      useNativeDriver: Platform.OS !== 'web',
-    }).start();
-  }, [progress, step]);
-
-  return (
-    <Animated.View
-      style={[
-        style,
-        {
-          opacity: progress,
-          transform: [
-            { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
-          ],
-        },
-      ]}>
-      {children}
-    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center' },
-  closeRow: { alignItems: 'flex-end', paddingHorizontal: Spacing.four, paddingTop: Spacing.three },
-  content: { padding: Spacing.four, paddingTop: Spacing.two, gap: Spacing.five },
-  hero: { gap: Spacing.two },
+  closeRow: { alignItems: 'flex-end', paddingHorizontal: Spacing.three, paddingTop: Spacing.two },
+  content: { paddingHorizontal: Spacing.three, paddingBottom: Spacing.four },
   flex: { flex: 1 },
-  table: {
-    borderRadius: Radius.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingLeft: Spacing.three,
-    overflow: 'hidden',
-  },
+  opener: { paddingTop: Spacing.two },
+  table: { borderRadius: Radius.medium, overflow: 'hidden', marginTop: Spacing.four },
   tableHead: { flexDirection: 'row', alignItems: 'center' },
-  tableRow: {
-    flexDirection: 'row',
+  tableRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: Spacing.three },
+  cell: { width: 84, alignItems: 'center', paddingVertical: 11 },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: Spacing.three },
+  /* The button sits where a thumb already is, under the list rather than in it. */
+  foot: { paddingHorizontal: Spacing.three, paddingBottom: Spacing.two, gap: Spacing.two },
+  primary: {
     alignItems: 'center',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'transparent',
-  },
-  cell: { width: 76, alignItems: 'center', paddingVertical: Spacing.three },
-  /** Column headings sit tighter than the rows they label. */
-  headCell: { paddingVertical: Spacing.two },
-  footnote: { paddingTop: Spacing.three, paddingHorizontal: Spacing.one },
-  buy: { gap: Spacing.three },
-  price: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
+    justifyContent: 'center',
     borderRadius: Radius.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.three,
+    paddingVertical: 14,
   },
-  priceFigure: { alignItems: 'flex-end', gap: 2 },
-  primary: { borderRadius: Radius.pill, paddingVertical: Spacing.three, alignItems: 'center' },
-  restore: { alignItems: 'center' },
-  legal: {
-    gap: Spacing.two,
-    paddingTop: Spacing.three,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  legalLinks: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.two },
+  legal: { textAlign: 'center' },
+  links: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.four },
   dim: { opacity: 0.6 },
 });

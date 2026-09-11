@@ -1,13 +1,14 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
+import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, topUp } from '@/domain/credits';
+import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, formatCredits, topUp } from '@/domain/credits';
 import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
 import { pagesIn, PACKS, priceOf, type Pack } from '@/lib/credit-packs';
@@ -119,151 +120,121 @@ export default function TopUpScreen() {
             accessibilityRole="button"
             accessibilityLabel="Close">
             {({ pressed }) => (
-              <MaterialCommunityIcons
-                name="close"
-                size={24}
-                color={pressed ? theme.text : theme.textTertiary}
+              <Icon
+                name="xmark.circle.fill"
+                size={26}
+                color={pressed ? theme.textSecondary : theme.textTertiary}
               />
             )}
           </Pressable>
         </View>
 
-        <View style={styles.body}>
+        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+          <ThemedText type="largeTitle">Top Up</ThemedText>
+
           {/*
-            * The label goes above the number and nothing goes below it. A
-            * sentence under a figure that large reads as an apology for it,
-            * and everything it said is derivable from the two rates directly
-            * beneath: ten credits a page, three hundred credits, thirty pages.
+            * The balance is a row's value now, where iOS puts the answer to a
+            * row. It was a 52 point numeral with the word Credits above it in
+            * grey, which is a size from no scale and a label doing the work a
+            * row title does.
             */}
-          <View>
-            <ThemedText type="footnote" themeColor="textTertiary">
-              Credits
-            </ThemedText>
-            <ThemedText type="largeTitle" style={styles.balance}>
-              {balance.toLocaleString('en-US')}
-            </ThemedText>
-          </View>
+          <ListSection>
+            <ListRow
+              symbol="sparkles"
+              tint="purple"
+              title="Expyr AI credits"
+              value={formatCredits(balance)}
+            />
+          </ListSection>
 
-          <View style={[styles.rates, { borderColor: theme.border }]}>
-            <View style={styles.rateRow}>
-              <ThemedText type="body" style={styles.flex}>
-                Read a page
-              </ThemedText>
-              <View style={styles.rateValue}>
-                <ThemedText type="figure" themeColor="textSecondary">
-                  {CREDITS_PER_PAGE}
-                </ThemedText>
-                <ThemedText type="footnote" themeColor="textTertiary">
-                  credits
+          <ListSection title="What things cost">
+            <ListRow
+              symbol="doc.text.magnifyingglass"
+              tint="blue"
+              title="Read a page"
+              value={`${CREDITS_PER_PAGE} credits`}
+            />
+            <ListRow
+              symbol="questionmark.bubble"
+              tint="blue"
+              title="Ask a question"
+              value={`${CREDITS_PER_QUESTION} credits`}
+            />
+          </ListSection>
+
+          {/*
+            * A checklist, which is how iOS offers a choice of one from three:
+            * the tick on the right of the chosen row, the price as its value.
+            * They were bordered cards with a radio glyph, which is a control
+            * drawn by hand where the platform has one.
+            */}
+          <ListSection title="Packs">
+            {PACKS.map((pack) => (
+              <ListRow
+                key={pack.id}
+                symbol="plus.circle.fill"
+                tint={pack.id === chosen.id ? 'purple' : 'gray'}
+                title={`${pack.credits.toLocaleString('en-US')} credits`}
+                subtitle={`${pagesIn(pack).toLocaleString('en-US')} pages`}
+                value={priceFor(pack)}
+                chevron={false}
+                onPress={() => {
+                  tapFeedback();
+                  setChosen(pack);
+                }}
+                control={
+                  pack.id === chosen.id ? (
+                    <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
+                  ) : undefined
+                }
+              />
+            ))}
+          </ListSection>
+
+          {/*
+            * Says what is actually at stake rather than "sign in", which
+            * sounds like admin somebody can skip. Credits are a consumable and
+            * Apple keeps no record of one that has been used, so a new phone
+            * takes them unless there is an account to follow.
+            */}
+          {canProtect && settings.account === null && (
+            <ListSection>
+              <ListRow
+                symbol="person.badge.key"
+                tint="blue"
+                title="Keep these credits if you change phone"
+                chevron={false}
+                onPress={protectCredits}
+              />
+            </ListSection>
+          )}
+        </ScrollView>
+
+        <View style={styles.foot}>
+          <Pressable onPress={buy} disabled={busy} accessibilityRole="button">
+            {({ pressed }) => (
+              <View
+                style={[
+                  styles.primary,
+                  { backgroundColor: theme.accent },
+                  (pressed || busy) && styles.dim,
+                ]}>
+                <ThemedText type="headline" style={{ color: theme.accentContrast }}>
+                  {busy ? 'One moment' : `Buy for ${priceFor(chosen)}`}
                 </ThemedText>
               </View>
-            </View>
-            <View style={[styles.rateRow, { borderTopWidth: 1, borderTopColor: theme.border }]}>
-              <ThemedText type="body" style={styles.flex}>
-                Ask a question
-              </ThemedText>
-              <View style={styles.rateValue}>
-                <ThemedText type="figure" themeColor="textSecondary">
-                  {CREDITS_PER_QUESTION}
-                </ThemedText>
-                <ThemedText type="footnote" themeColor="textTertiary">
-                  credits
-                </ThemedText>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.packs}>
-            {PACKS.map((pack) => {
-              const picked = pack.id === chosen.id;
-              return (
-                <Pressable
-                  key={pack.id}
-                  onPress={() => {
-                    tapFeedback();
-                    setChosen(pack);
-                  }}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: picked }}
-                  accessibilityLabel={`${pack.credits} credits for ${priceFor(pack)}`}>
-                  {({ pressed }) => (
-                    <View
-                      style={[
-                        styles.pack,
-                        {
-                          borderColor: picked ? theme.accent : theme.border,
-                          backgroundColor: picked ? theme.backgroundSelected : 'transparent',
-                        },
-                        pressed && styles.dim,
-                      ]}>
-                      <MaterialCommunityIcons
-                        name={picked ? 'circle-slice-8' : 'circle-outline'}
-                        size={20}
-                        color={picked ? theme.accent : theme.textTertiary}
-                      />
-                      <View style={styles.flex}>
-                        <ThemedText type="headline">
-                          {pack.credits.toLocaleString('en-US')} credits
-                        </ThemedText>
-                        <ThemedText type="footnote" themeColor="textTertiary">
-                          {pagesIn(pack).toLocaleString('en-US')} pages
-                        </ThemedText>
-                      </View>
-                      <ThemedText type="figure">{priceFor(pack)}</ThemedText>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <View style={styles.foot}>
-            <Pressable onPress={buy} disabled={busy} accessibilityRole="button">
-              {({ pressed }) => (
-                <View
-                  style={[
-                    styles.primary,
-                    { backgroundColor: theme.accent },
-                    (pressed || busy) && styles.dim,
-                  ]}>
-                  <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
-                    {busy ? 'One moment' : `Buy for ${priceFor(chosen)}`}
-                  </ThemedText>
-                </View>
-              )}
-            </Pressable>
-
-            {/*
-              * Says what is actually at stake rather than "sign in", which
-              * sounds like admin somebody can skip. Credits are a consumable
-              * and Apple keeps no record of one that has been used, so a new
-              * phone takes them unless there is an account to follow.
-              */}
-            {canProtect && settings.account === null && (
-              <Pressable onPress={protectCredits} disabled={busy} accessibilityRole="button">
-                {({ pressed }) => (
-                  <ThemedText
-                    type="footnote"
-                    themeColor="textSecondary"
-                    style={[styles.legal, pressed && styles.dim]}>
-                    Keep these credits if you change phone
-                  </ThemedText>
-                )}
-              </Pressable>
             )}
+          </Pressable>
 
-            {settings.account !== null && (
-              <ThemedText type="footnote" themeColor="textTertiary" style={styles.legal}>
-                These credits follow your Apple Account to a new phone.
-              </ThemedText>
-            )}
-
-            {/* Guideline 3.1.2 wants the terms where the purchase is made. */}
-            <ThemedText type="footnote" themeColor="textTertiary" style={styles.legal}>
-              One off purchase, charged to your Apple Account. Nothing renews. Credits do not
-              expire.
-            </ThemedText>
-          </View>
+          {/*
+            * One line, which is what Guideline 3.1.2 needs here: the price and
+            * the title are on the button above it, and the terms are these.
+            * It was three sentences, and the one about credits following an
+            * Apple Account has its own row when it applies.
+            */}
+          <ThemedText type="footnote" themeColor="textTertiary" style={styles.legal}>
+            One-time purchase. Nothing renews. Credits do not expire.
+          </ThemedText>
         </View>
       </SafeAreaView>
     </ThemedView>
@@ -273,44 +244,29 @@ export default function TopUpScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
-  flex: { flex: 1 },
   dim: { opacity: 0.6 },
-  top: { alignItems: 'flex-end', paddingHorizontal: Spacing.four, paddingTop: Spacing.two },
+  top: { alignItems: 'flex-end', paddingHorizontal: Spacing.three, paddingTop: Spacing.two },
   body: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.four,
     maxWidth: MaxContentWidth,
     width: '100%',
     alignSelf: 'center',
-    gap: Spacing.three,
   },
-  balance: { fontSize: 52, lineHeight: 56 },
-  rateValue: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
-  rates: { borderWidth: 1, borderRadius: Radius.medium, overflow: 'hidden' },
-  rateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  /* The button sits where a thumb already is, under the list rather than in it. */
+  foot: {
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingTop: Spacing.two,
+    gap: Spacing.two,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
-  packs: { gap: Spacing.two },
-  pack: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    borderWidth: 1,
-    borderRadius: Radius.medium,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  /* Pushed to the bottom so the button sits where a thumb already is. */
-  foot: { marginTop: 'auto', gap: Spacing.two },
   primary: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.pill,
-    paddingVertical: Spacing.three,
+    borderRadius: Radius.medium,
+    paddingVertical: 14,
   },
   legal: { textAlign: 'center' },
 });

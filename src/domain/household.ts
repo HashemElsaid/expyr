@@ -78,6 +78,24 @@ function key(name: string): string {
   return name.trim().toLowerCase();
 }
 
+/**
+ * Whether a document's owner is the person holding the phone.
+ *
+ * Their own documents carry no owner at all, because being the default is what
+ * makes them theirs. But somebody who typed their own name into "Whose is it"
+ * has documents that carry it, and those are still theirs.
+ *
+ * The household page has always known that. The lists did not, so a document
+ * filed under your own name printed your name beside its title while the
+ * household page counted it as yours. One rule, in one place, used by both.
+ */
+export function isMine(owner: string | undefined, ownName: string): boolean {
+  const named = key(owner ?? MINE);
+  if (named === '') return true;
+  const mine = key(ownName);
+  return mine !== '' && named === mine;
+}
+
 export function buildHousehold(
   documents: readonly TrackedDocument[],
   /** Names added explicitly, who may not own anything yet. */
@@ -116,7 +134,7 @@ export function buildHousehold(
      * their own name into "Whose is it".
      */
     const raw = doc.owner ?? MINE;
-    const owner = mine && key(raw) === key(mine) ? MINE : raw;
+    const owner = isMine(raw, mine) ? MINE : raw;
     const existing = byPerson.get(key(owner));
     if (existing) existing.items.push(doc);
     else byPerson.set(key(owner), { name: owner.trim(), items: [doc] });

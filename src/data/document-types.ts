@@ -76,6 +76,7 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'passport',
+    titleExample: 'Egyptian passport',
     label: 'Passport',
     emoji: '📕',
     numberField: { label: 'Passport number', placeholder: 'e.g. A1234567' },
@@ -96,6 +97,8 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'car-registration',
+    titleExample: 'Toyota Corolla Mulkiya',
+    genericTitleExample: 'Toyota Corolla registration',
     label: 'Car Registration (Mulkiya)',
     genericLabel: 'Vehicle Registration',
     emoji: '🚗',
@@ -118,6 +121,7 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'car-insurance',
+    titleExample: 'Corolla insurance',
     label: 'Car Insurance',
     emoji: '🛡️',
     numberField: { label: 'Policy number', placeholder: 'e.g. POL-1234567' },
@@ -170,6 +174,7 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'health-insurance',
+    titleExample: 'Family health insurance',
     label: 'Health Insurance',
     emoji: '🏥',
     numberField: { label: 'Member / policy number', placeholder: 'e.g. 1234567890' },
@@ -190,6 +195,8 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'tenancy-ejari',
+    titleExample: 'Marina Heights tenancy',
+    genericTitleExample: 'Flat 12 tenancy',
     label: 'Tenancy Contract (Ejari)',
     genericLabel: 'Tenancy Contract',
     emoji: '🏠',
@@ -309,6 +316,7 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'membership',
+    titleExample: 'Netflix',
     label: 'Subscription / Membership',
     emoji: '🎟️',
     numberField: { label: 'Membership number', placeholder: 'If you have one' },
@@ -338,6 +346,8 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'bill',
+    titleExample: 'DEWA bill',
+    genericTitleExample: 'Electricity bill',
     label: 'Bill',
     emoji: '🧾',
     numberField: { label: 'Account number', placeholder: 'If you have one' },
@@ -371,6 +381,7 @@ const CATALOGUE: DocumentType[] = [
   },
   {
     id: 'warranty',
+    titleExample: 'Samsung TV warranty',
     label: 'Warranty',
     emoji: '🔧',
     numberField: { label: 'Serial number', placeholder: 'e.g. SN-123456789' },
@@ -453,6 +464,19 @@ export function labelFor(type: DocumentType, country: Country | null): string {
 /** Convenience for the many places that hold an id rather than the type. */
 export function labelForId(id: DocumentTypeId, country: Country | null): string {
   return labelFor(getDocumentType(id), country);
+}
+
+/**
+ * The placeholder for the title field: an example of a good one.
+ *
+ * Falls back to the category's own name, which is a correct title for most
+ * things a person tracks. An example is written only where a detail earns its
+ * place, because two Mulkiyas in one household are told apart by the car and
+ * not by the word Mulkiya.
+ */
+export function titleExampleFor(type: DocumentType, country: Country | null): string {
+  if (country && country !== 'ae' && type.genericTitleExample) return type.genericTitleExample;
+  return type.titleExample ?? labelFor(type, country);
 }
 
 /** The number to ask for, and the example to show — both vary by country. */

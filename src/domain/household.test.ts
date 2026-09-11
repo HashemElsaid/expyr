@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildHousehold,
+  isMine,
   MINE,
   nameFromDevice,
   personSummary,
@@ -87,6 +88,47 @@ describe('buildHousehold', () => {
 
     // Mine is empty too, but always leads.
     expect(people.map((p) => p.label)).toEqual(['Mine', 'Ali', 'Zara']);
+  });
+});
+
+/**
+ * The rule the lists did not know.
+ *
+ * A document filed under your own name printed your name beside its title,
+ * while the household page counted it as yours. One rule now, used by both,
+ * which matters more since titles stopped carrying names: the owner shown
+ * beside a title is the only place that fact appears.
+ */
+describe('whose document it is', () => {
+  it('counts a document with no owner as mine', () => {
+    expect(isMine(undefined, 'Hashem')).toBe(true);
+    expect(isMine('', 'Hashem')).toBe(true);
+    expect(isMine('   ', 'Hashem')).toBe(true);
+  });
+
+  it('counts a document filed under my own name as mine', () => {
+    expect(isMine('Hashem', 'Hashem')).toBe(true);
+    expect(isMine('  hashem  ', 'Hashem')).toBe(true);
+  });
+
+  it('counts somebody else as somebody else', () => {
+    expect(isMine('Reem', 'Hashem')).toBe(false);
+  });
+
+  /* Before the phone's owner has a name, only a blank owner can be theirs. */
+  it('claims nothing by name when the name is not known yet', () => {
+    expect(isMine('Reem', '')).toBe(false);
+    expect(isMine(undefined, '')).toBe(true);
+  });
+
+  it('agrees with the household page, which is the point', () => {
+    const people = buildHousehold(
+      [makeDocument('passport', { owner: 'Hashem' })],
+      [],
+      'Hashem'
+    );
+    expect(people).toHaveLength(1);
+    expect(people[0].name).toBe(MINE);
   });
 });
 

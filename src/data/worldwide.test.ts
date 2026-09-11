@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { hasGuidance } from '@/data/countries';
-import { DOCUMENT_TYPES, labelFor, numberFieldFor } from '@/data/document-types';
+import {
+  DOCUMENT_TYPES,
+  labelFor,
+  numberFieldFor,
+  titleExampleFor,
+} from '@/data/document-types';
 
 /**
  * Nothing local reaches somebody who is not here.
@@ -36,6 +41,9 @@ const LOCAL_TO_THE_UAE: (string | RegExp)[] = [
   'rta',
   'gdrfa',
   'tasjeel',
+  /* Dubai's utility, which arrives with the Bill category and its example. */
+  'dewa',
+  'addc',
   'dirham',
   'aed',
   /*
@@ -83,6 +91,21 @@ describe('what somebody outside the UAE is shown', () => {
           `"${text}" on ${type.id} reaches everyone. Give it a genericNumberField.`
         ).toBeUndefined();
       }
+    }
+  });
+
+  /*
+   * The title examples are shown as placeholders on the form, which makes them
+   * copy like any other. "Toyota Corolla Mulkiya" is the right hint in Dubai
+   * and means nothing in Toronto.
+   */
+  it('shows no example title in a word that is local to the UAE', () => {
+    for (const type of DOCUMENT_TYPES) {
+      const example = titleExampleFor(type, ELSEWHERE);
+      expect(
+        offendingWord(example),
+        `"${example}" on ${type.id} reaches everyone. Give it a genericTitleExample.`
+      ).toBeUndefined();
     }
   });
 

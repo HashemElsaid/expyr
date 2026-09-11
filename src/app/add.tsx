@@ -26,6 +26,7 @@ import {
   inSentence,
   labelFor,
   numberFieldFor,
+  titleExampleFor,
 } from '@/data/document-types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { defaultExpiry, startingExpiry } from '@/domain/expiry';
@@ -1013,7 +1014,12 @@ export default function AddDocumentScreen() {
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder={labelFor(type!, settings.country)}
+            /*
+             * An example rather than a repeat of the category, for the one
+             * moment it is read: somebody has cleared the prefilled name to
+             * write their own, and what they need then is the pattern.
+             */
+            placeholder={titleExampleFor(type!, settings.country)}
             placeholderTextColor={theme.textTertiary}
             style={[styles.titleInput, { color: theme.text, borderBottomColor: theme.textTertiary }]}
           />

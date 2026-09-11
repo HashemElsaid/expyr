@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -11,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { countryLabel, flagFor, searchCountries, type Country } from '@/data/countries';
@@ -95,7 +95,7 @@ export function CountrySelect({
               style={styles.flex}>
               {value ? countryLabel(value) : 'Choose your country'}
             </ThemedText>
-            <MaterialCommunityIcons name="chevron-down" size={22} color={theme.textTertiary} />
+            <Icon name="chevron.down" size={22} color={theme.textTertiary} />
           </View>
         )}
       </Pressable>
@@ -125,7 +125,7 @@ export function CountrySelect({
                   styles.search,
                   { backgroundColor: theme.backgroundSelected, borderColor: theme.border },
                 ]}>
-                <MaterialCommunityIcons name="magnify" size={18} color={theme.textTertiary} />
+                <Icon name="magnifyingglass" size={18} color={theme.textTertiary} />
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
@@ -140,8 +140,8 @@ export function CountrySelect({
                 />
                 {query.length > 0 && (
                   <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Clear">
-                    <MaterialCommunityIcons
-                      name="close-circle"
+                    <Icon
+                      name="xmark.circle.fill"
                       size={18}
                       color={theme.textTertiary}
                     />
@@ -189,7 +189,7 @@ export function CountrySelect({
                           {item.label}
                         </ThemedText>
                         {on && (
-                          <MaterialCommunityIcons name="check" size={20} color={theme.accent} />
+                          <Icon name="checkmark" size={20} color={theme.accent} />
                         )}
                       </View>
                     )}

@@ -1,8 +1,8 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -42,8 +42,8 @@ export function SaveWarning() {
           { backgroundColor: theme.backgroundElement, borderColor: theme.urgentStrong },
         ]}>
         <View style={styles.header}>
-          <MaterialCommunityIcons
-            name="alert-circle-outline"
+          <Icon
+            name="exclamationmark.circle"
             size={18}
             color={theme.urgentStrong}
           />

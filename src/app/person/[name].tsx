@@ -187,7 +187,7 @@ export default function PersonScreen() {
               Nothing is filed under {person.label} yet.
             </ThemedText>
             <SecondaryAction
-              icon="camera-outline"
+              icon="camera.fill"
               label={person.name === MINE ? 'Add something' : `Add something for ${person.label}`}
               onPress={() =>
                 router.push(

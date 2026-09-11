@@ -1,10 +1,11 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ActionMenu, MenuButton, PrimaryAction, SecondaryAction, type MenuAction } from '@/components/document/actions';
 import { DataRow } from '@/components/document/data-row';
+import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ValuePrompt } from '@/components/value-prompt';
@@ -125,28 +126,34 @@ export default function DocumentDetailScreen() {
   const menuActions: MenuAction[] = doc
     ? [
         // Sending a copy of a passport or licence is a routine errand here.
+        /*
+         * Annotated, because an array literal inside a ternary is not
+         * contextually typed by the annotation on menuActions: `icon` widens
+         * to string and stops being checked against the symbol catalogue,
+         * which is the one thing that check exists for.
+         */
         ...(doc.files[0]
-          ? [
+          ? ([
               {
                 label: 'Share a copy',
-                icon: 'tray-arrow-up',
+                icon: 'square.and.arrow.up',
                 run: () => openAttachment(doc.files[0].uri, doc.files[0].type),
               },
-            ]
+            ] satisfies MenuAction[])
           : []),
         {
           label: 'Edit details',
-          icon: 'pencil-outline',
+          icon: 'pencil',
           run: () => router.push(`/add?id=${doc.id}`),
         },
         {
           label: doc.archivedAt ? 'Move back to my items' : 'Archive',
-          icon: doc.archivedAt ? 'tray-full' : 'archive-outline',
+          icon: doc.archivedAt ? 'tray.full' : 'archivebox',
           run: toggleArchive,
         },
         {
           label: 'Delete permanently',
-          icon: 'delete-outline',
+          icon: 'trash',
           run: confirmDelete,
           destructive: true,
         },
@@ -217,7 +224,6 @@ export default function DocumentDetailScreen() {
   const runway = buildRunway(days, doc.leadDays, period);
   const blockers = guided ? findBlockers(doc, documents) : [];
   const notes = guided ? notesFor(doc.typeId) : [];
-  const fired = reminders.filter((r) => r.past);
 
   function markRenewed() {
     tapFeedback();
@@ -306,9 +312,12 @@ export default function DocumentDetailScreen() {
           <ThemedText type="largeTitle" style={[styles.verdict, { color }]}>
             {verdictPhrase(days)}
           </ThemedText>
+          {/*
+            * A fragment, no full stop. It did not expire in the future, and a
+            * subscription never expires: it charges you.
+            */}
           <ThemedText type="body" themeColor="textSecondary">
-            {/* It did not expire in the future, and a subscription never expires. */}
-            {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}.
+            {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}
           </ThemedText>
 
           {runway && (
@@ -379,31 +388,32 @@ export default function DocumentDetailScreen() {
            * app is "you will be told in time", and the only way to believe that
            * is to see the dates it will happen on.
            */}
-          {reminders.length === 0 ? (
-            <ThemedText type="footnote" themeColor="textTertiary">
-              No reminders set
-            </ThemedText>
-          ) : (
-            <View style={styles.reminderRow}>
-              {reminders.map((r) => (
-                <ThemedText
-                  key={r.lead}
-                  type="footnote"
-                  themeColor={r.past ? 'textTertiary' : 'textSecondary'}
-                  style={r.past && styles.sent}>
-                  {dayMonth(r.date)}
-                </ThemedText>
-              ))}
-              <ThemedText type="footnote" themeColor="textTertiary">
-                {fired.length === reminders.length
-                  ? '· all sent'
-                  : fired.length
-                    ? `· ${fired.length} sent`
-                    : '· none sent yet'}
-              </ThemedText>
-            </View>
-          )}
         </View>
+
+        {/*
+          * Every warning date, one per row, because the whole promise of the
+          * app is "you will be told in time" and the only way to believe that
+          * is to see the dates it will happen on.
+          *
+          * They were a line of dates joined by middots, ending in "· all
+          * sent", with the sent ones struck through. A row each says the same
+          * thing, and says which ones have already gone without a strike.
+          */}
+        <ListSection title="Reminders">
+          {reminders.length === 0 ? (
+            <ListRow symbol="bell.slash" tint="gray" title="No reminders set" />
+          ) : (
+            reminders.map((r) => (
+              <ListRow
+                key={r.lead}
+                symbol="bell.fill"
+                tint={r.past ? 'gray' : 'red'}
+                title={dayMonth(r.date)}
+                value={r.past ? 'Sent' : undefined}
+              />
+            ))
+          )}
+        </ListSection>
 
         {doc.files.length > 0 && (
           <View style={[styles.fileRow, { borderBottomColor: theme.border }]}>
@@ -417,8 +427,8 @@ export default function DocumentDetailScreen() {
                   file.type === 'pdf' ? (
                     <View
                       style={[styles.thumb, { borderColor: theme.border }, pressed && styles.dim]}>
-                      <MaterialCommunityIcons
-                        name="file-pdf-box"
+                      <Icon
+                        name="doc.fill"
                         size={20}
                         color={theme.textSecondary}
                       />
@@ -434,13 +444,13 @@ export default function DocumentDetailScreen() {
               </Pressable>
             ))}
             <ThemedText type="footnote" themeColor="textTertiary" style={styles.flex}>
-              Kept on this phone · tap to open
+              Tap to open. Kept on this phone
             </ThemedText>
           </View>
         )}
 
         {(doc.documentNumber || doc.notes) && (
-          <View style={styles.plainRows}>
+          <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
             {doc.documentNumber && (
               <DataRow
                 label={numberFieldFor(type, settings.country)?.label ?? 'Number'}
@@ -454,7 +464,7 @@ export default function DocumentDetailScreen() {
                 copyable
               />
             )}
-            {doc.notes && <DataRow label="Notes" value={doc.notes} />}
+            {doc.notes && <DataRow label="Notes" value={doc.notes} bordered={Boolean(doc.documentNumber)} />}
           </View>
         )}
 
@@ -467,14 +477,11 @@ export default function DocumentDetailScreen() {
           * — they exist to be pasted into somebody else's form.
           */}
         {scanned.length > 0 && (
-          <View>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="footnote" themeColor="textTertiary">
-                On the document
-              </ThemedText>
-              <View style={[styles.rule, { backgroundColor: theme.border }]} />
-            </View>
-            <View style={styles.plainRows}>
+          <View style={styles.section}>
+            <ThemedText type="sectionHeader" themeColor="textSecondary" style={styles.sectionHeader}>
+              On the document
+            </ThemedText>
+            <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
               {scanned.map((entry, index) => (
                 <DataRow
                   key={`${entry.label}-${entry.value}`}
@@ -498,8 +505,8 @@ export default function DocumentDetailScreen() {
         )}
 
         {blockers.length > 0 && (
-          <View style={[styles.blocker, { borderColor: theme.urgentSoft }]}>
-            <MaterialCommunityIcons name="alert-outline" size={18} color={theme.urgentSoft} />
+          <View style={[styles.blocker, { backgroundColor: theme.backgroundElement }]}>
+            <Icon name="exclamationmark.triangle.fill" size={18} color={theme.urgentSoft} />
             <View style={styles.flex}>
               <ThemedText type="headline" style={{ color: theme.urgentSoft }}>
                 Do this first
@@ -570,7 +577,7 @@ export default function DocumentDetailScreen() {
                   { borderColor: theme.border },
                   (pressed || stage !== null) && styles.dim,
                 ]}>
-                <MaterialCommunityIcons name="text-search" size={20} color={theme.accent} />
+                <Icon name="doc.text.magnifyingglass" size={20} color={theme.accent} />
                 <View style={styles.flex}>
                   <ThemedText type="headline">
                     {stage === 'counting'
@@ -620,7 +627,7 @@ export default function DocumentDetailScreen() {
          */}
         {readable && !brief && stage === null && (
           <SecondaryAction
-            icon="creation-outline"
+            icon="sparkles"
             label="Ask about this document"
             onPress={() => router.navigate(`/ask?id=${doc.id}`)}
           />
@@ -628,12 +635,9 @@ export default function DocumentDetailScreen() {
 
         {brief && (
           <View style={styles.brief}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="footnote" themeColor="textTertiary">
-                What this says
-              </ThemedText>
-              <View style={[styles.rule, { backgroundColor: theme.border }]} />
-            </View>
+            <ThemedText type="sectionHeader" themeColor="textSecondary" style={styles.sectionHeader}>
+              What this says
+            </ThemedText>
 
             <ThemedText type="body" themeColor="textSecondary">
               {brief.summary}
@@ -641,8 +645,8 @@ export default function DocumentDetailScreen() {
 
             {brief.watchOut.map((item) => (
               <View key={item.quote} style={styles.watchRow}>
-                <MaterialCommunityIcons
-                  name="alert-outline"
+                <Icon
+                  name="exclamationmark.triangle.fill"
                   size={16}
                   color={theme.urgentSoft}
                   style={styles.watchIcon}
@@ -687,7 +691,7 @@ export default function DocumentDetailScreen() {
               ))}
 
             <SecondaryAction
-              icon="creation-outline"
+              icon="sparkles"
               label="Ask about this document"
               onPress={() => router.navigate(`/ask?id=${doc.id}`)}
             />
@@ -699,8 +703,13 @@ export default function DocumentDetailScreen() {
             onPress={() => setGuideOpen((open) => !open)}
             accessibilityRole="button"
             accessibilityLabel={guideOpen ? 'Hide renewal guidance' : 'Show renewal guidance'}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="footnote" themeColor="textTertiary">
+            {/*
+              * A disclosure row rather than a header with a rule drawn across
+              * the line. The chevron sits against the words it opens, which is
+              * how iOS shows something that unfolds.
+              */}
+            <View style={styles.disclosure}>
+              <ThemedText type="headline" style={styles.flex}>
                 {/*
                   * A subscription is not renewed, it renews itself. What
                   * somebody opening this wants is the way out of it, and the
@@ -708,10 +717,10 @@ export default function DocumentDetailScreen() {
                   */}
                 {isSubscription(doc) ? 'How to cancel or change it' : 'How to renew'}
               </ThemedText>
-              <View style={[styles.rule, { backgroundColor: theme.border }]} />
-              <MaterialCommunityIcons
-                name={guideOpen ? 'chevron-up' : 'chevron-down'}
-                size={20}
+              <Icon
+                name={guideOpen ? 'chevron.up' : 'chevron.down'}
+                size={14}
+                weight="semibold"
                 color={theme.textTertiary}
               />
             </View>
@@ -731,7 +740,7 @@ export default function DocumentDetailScreen() {
                 <ThemedText type="body" themeColor="textSecondary">
                   {renewal.error}
                 </ThemedText>
-                <SecondaryAction icon="refresh" label="Try again" onPress={renewal.retry} />
+                <SecondaryAction icon="arrow.clockwise" label="Try again" onPress={renewal.retry} />
               </View>
             )}
 
@@ -872,22 +881,22 @@ export default function DocumentDetailScreen() {
              * screen puts it back in one tap if they were wrong.
              */
             <PrimaryAction
-              icon="close-circle-outline"
+              icon="xmark.circle"
               label="I cancelled this"
               onPress={toggleArchive}
             />
           ) : portal ? (
             <>
-              <PrimaryAction icon="open-in-new" label={`Renew at ${portal.name}`} onPress={openPortal} />
+              <PrimaryAction icon="arrow.up.right.square" label={`Renew at ${portal.name}`} onPress={openPortal} />
               <SecondaryAction
-                icon="check-circle-outline"
+                icon="checkmark.circle"
                 label="I have renewed this"
                 onPress={markRenewed}
               />
             </>
           ) : (
             <PrimaryAction
-              icon="check-circle-outline"
+              icon="checkmark.circle"
               label={canRoll ? 'I have renewed this' : 'Update the date'}
               onPress={markRenewed}
             />
@@ -899,7 +908,7 @@ export default function DocumentDetailScreen() {
            */}
           {doc.files.length > 0 && (
             <SecondaryAction
-              icon="file-pdf-box"
+              icon="doc.fill"
               label={sending ? 'Preparing…' : 'Send a copy as PDF'}
               onPress={sendCopy}
             />
@@ -953,8 +962,9 @@ const styles = StyleSheet.create({
   watchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.two },
   watchIcon: { marginTop: 2 },
   pointRow: { gap: 2, paddingTop: Spacing.two },
-  reminderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' },
-  sent: { textDecorationLine: 'line-through' },
+  /** A grouped card, matching the lists everywhere else in the app. */
+  card: { borderRadius: Radius.medium, overflow: 'hidden' },
+  section: { paddingTop: Spacing.four },
   runway: { paddingTop: Spacing.one, gap: 2 },
   runwayTrack: { height: 26, marginHorizontal: 8 },
   runwayRail: { position: 'absolute', left: 0, right: 0, top: 10, height: 6, borderRadius: 3 },
@@ -986,20 +996,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  plainRows: { paddingTop: Spacing.three, gap: Spacing.three },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingTop: Spacing.four,
-    paddingBottom: Spacing.two,
-  },
-  rule: { flex: 1, height: StyleSheet.hairlineWidth },
+  sectionHeader: { paddingBottom: 7, paddingHorizontal: Spacing.two },
+  disclosure: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingVertical: Spacing.three },
+  /*
+   * A card rather than an outlined box. The outline was amber, which made a
+   * warning out of the border as well as the words inside it.
+   */
   blocker: {
     flexDirection: 'row',
     gap: Spacing.three,
     alignItems: 'flex-start',
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.medium,
     padding: Spacing.three,
     marginTop: Spacing.four,

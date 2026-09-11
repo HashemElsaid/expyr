@@ -1,7 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, Pressable, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
@@ -62,7 +62,7 @@ export function LockGate({ children }: { children: ReactNode }) {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.inner}>
-        <MaterialCommunityIcons name="lock-outline" size={40} color={theme.textTertiary} />
+        <Icon name="lock" size={40} color={theme.textTertiary} />
         <ThemedText type="largeTitle" style={styles.centered}>
           Expyr is locked
         </ThemedText>

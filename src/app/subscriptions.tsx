@@ -1,8 +1,8 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -278,8 +278,8 @@ export default function SubscriptionsScreen() {
                         },
                         (pressed || undated) && styles.dim,
                       ]}>
-                      <MaterialCommunityIcons
-                        name={on ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                      <Icon
+                        name={on ? 'checkmark.square.fill' : 'square'}
                         size={22}
                         color={on ? theme.accent : theme.textTertiary}
                       />

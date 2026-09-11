@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { ActionMenu, type MenuAction } from '@/components/document/actions';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -245,17 +245,17 @@ export default function HouseholdScreen() {
     return [
       {
         label: 'Open their file',
-        icon: 'account-details-outline',
+        icon: 'person.text.rectangle',
         run: () => router.push(personHref(person)),
       },
       {
         label: person.name === MINE ? 'Add something' : `Add something for ${person.label}`,
-        icon: 'camera-outline',
+        icon: 'camera.fill',
         run: () => router.push(addForHref(person)),
       },
       {
         label: person.name === MINE ? 'Change my name' : 'Rename',
-        icon: 'pencil-outline',
+        icon: 'pencil',
         run: () => {
           setDraft(person.name === MINE ? settings.ownName : person.name);
           setRenaming(person);
@@ -263,14 +263,14 @@ export default function HouseholdScreen() {
       },
       ...(person.name === MINE
         ? []
-        : [
+        : ([
             {
               label: `Remove ${person.label}`,
-              icon: 'account-remove-outline',
+              icon: 'person.badge.minus',
               run: () => confirmRemove(person),
               destructive: true,
             },
-          ]),
+          ] satisfies MenuAction[])),
     ];
   }
 
@@ -343,8 +343,8 @@ export default function HouseholdScreen() {
                   { width: cardWidth, borderColor: theme.border },
                   pressed && styles.dim,
                 ]}>
-                <MaterialCommunityIcons
-                  name="account-plus-outline"
+                <Icon
+                  name="person.badge.plus"
                   size={24}
                   color={theme.textTertiary}
                 />
@@ -435,8 +435,8 @@ function PersonCard({
 
       {worst && (
         <View style={[styles.gap, styles.keep]}>
-          <MaterialCommunityIcons
-            name={worst.severity === 'blocked' ? 'alert-outline' : 'tray-arrow-up'}
+          <Icon
+            name={worst.severity === 'blocked' ? 'exclamationmark.triangle.fill' : 'square.and.arrow.up'}
             size={13}
             color={worst.severity === 'blocked' ? theme.urgentSoft : theme.textTertiary}
           />
@@ -512,7 +512,7 @@ function PersonCard({
           hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel={`More for ${person.label}`}>
-          <MaterialCommunityIcons name="dots-horizontal" size={18} color={theme.textTertiary} />
+          <Icon name="ellipsis" size={18} color={theme.textTertiary} />
         </Pressable>
       </View>
 

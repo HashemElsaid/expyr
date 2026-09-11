@@ -1,7 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -65,7 +65,7 @@ export default function DataScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.note, { borderColor: theme.border }]}>
-          <MaterialCommunityIcons name="cellphone-check" size={20} color={theme.textSecondary} />
+          <Icon name="iphone" size={20} color={theme.textSecondary} />
           <ThemedText type="footnote" themeColor="textSecondary" style={styles.flex}>
             Your items and photos live in Expyr&apos;s private storage on this iPhone, and they
             travel with your iPhone backup. Restore a new phone from iCloud and they come back.
@@ -74,7 +74,7 @@ export default function DataScreen() {
         </View>
 
         <DataRow
-          icon="tray-arrow-up"
+          icon="square.and.arrow.up"
           title="Keep your own copy"
           subtitle="A single file with everything, to store wherever you like."
           label={busy === 'backup' ? 'Working…' : 'Back up'}
@@ -95,7 +95,7 @@ export default function DataScreen() {
           onPress={() => run('csv', () => exportCsv(documents, settings.country))}
         />
         <DataRow
-          icon="delete-outline"
+          icon="trash"
           title="Delete everything"
           subtitle="Removes every item, photo and reminder from this phone."
           label="Delete"
@@ -126,7 +126,7 @@ function DataRow({
   const tint = destructive ? theme.urgentStrong : theme.accent;
   return (
     <View style={styles.row}>
-      <MaterialCommunityIcons
+      <Icon
         name={icon as never}
         size={20}
         color={destructive ? theme.urgentStrong : theme.textSecondary}

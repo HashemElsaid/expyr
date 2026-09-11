@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -224,7 +224,7 @@ export default function AskScreen() {
                     <ThemedText type="footnote" numberOfLines={1} style={styles.scopeLabel}>
                       {scoped.title}
                     </ThemedText>
-                    <MaterialCommunityIcons name="close" size={14} color={theme.textTertiary} />
+                    <Icon name="xmark" size={14} color={theme.textTertiary} />
                   </View>
                 )}
               </Pressable>
@@ -268,8 +268,8 @@ export default function AskScreen() {
             showsVerticalScrollIndicator={false}>
             {nothingRead ? (
               <View style={styles.blank}>
-                <MaterialCommunityIcons
-                  name="creation-outline"
+                <Icon
+                  name="sparkles"
                   size={28}
                   color={theme.textTertiary}
                 />
@@ -348,8 +348,8 @@ export default function AskScreen() {
 
                   {turn.answer.answered && turn.answer.source && !scoped ? (
                     <View style={styles.sourceRow}>
-                      <MaterialCommunityIcons
-                        name="file-document-outline"
+                      <Icon
+                        name="doc"
                         size={14}
                         color={theme.textTertiary}
                       />
@@ -361,8 +361,8 @@ export default function AskScreen() {
 
                   {!turn.answer.answered && (
                     <View style={styles.silent}>
-                      <MaterialCommunityIcons
-                        name="information-outline"
+                      <Icon
+                        name="info.circle"
                         size={15}
                         color={theme.textTertiary}
                       />
@@ -498,8 +498,8 @@ export default function AskScreen() {
                         },
                         pressed && styles.dim,
                       ]}>
-                      <MaterialCommunityIcons
-                        name="arrow-up"
+                      <Icon
+                        name="arrow.up"
                         size={18}
                         color={
                           question.trim().length === 0 || busy

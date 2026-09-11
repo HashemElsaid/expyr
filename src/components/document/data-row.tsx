@@ -1,8 +1,8 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -84,8 +84,8 @@ export function DataRow({
             disabled={!editable}
             accessibilityRole="button"
             accessibilityLabel={`Copy ${label}`}>
-            <MaterialCommunityIcons
-              name={copied ? 'check' : 'content-copy'}
+            <Icon
+              name={copied ? 'checkmark' : 'doc.on.doc'}
               size={15}
               color={copied ? theme.accent : theme.textTertiary}
               style={styles.mark}
@@ -93,12 +93,7 @@ export function DataRow({
           </Pressable>
         ) : (
           editable && (
-            <MaterialCommunityIcons
-              name="pencil-outline"
-              size={14}
-              color={theme.textTertiary}
-              style={styles.mark}
-            />
+            <Icon name="pencil" size={14} color={theme.textTertiary} style={styles.mark} />
           )
         )}
       </View>
@@ -107,10 +102,12 @@ export function DataRow({
 }
 
 const styles = StyleSheet.create({
+  /* Padded like a list row, because these now sit inside a grouped card. */
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: Spacing.three,
+    paddingHorizontal: Spacing.three,
     paddingVertical: 12,
   },
   label: { flexShrink: 0 },

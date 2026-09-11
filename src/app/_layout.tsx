@@ -4,9 +4,9 @@ import { Stack, useRouter, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef } from 'react';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { LockGate } from '@/components/lock-gate';
 import { LockOffer } from '@/components/lock-offer';
 import { SaveWarning } from '@/components/save-warning';
@@ -118,8 +118,8 @@ function ModalCloseButton() {
       accessibilityRole="button"
       accessibilityLabel="Cancel">
       {({ pressed }) => (
-        <MaterialCommunityIcons
-          name="close"
+        <Icon
+          name="xmark"
           size={24}
           color={pressed ? theme.text : theme.textSecondary}
         />

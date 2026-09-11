@@ -1,7 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useState } from 'react';
 import { InteractionManager, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { wantsLockOffer } from '@/domain/lock-offer';
@@ -114,7 +114,7 @@ export function LockOffer() {
     <Modal visible={show} animationType="fade" transparent onRequestClose={() => update({ lockOffered: true })}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: theme.background }]}>
-          <MaterialCommunityIcons name="lock-outline" size={28} color={theme.accent} />
+          <Icon name="lock" size={28} color={theme.accent} />
 
           <ThemedText type="largeTitle" style={styles.centered}>
             Lock Expyr with {biometrics.label}?

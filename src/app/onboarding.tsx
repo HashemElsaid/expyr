@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -96,8 +96,8 @@ export default function OnboardingScreen() {
               </ThemedText>
 
               <View style={styles.points}>
-                <Point icon="line-scan" text="Point your camera at it, no typing" />
-                <Point icon="bell-outline" text="Reminders long before the deadline" />
+                <Point icon="doc.viewfinder" text="Point your camera at it, no typing" />
+                <Point icon="bell" text="Reminders long before the deadline" />
                 <Point icon="cellphone-lock" text="Everything stays on your phone" />
               </View>
             </View>
@@ -151,7 +151,7 @@ export default function OnboardingScreen() {
                             {option.label}
                           </ThemedText>
                           {selected && (
-                            <MaterialCommunityIcons name="check" size={20} color={theme.accent} />
+                            <Icon name="checkmark" size={20} color={theme.accent} />
                           )}
                         </View>
                       </Pressable>
@@ -197,8 +197,8 @@ export default function OnboardingScreen() {
 
           {step === 'reminders' && (
             <View style={styles.pane}>
-              <MaterialCommunityIcons
-                name="bell-ring-outline"
+              <Icon
+                name="bell.badge"
                 size={40}
                 color={theme.textTertiary}
                 style={styles.centered}
@@ -303,7 +303,7 @@ function Point({ icon, text }: { icon: string; text: string }) {
   const theme = useTheme();
   return (
     <View style={styles.point}>
-      <MaterialCommunityIcons name={icon as never} size={20} color={theme.accent} />
+      <Icon name={icon as never} size={20} color={theme.accent} />
       <ThemedText type="body" style={styles.flex}>
         {text}
       </ThemedText>

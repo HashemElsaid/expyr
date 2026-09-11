@@ -1,8 +1,8 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -31,7 +31,7 @@ export default function AboutScreen() {
 
         {renewalsRecorded > 0 && (
           <View style={styles.row}>
-            <MaterialCommunityIcons name="history" size={20} color={theme.textSecondary} />
+            <Icon name="clock.arrow.circlepath" size={20} color={theme.textSecondary} />
             <View style={styles.rowBody}>
               <ThemedText type="headline">
                 {renewalsRecorded} renewal{renewalsRecorded === 1 ? '' : 's'} behind you
@@ -76,14 +76,14 @@ function LinkRow({
     <Pressable onPress={onPress} accessibilityRole="button">
       {({ pressed }) => (
         <View style={[styles.row, pressed && styles.dim]}>
-          <MaterialCommunityIcons name={icon as never} size={20} color={theme.textSecondary} />
+          <Icon name={icon as never} size={20} color={theme.textSecondary} />
           <View style={styles.rowBody}>
             <ThemedText type="headline">{title}</ThemedText>
             <ThemedText type="footnote" themeColor="textTertiary">
               {subtitle}
             </ThemedText>
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textTertiary} />
+          <Icon name="chevron.right" size={20} color={theme.textTertiary} />
         </View>
       )}
     </Pressable>

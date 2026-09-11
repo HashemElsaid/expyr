@@ -295,12 +295,12 @@ category; guarded to passports and Emirates IDs; every scanned field is
 tappable on the document screen. Household members needed nothing, since no
 scan creates a person and renaming already rewrites their documents.
 
-**Not yet pushed or deployed.** The service change reaches 1.0 users the
-moment it is on origin: scans go from $0.003 to $0.015 and a subscriptions
-screenshot on the document path stops returning a wrong item and starts
-pointing at the importer. Both are improvements, and 1.0's field layout is
-tested unchanged, but it is a live change on a shipped app and the account
-holder decides when.
+**Pushed and deployed 11 September**, on Hashem's say-so, because the
+service change reaches 1.0 users the moment it is on origin: scans go from
+$0.003 to $0.015 and a subscriptions screenshot on the document path stops
+returning a wrong item and starts pointing at the importer. Render restarted
+on the push and `/health` answered ok within a minute, with the API key,
+Apple key and both disk stores reported present.
 
 Before and after, run the three actual images through: the passport that
 became a visa, the subscriptions screenshot, and the misspelled passport.

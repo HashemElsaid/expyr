@@ -124,6 +124,29 @@ hand."
 
 ---
 
+## Giving someone Pro without charging them
+
+Three ways exist, and only two of them work on the shipped app.
+
+**Promo codes are the answer for a friend, a reviewer or a journalist.** App
+Store Connect issues codes for an in-app purchase, up to 100 per product every
+six months, each valid for 28 days after it is made. The person redeems it in
+the App Store app under their profile, Redeem Gift Card or Code, then opens
+Expyr and taps Restore Purchases if Pro has not appeared on its own. Apple
+records it as a real transaction at zero proceeds, so it behaves exactly like a
+purchase, including the 1.0.1 credit grant keyed on the transaction id. Costs
+nothing and needs nothing installed beyond the real app.
+
+**TestFlight is the answer for testing the next build.** A tester installed
+through TestFlight gets every in-app purchase free, because TestFlight runs
+against the sandbox. Right for someone hunting bugs in 1.0.1 before it ships,
+wrong for someone who just wants to use the app, because the TestFlight copy
+expires after 90 days and is not the App Store copy.
+
+**The sandbox account does not help here.** It only takes effect in TestFlight
+and development builds. On the App Store build, purchases are real whatever
+account is in Settings.
+
 ## Where things go
 
 - **A bug, a crash, a wrong reminder** goes to the coding session, with the

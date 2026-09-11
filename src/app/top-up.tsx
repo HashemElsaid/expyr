@@ -133,60 +133,33 @@ export default function TopUpScreen() {
           <ThemedText type="largeTitle">Top Up</ThemedText>
 
           {/*
-            * The balance is a row's value now, where iOS puts the answer to a
-            * row. It was a 52 point numeral with the word Credits above it in
-            * grey, which is a size from no scale and a label doing the work a
-            * row title does.
+            * One group, and everything else is a footnote under it.
+            *
+            * The balance had a row, the two rates had a group of their own,
+            * and the three packs were a third group of the same shape, so
+            * nothing on the screen said which rows were a choice. Two of those
+            * three were facts, and facts do not belong in a group that looks
+            * like a set of options, or in a card above them where they are
+            * read first.
+            *
+            * So the header says what to do, the circles say these are the
+            * options, and what a person needs to know to choose between them
+            * sits underneath in one sentence.
             */}
-          <ListSection>
-            <ListRow
-              symbol="sparkles"
-              tint="purple"
-              title="Expyr AI credits"
-              value={formatCredits(balance)}
-            />
-          </ListSection>
-
-          <ListSection title="What things cost">
-            <ListRow
-              symbol="doc.text.magnifyingglass"
-              tint="blue"
-              title="Read a page"
-              value={`${CREDITS_PER_PAGE} credits`}
-            />
-            <ListRow
-              symbol="questionmark.bubble"
-              tint="blue"
-              title="Ask a question"
-              value={`${CREDITS_PER_QUESTION} credits`}
-            />
-          </ListSection>
-
-          {/*
-            * A checklist, which is how iOS offers a choice of one from three:
-            * the tick on the right of the chosen row, the price as its value.
-            * They were bordered cards with a radio glyph, which is a control
-            * drawn by hand where the platform has one.
-            */}
-          <ListSection title="Packs">
+          <ListSection
+            title="Choose a pack"
+            footer={`You have ${formatCredits(balance)}. ${CREDITS_PER_PAGE} credits reads a page, ${CREDITS_PER_QUESTION} answers a question.`}>
             {PACKS.map((pack) => (
               <ListRow
                 key={pack.id}
-                symbol="plus.circle.fill"
-                tint={pack.id === chosen.id ? 'purple' : 'gray'}
                 title={`${pack.credits.toLocaleString('en-US')} credits`}
                 subtitle={`${pagesIn(pack).toLocaleString('en-US')} pages`}
                 value={priceFor(pack)}
-                chevron={false}
+                selected={pack.id === chosen.id}
                 onPress={() => {
                   tapFeedback();
                   setChosen(pack);
                 }}
-                control={
-                  pack.id === chosen.id ? (
-                    <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
-                  ) : undefined
-                }
               />
             ))}
           </ListSection>
@@ -220,7 +193,9 @@ export default function TopUpScreen() {
                   (pressed || busy) && styles.dim,
                 ]}>
                 <ThemedText type="headline" style={{ color: theme.accentContrast }}>
-                  {busy ? 'One moment' : `Buy for ${priceFor(chosen)}`}
+                  {busy
+                    ? 'One moment'
+                    : `Buy ${chosen.credits.toLocaleString('en-US')} credits for ${priceFor(chosen)}`}
                 </ThemedText>
               </View>
             )}

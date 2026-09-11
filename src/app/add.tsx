@@ -933,12 +933,12 @@ export default function AddDocumentScreen() {
               <ListRow
                 key={`${row.title}-${index}`}
                 symbol={iconFor(row.typeId)}
-                tint={row.keep ? undefined : 'gray'}
+                tint={tintFor(row.typeId)}
                 title={row.title}
                 subtitle={`${labelFor(getDocumentType(row.typeId), settings.country)}${
                   row.item.expiryDate ? `, ${longDate(row.item.expiryDate)}` : ''
                 }`}
-                chevron={false}
+                selected={row.keep}
                 onPress={() => {
                   tapFeedback();
                   setReview(
@@ -948,11 +948,6 @@ export default function AddDocumentScreen() {
                       ) ?? null
                   );
                 }}
-                control={
-                  row.keep ? (
-                    <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
-                  ) : undefined
-                }
               />
             ))}
           </ListSection>
@@ -996,6 +991,7 @@ export default function AddDocumentScreen() {
                 symbol={iconFor(t.id)}
                 tint={tintFor(t.id)}
                 title={labelFor(t, settings.country)}
+                selected={t.id === typeId}
                 onPress={() => pickType(t)}
               />
             ))}
@@ -1014,16 +1010,9 @@ export default function AddDocumentScreen() {
             {LEAD_DAY_OPTIONS.map((day) => (
               <ListRow
                 key={day}
-                symbol="bell.fill"
-                tint={leadDays.includes(day) ? 'red' : 'gray'}
                 title={leadLabel(day)}
-                chevron={false}
+                selected={leadDays.includes(day)}
                 onPress={() => toggleLeadDay(day)}
-                control={
-                  leadDays.includes(day) ? (
-                    <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
-                  ) : undefined
-                }
               />
             ))}
           </ListSection>
@@ -1165,38 +1154,33 @@ export default function AddDocumentScreen() {
           */}
         <ListSection title="Whose is it">
           <ListRow
-            symbol="person.fill"
-            tint={!owner ? 'green' : 'gray'}
             title={settings.ownName || 'Mine'}
-            chevron={false}
+            selected={!owner && !namingOwner}
             onPress={() => {
               setOwner('');
               setNamingOwner(false);
             }}
-            control={
-              !owner ? (
-                <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
-              ) : undefined
-            }
           />
           {knownOwners.map((name) => (
             <ListRow
               key={name}
-              symbol="person.fill"
-              tint={owner === name ? 'green' : 'gray'}
               title={name}
-              chevron={false}
+              selected={owner === name}
               onPress={() => {
                 setOwner(name);
                 setNamingOwner(false);
               }}
-              control={
-                owner === name ? (
-                  <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
-                ) : undefined
-              }
             />
           ))}
+        </ListSection>
+
+        {/*
+          * Adding somebody is an action, not one of the options, so it is its
+          * own group. In the same group it would sit among rows with selection
+          * circles and have none, which is a row that looks like neither of
+          * the two things it could be.
+          */}
+        <ListSection>
           {namingOwner ? (
             <ListInput
               symbol="person.badge.plus"

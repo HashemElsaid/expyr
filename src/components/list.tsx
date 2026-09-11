@@ -109,9 +109,11 @@ export function ListRow({
   control,
   onPress,
   chevron = true,
+  selected,
   destructive,
 }: {
-  symbol: SFSymbol;
+  /** Omitted where the row needs no mark of its own, such as a plain option. */
+  symbol?: SFSymbol;
   /** The tile's colour. Grey where the row is about the phone rather than you. */
   tint?: SystemColor;
   title: string;
@@ -124,6 +126,14 @@ export function ListRow({
   /** Given where the row does something, or goes somewhere. */
   onPress?: () => void;
   /**
+   * Given, true or false, where the row is one of several options.
+   *
+   * Draws the circle, and takes the chevron away: a row that is chosen does
+   * not also go somewhere. Undefined means this is not a choice at all, which
+   * is most rows.
+   */
+  selected?: boolean;
+  /**
    * False for a row that acts rather than navigates, which also puts the
    * title in the tint colour. Settings draws Sign Out this way.
    */
@@ -133,14 +143,25 @@ export function ListRow({
 }) {
   const theme = useTheme();
   const system = useSystemColors();
-  /** A row that does something rather than going somewhere. */
-  const acts = onPress !== undefined && !chevron;
+  const chooses = selected !== undefined;
+  /** A row that does something rather than going somewhere or being picked. */
+  const acts = onPress !== undefined && !chevron && !chooses;
 
   const body = (
     <View style={styles.row}>
-      <View style={[styles.tile, { backgroundColor: system[tint ?? 'gray'] }]}>
-        <Icon name={symbol} size={15} weight="semibold" color="#FFFFFF" />
-      </View>
+      {chooses && (
+        <Icon
+          name={selected ? 'checkmark.circle.fill' : 'circle'}
+          size={22}
+          color={selected ? theme.accent : theme.textTertiary}
+        />
+      )}
+
+      {symbol && (
+        <View style={[styles.tile, { backgroundColor: system[tint ?? 'gray'] }]}>
+          <Icon name={symbol} size={15} weight="semibold" color="#FFFFFF" />
+        </View>
+      )}
 
       <View style={styles.label}>
         <ThemedText
@@ -164,7 +185,7 @@ export function ListRow({
 
       {control}
 
-      {onPress && chevron && (
+      {onPress && chevron && !chooses && (
         <Icon name="chevron.right" size={14} weight="semibold" color={theme.textTertiary} />
       )}
     </View>

@@ -318,10 +318,24 @@ They are on Hashem's phone and stay out of the repo.
     distinguishing detail when there is one: "Egyptian passport", "Toyota
     Corolla Mulkiya", "Marina Heights tenancy", "Driving licence", "Netflix".
     Never a date and never a person's name, because the name already lives
-    in Whose is it and two copies drift. Category word first, so a list
-    scans by kind. The extraction prompt writes titles by this rule, the
-    placeholder on the add screen shows it, and every list row shows the
-    owner beside the title so nothing is lost by taking the name out.
+    in Whose is it and two copies drift. Word order is the way a person
+    speaks it, kind last: "Egyptian passport", not "Passport, Egyptian"; the
+    list already scans by kind because the category is printed beside any
+    title that does not contain it. The extraction prompt writes titles by
+    this rule, the placeholder on the add screen shows it, and every list
+    row shows the owner beside the title so nothing is lost by taking the
+    name out.
+
+    **On main as e9bea67, deployed 11 September.** Verified against the real
+    model before deploying: "Toyota Corolla car insurance", "Gold Gym Dubai
+    membership", "Samsung TV warranty", with the insured person's name in the
+    fields rather than the title. The rows already showed the owner; what was
+    actually wrong was a document filed under your own name printing your
+    name beside it, and one `isMine` rule now serves the row and the
+    household page. The title field stays prefilled with the category name,
+    so the placeholder only appears to somebody who clears it; stopping the
+    prefill was offered and declined, because the category name is a correct
+    title under this rule for most items.
 
 ### Not code, but goes on the same version
 

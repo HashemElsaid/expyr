@@ -1,12 +1,13 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Linking, Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ListRow, ListSection } from '@/components/list';
+import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { canSignIn, deleteAccount, signIn } from '@/lib/identity';
 import { useTheme } from '@/hooks/use-theme';
 import { authenticate, checkBiometricSupport } from '@/lib/biometrics';
@@ -15,14 +16,12 @@ import {
   countScheduled,
   ensureNotificationPermission,
   getNotificationPermission,
-  REMINDER_TIME,
   sendTestReminder,
 } from '@/lib/notifications';
-import { formatTime } from '@/lib/dates';
 import { countryLabel, type Country } from '@/data/countries';
 import { emirateLabel, type Emirate } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
-import { EMPTY_LEDGER, formatCredits, pagesLeft, topUp } from '@/domain/credits';
+import { EMPTY_LEDGER, formatCredits, topUp } from '@/domain/credits';
 import { WELCOME_CREDITS, type ThemePreference, useSettings } from '@/store/settings';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -110,18 +109,22 @@ export default function SettingsScreen() {
     countScheduled().then(setBookedWithIOS).catch(() => {});
   }, [notificationsOn, documents.length, reminders.booked]);
 
-  const reminderAt = formatTime(REMINDER_TIME.hour, REMINDER_TIME.minute);
-
-  /*
-   * Honest about the ceiling. iOS holds 64 pending reminders for an app and
-   * silently drops the rest, so Expyr books the soonest and says plainly when
-   * there were more — rather than claiming everything is covered when the far
-   * end of the list is not booked yet.
+  /**
+   * Honest about the ceiling, in figures rather than a paragraph.
+   *
+   * iOS holds 64 pending notifications per app and silently drops the rest, so
+   * Expyr books the soonest and has to say when there were more, or it is
+   * claiming cover it has not booked. That used to be two sentences in a grey
+   * subtitle, ending in a full stop, explaining the platform's limits to
+   * somebody who only wanted to know whether reminders were on.
+   *
+   * "25 of 40 scheduled" is the same fact. The group's footer explains it once,
+   * and only in the case where it is true.
    */
-  const reminderSummary =
-    reminders.wanted > reminders.booked
-      ? `${bookedWithIOS} booked with iOS, each at ${reminderAt}. The furthest ${reminders.wanted - reminders.booked} are booked as these arrive, because iOS holds a limited number at once.`
-      : `${bookedWithIOS} booked with iOS, each at ${reminderAt}.`;
+  const shortOfCover = reminders.wanted > reminders.booked;
+  const scheduled = shortOfCover
+    ? `${bookedWithIOS} of ${reminders.wanted} scheduled`
+    : `${bookedWithIOS} scheduled`;
 
   useEffect(() => {
     checkBiometricSupport().then(setBiometrics).catch(() => {});
@@ -171,41 +174,38 @@ export default function SettingsScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <ThemedText type="largeTitle">Settings</ThemedText>
-          </View>
+          <ThemedText type="largeTitle" style={styles.header}>
+            Settings
+          </ThemedText>
 
-          <Section title="Plan">
-            {/*
-             * No running totals here. Counting items, scans and readings at
-             * someone who is not thinking about any of them is noise, and the
-             * comparison behind Unlock says it better anyway.
-             */}
-            <Row
-              icon={settings.premium ? 'star-circle-outline' : 'archive-outline'}
+          <ListSection title="Plan">
+            <ListRow
+              symbol={settings.premium ? 'checkmark.seal.fill' : 'square.stack'}
+              tint={settings.premium ? 'green' : 'gray'}
               title={settings.premium ? 'Expyr Pro' : 'Free plan'}
-              action={
-                settings.premium
-                  ? undefined
-                  : { label: 'Unlock', onPress: () => router.push('/paywall') }
-              }
+              /*
+               * A chevron rather than the word Unlock. Unlock was a mint pill,
+               * and as the row's value it would be grey text reading like a
+               * state: "Free plan … Unlock" says the plan is called Unlock.
+               * The row goes to the paywall, which is where the unlocking is,
+               * and Settings is full of rows that state a plan and open it.
+               */
+              {...(settings.premium ? {} : { onPress: () => router.push('/paywall') })}
             />
 
             {/*
-              * Shown here and nowhere else in normal use.
-              *
-              * Reading a contract and answering questions about it costs real
-              * money every time, so the balance is the person's to see. Putting
-              * it in Settings rather than over the feature is deliberate: a
-              * number that follows you around while you work is a meter, and a
-              * meter makes people ask worse questions. This is where somebody
-              * comes when they want to know.
+              * The balance is the row's value, which is where Settings puts
+              * the answer to a row. It used to be a subtitle reading "0
+              * credits · 0 pages", two figures of the same fact joined by a
+              * middot, under a mint pill that said Top up. The row goes to
+              * Top up now, like every other row that goes somewhere.
               */}
-            <Row
-              icon="creation-outline"
+            <ListRow
+              symbol="sparkles"
+              tint="purple"
               title="Expyr AI credits"
-              subtitle={`${formatCredits(settings.credits.balance)} · ${pagesLeft(settings.credits)} pages`}
-              action={{ label: 'Top up', onPress: () => router.push('/top-up') }}
+              value={formatCredits(settings.credits.balance)}
+              onPress={() => router.push('/top-up')}
             />
 
             {/*
@@ -215,180 +215,191 @@ export default function SettingsScreen() {
               * wanted an account for its own sake.
               */}
             {canProtect && settings.account === null && settings.credits.balance > 0 && (
-              <Row
-                icon="account-check-outline"
+              <ListRow
+                symbol="person.badge.key"
+                tint="blue"
                 title="Protect my credits"
-                subtitle="Sign in with Apple so they follow you to a new phone"
-                action={{ label: 'Sign in', onPress: protectCredits }}
+                chevron={false}
+                onPress={protectCredits}
               />
             )}
 
             {settings.account !== null && (
-              <Row
-                icon="account-check-outline"
-                title="Credits protected"
-                subtitle="They follow your Apple Account to a new phone"
+              <ListRow
+                symbol="person.badge.key"
+                tint="blue"
+                title="Delete my account"
+                chevron={false}
                 destructive
-                action={{ label: 'Delete', onPress: confirmDeleteAccount }}
+                onPress={confirmDeleteAccount}
               />
             )}
-          </Section>
+          </ListSection>
 
           {/*
            * Answered once during onboarding and rarely thought about again, so
            * it states the answer and keeps the pickers behind it.
            */}
-          <Section title="Where you live">
-            <LinkRow
-              icon="map-marker-outline"
+          <ListSection title="Where you live">
+            <ListRow
+              symbol="mappin.and.ellipse"
+              tint="orange"
               title={whereYouLive(settings)}
               onPress={() => router.push('/location')}
             />
-          </Section>
+          </ListSection>
 
           {/*
-           * One row, because the answer to "are my reminders working?" is a
-           * single fact, and the way to prove it is a single button.
+           * Two rows, because there are two things here and they are different
+           * kinds of thing: a state, and an action. They used to be one row
+           * with a mint Test pill in it and a subtitle reading "25 booked with
+           * iOS, each at 9am.", which is a sentence about plumbing.
            */}
-          <Section title="Reminders">
-            <Row
-              icon={notificationsOn ? 'bell-outline' : 'bell-off-outline'}
+          <ListSection
+            title="Reminders"
+            footer={
+              notificationsOn === false
+                ? 'Expyr cannot warn you about anything until these are allowed'
+                : testState === 'sent'
+                  ? 'Two sent, a few seconds apart. Lock your phone to see them properly'
+                  : shortOfCover
+                    ? 'iOS holds a limited number at a time, so the furthest are booked as the nearer ones arrive'
+                    : undefined
+            }>
+            <ListRow
+              symbol={notificationsOn ? 'bell.badge.fill' : 'bell.slash.fill'}
+              tint={notificationsOn ? 'red' : 'gray'}
               title={notificationsOn ? 'Notifications allowed' : 'Notifications are off'}
-              subtitle={
-                notificationsOn === null
-                  ? 'Checking…'
-                  : !notificationsOn
-                    ? 'Expyr cannot warn you about anything until these are allowed.'
-                    : testState === 'sent'
-                      ? 'Two sent, a few seconds apart: an ordinary one and a subscription. Lock your phone to see them properly, and hold one to see its buttons.'
-                      : reminderSummary
+              value={
+                notificationsOn === null ? undefined : notificationsOn ? scheduled : undefined
               }
-              action={
-                notificationsOn
-                  ? {
-                      label: testState === 'sent' ? 'Sent' : 'Test',
-                      onPress: async () => {
-                        const result = await sendTestReminder();
-                        setTestState(result === 'sent' ? 'sent' : 'idle');
-                        if (result === 'denied') {
-                          Alert.alert('Reminders are off', 'Allow notifications first.');
-                        }
-                      },
-                    }
-                  : { label: 'Turn on', onPress: enableNotifications }
-              }
+              {...(notificationsOn === false
+                ? { chevron: false, onPress: enableNotifications, title: 'Turn on notifications' }
+                : {})}
             />
-          </Section>
 
-          <Section title="Appearance">
-            <View style={styles.chipRow}>
-              {THEME_OPTIONS.map((option) => {
-                const on = settings.themePreference === option.value;
-                return (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => update({ themePreference: option.value })}>
-                    <View
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: on ? theme.accent : 'transparent',
-                          borderColor: on ? theme.accent : theme.border,
-                        },
-                      ]}>
-                      <ThemedText
-                        type="footnoteStrong"
-                        style={on ? { color: theme.accentContrast } : undefined}>
-                        {option.label}
-                      </ThemedText>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Section>
+            {notificationsOn === true && (
+              <ListRow
+                symbol="paperplane.fill"
+                tint="blue"
+                title={testState === 'sent' ? 'Test reminder sent' : 'Send a test reminder'}
+                chevron={false}
+                onPress={async () => {
+                  const result = await sendTestReminder();
+                  setTestState(result === 'sent' ? 'sent' : 'idle');
+                  if (result === 'denied') {
+                    Alert.alert('Reminders are off', 'Allow notifications first.');
+                  }
+                }}
+              />
+            )}
+          </ListSection>
 
-          <Section title="Security">
-            <View style={styles.row}>
-              <MaterialCommunityIcons name="lock-outline" size={20} color={theme.textSecondary} />
-              <View style={styles.rowBody}>
-                <ThemedText type="headline">Require {biometrics.label}</ThemedText>
-                {/* Only worth explaining when the switch will not move. */}
-                {!biometrics.available && (
-                  <ThemedText type="footnote" themeColor="textTertiary">
-                    Set up Face ID, Touch ID or a passcode on this phone to use this.
-                  </ThemedText>
-                )}
-              </View>
-              <Switch
-                value={settings.lockEnabled}
-                onValueChange={toggleLock}
-                disabled={!biometrics.available && !settings.lockEnabled}
-                trackColor={{ true: theme.accent, false: theme.backgroundSelected }}
+          {/*
+           * A segmented control, which is what iOS uses for three exclusive
+           * choices. Three mint pills were a set of buttons that happened to
+           * be exclusive, which is a different thing and read as one.
+           */}
+          <ListSection title="Appearance">
+            <View style={styles.control}>
+              <Segmented
+                value={settings.themePreference}
+                onChange={(next) => update({ themePreference: next })}
+                segments={THEME_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
               />
             </View>
-          </Section>
+          </ListSection>
+
+          <ListSection
+            title="Security"
+            footer={
+              biometrics.available
+                ? undefined
+                : `Set up ${biometrics.label} or a passcode on this phone to use this`
+            }>
+            <ListRow
+              symbol="lock.fill"
+              tint="blue"
+              title={`Require ${biometrics.label}`}
+              control={
+                <Switch
+                  value={settings.lockEnabled}
+                  onValueChange={toggleLock}
+                  disabled={!biometrics.available && !settings.lockEnabled}
+                  trackColor={{ true: theme.accent, false: theme.backgroundSelected }}
+                />
+              }
+            />
+          </ListSection>
 
           {/*
            * Backing up, exporting and deleting are done once or in a hurry,
            * never while browsing. The same is true of the version and the
-           * legal pages. Both move behind a row.
+           * legal pages. Both live behind a row.
            */}
-          <Section title="Your data">
-            <LinkRow
-              icon="cellphone-check"
+          <ListSection>
+            <ListRow
+              symbol="iphone"
+              tint="gray"
               title="Saved on this iPhone"
               onPress={() => router.push('/data')}
             />
-          </Section>
-
-          <Section title="About">
-            <LinkRow icon="information-outline" title="Expyr" onPress={() => router.push('/about')} />
-          </Section>
+            <ListRow
+              symbol="info.circle.fill"
+              tint="gray"
+              title="About Expyr"
+              onPress={() => router.push('/about')}
+            />
+          </ListSection>
 
           {/*
-           * Development builds only — __DEV__ is false in anything shipped, so
-           * this section does not exist in the App Store build. It is here
-           * because testing the free limits uses them up, and a person building
-           * the app should not have to delete it and start again to get another
-           * ten scans.
+           * Development builds only: __DEV__ is false in anything shipped, so
+           * this group does not exist in the App Store build. It is here
+           * because testing the free limits uses them up, and a person
+           * building the app should not have to delete it and start again to
+           * get another ten scans.
            */}
           {__DEV__ && (
-            <Section title="Developer">
-              <Row
-                icon="refresh"
+            <ListSection title="Developer">
+              <ListRow
+                symbol="arrow.counterclockwise"
+                tint="indigo"
                 title="Reset the free allowances"
-                subtitle={`${settings.scansUsed} scans used · ${formatCredits(settings.credits.balance)}`}
-                action={{
-                  label: 'Reset',
-                  onPress: () => {
-                    /*
-                     * Credits go back to the welcome balance rather than to
-                     * zero: a developer resetting the allowances wants a fresh
-                     * install, and a fresh install has thirty pages.
-                     */
-                    update({
-                      scansUsed: 0,
-                      readsUsed: 0,
-                      credits: topUp(EMPTY_LEDGER, WELCOME_CREDITS, 'Welcome credits', new Date(), 'reset'),
-                    });
-                    successFeedback();
-                  },
+                chevron={false}
+                onPress={() => {
+                  /*
+                   * Credits go back to the welcome balance rather than to
+                   * zero: a developer resetting the allowances wants a fresh
+                   * install, and a fresh install has thirty pages.
+                   */
+                  update({
+                    scansUsed: 0,
+                    readsUsed: 0,
+                    credits: topUp(
+                      EMPTY_LEDGER,
+                      WELCOME_CREDITS,
+                      'Welcome credits',
+                      new Date(),
+                      'reset'
+                    ),
+                  });
+                  successFeedback();
                 }}
               />
-              <Row
-                icon={settings.premium ? 'lock-open-variant-outline' : 'lock-outline'}
-                title={settings.premium ? 'Pro is on' : 'Pro is off'}
-                subtitle="Flips the entitlement locally, to see both sides of the paywall."
-                action={{
-                  label: settings.premium ? 'Turn off' : 'Turn on',
-                  onPress: () => {
-                    update({ premium: !settings.premium });
-                    successFeedback();
-                  },
+              <ListRow
+                symbol="lock.open.fill"
+                tint="indigo"
+                title={settings.premium ? 'Turn Pro off' : 'Turn Pro on'}
+                chevron={false}
+                onPress={() => {
+                  update({ premium: !settings.premium });
+                  successFeedback();
                 }}
               />
-            </Section>
+            </ListSection>
           )}
         </ScrollView>
       </SafeAreaView>
@@ -396,118 +407,11 @@ export default function SettingsScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  const theme = useTheme();
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <ThemedText type="footnote" themeColor="textTertiary">
-          {title}
-        </ThemedText>
-        <View style={[styles.rule, { backgroundColor: theme.border }]} />
-      </View>
-      <View style={styles.sectionBody}>{children}</View>
-    </View>
-  );
-}
-
-/** A row that only says where it goes: title, chevron, nothing else. */
-function LinkRow({ icon, title, onPress }: { icon: string; title: string; onPress: () => void }) {
-  const theme = useTheme();
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      {({ pressed }) => (
-        <View style={[styles.row, pressed && styles.pressed]}>
-          <MaterialCommunityIcons name={icon as never} size={20} color={theme.textSecondary} />
-          <ThemedText type="headline" style={styles.flexRow}>
-            {title}
-          </ThemedText>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textTertiary} />
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-function Row({
-  icon,
-  title,
-  subtitle,
-  action,
-  destructive,
-}: {
-  icon: string;
-  title: string;
-  /** Omitted when the title says everything, so the row stays one line. */
-  subtitle?: string;
-  action?: { label: string; onPress: () => void };
-  destructive?: boolean;
-}) {
-  const theme = useTheme();
-  const actionColor = destructive ? theme.urgentStrong : theme.accent;
-  return (
-    <View style={styles.row}>
-      <MaterialCommunityIcons
-        name={icon as never}
-        size={20}
-        color={destructive ? theme.urgentStrong : theme.textSecondary}
-      />
-      <View style={styles.rowBody}>
-        <ThemedText type="headline">{title}</ThemedText>
-        {subtitle !== undefined && (
-          <ThemedText type="footnote" themeColor="textTertiary">
-            {subtitle}
-          </ThemedText>
-        )}
-      </View>
-      {action && (
-        <Pressable onPress={action.onPress}>
-          {({ pressed }) => (
-            <View
-              style={[
-                styles.rowAction,
-                destructive
-                  ? { borderWidth: StyleSheet.hairlineWidth, borderColor: actionColor }
-                  : { backgroundColor: actionColor },
-                pressed && styles.pressed,
-              ]}>
-              <ThemedText
-                type="footnoteStrong"
-                style={{ color: destructive ? actionColor : theme.accentContrast }}>
-                {action.label}
-              </ThemedText>
-            </View>
-          )}
-        </Pressable>
-      )}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: 'row', justifyContent: 'center' },
   safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%' },
-  content: { paddingHorizontal: Spacing.four, paddingBottom: Spacing.four },
-  header: { paddingTop: Spacing.three, paddingBottom: 0 },
-  section: { gap: Spacing.two, paddingTop: Spacing.three },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  rule: { flex: 1, height: StyleSheet.hairlineWidth },
-  sectionBody: { gap: Spacing.three },
-  row: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
-  flexRow: { flex: 1 },
-  rowBody: { flex: 1, gap: 3 },
-  rowAction: {
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  field: { gap: Spacing.two },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  chip: {
-    borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  pressed: { opacity: 0.7 },
+  content: { paddingHorizontal: Spacing.three, paddingBottom: Spacing.six },
+  header: { paddingTop: Spacing.three },
+  /** A control rather than a row, so it gets the padding a row would have. */
+  control: { padding: Spacing.three },
 });

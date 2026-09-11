@@ -243,6 +243,22 @@ export const ROUTES: Record<string, Route> = {
     handle: async () =>
       json({
         ok: true,
+        /**
+         * Which commit is answering.
+         *
+         * Added after the third time two people asked "is the new code live?"
+         * and nothing here could answer. The rest of this object describes
+         * configuration, which is identical either side of a deploy, so the
+         * only way to tell an old instance from a new one was to spend a model
+         * call on a real scan and study the wording of the reply. That is not
+         * a version check, it is a guess with a bill attached.
+         *
+         * Render sets this in the environment for any service deployed from a
+         * repository. Unknown locally, and unknown rather than invented if the
+         * platform ever stops setting it or sets it empty, because a version
+         * string that might be wrong is worse than one saying it cannot tell.
+         */
+        commit: process.env.RENDER_GIT_COMMIT?.slice(0, 7) || 'unknown',
         apiKeyConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
         registrationConfigured: canIssueTokens,
         /*

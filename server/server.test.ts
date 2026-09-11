@@ -50,6 +50,9 @@ before(async () => {
       EXPYR_INSTALL_SECRET: 'a-secret-long-enough-for-tests',
       // No ANTHROPIC_API_KEY on purpose: nothing here should reach the model.
       ANTHROPIC_API_KEY: '',
+      // What Render sets on a real deploy, so /health can be asked which
+      // commit is answering rather than the question being unanswerable.
+      RENDER_GIT_COMMIT: 'a507bae0000000000000000000000000',
     },
     stdio: 'ignore',
   });
@@ -81,6 +84,22 @@ describe('starting up', () => {
     // It reports what it is configured for rather than pretending.
     assert.equal(body.apiKeyConfigured, false);
     assert.equal(body.registrationConfigured, true);
+  });
+
+  /*
+   * The one field that answers "is the new code live?", which nothing here
+   * could answer before. Everything else on /health describes configuration,
+   * which is identical either side of a deploy, so telling an old instance
+   * from a new one meant spending a model call on a real scan and reading the
+   * wording of the reply.
+   *
+   * Asserted on a service in another process, which is the only honest way to
+   * test it: setting the variable in the test process proves nothing about the
+   * one answering.
+   */
+  it('says which commit is answering', async () => {
+    const body = (await (await get('/health')).json()) as Record<string, unknown>;
+    assert.equal(body.commit, 'a507bae');
   });
 
   it('puts a request id on every answer', async () => {
@@ -355,6 +374,9 @@ describe('a credits directory that cannot be written to', () => {
          * test passed while proving nothing.
          */
         EXPYR_CREDITS_DIR: join(blocker, 'credits'),
+        // Empty, as a deploy outside Render leaves it. It must read as unknown
+        // rather than as an empty version, which would look like an answer.
+        RENDER_GIT_COMMIT: '',
       },
       stdio: 'ignore',
     });
@@ -376,6 +398,12 @@ describe('a credits directory that cannot be written to', () => {
 
   it('still starts, and still serves everything that has nothing to do with selling', async () => {
     assert.equal((await fetch(`${BROKEN}/health`)).status, 200);
+  });
+
+  /* Booted with an empty one, which must read as unknown and not as blank. */
+  it('admits it cannot tell which commit it is', async () => {
+    const body = (await (await fetch(`${BROKEN}/health`)).json()) as Record<string, unknown>;
+    assert.equal(body.commit, 'unknown');
   });
 
   it('refuses to sell rather than selling into a hole', async () => {

@@ -128,14 +128,20 @@ hand."
 
 Three ways exist, and only two of them work on the shipped app.
 
-**Promo codes are the answer for a friend, a reviewer or a journalist.** App
-Store Connect issues codes for an in-app purchase, up to 100 per product every
-six months, each valid for 28 days after it is made. The person redeems it in
-the App Store app under their profile, Redeem Gift Card or Code, then opens
-Expyr and taps Restore Purchases if Pro has not appeared on its own. Apple
-records it as a real transaction at zero proceeds, so it behaves exactly like a
-purchase, including the 1.0.1 credit grant keyed on the transaction id. Costs
-nothing and needs nothing installed beyond the real app.
+**An offer code on the product is the answer for a friend, a reviewer or a
+journalist.** Promo codes for in-app purchases were retired by Apple on 26
+March 2026; the Promo Codes page now only issues codes for the app itself,
+which is free anyway. Offer codes replaced them and live on the product: In-App
+Purchases, Expyr Pro, scroll to Offer Codes, Create Offer. Eligibility "never
+purchased", every territory, **Free Offer**, then a **custom code** with a
+small redemption limit rather than a one-time-use batch, which starts at 500.
+The person opens the redemption link, which is
+`https://apps.apple.com/redeem?ctx=offercodes&id=6809437011&code=THECODE`,
+confirms in the App Store, then opens Expyr and taps Restore Purchases if Pro
+has not appeared on its own. Apple records a real transaction at zero proceeds,
+so it behaves exactly like a purchase, including the 1.0.1 credit grant keyed
+on the transaction id. Limits: ten active offers per app, one redemption of a
+given offer per customer.
 
 **TestFlight is the answer for testing the next build.** A tester installed
 through TestFlight gets every in-app purchase free, because TestFlight runs

@@ -484,13 +484,24 @@ test('deleting one account leaves everybody else alone', async () => {
  * pages per reinstall for anybody who noticed. Granted here they are given
  * once, against an install the service issued.
  */
-test('a new account is opened with the welcome credits, once', async () => {
+test('a new account opens with the welcome credits, whatever they are', async () => {
   await onDisk(async (store) => {
     assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS);
+  });
+});
 
-    assert.equal(await spend(store, 'install-1', 100), WELCOME_CREDITS - 100);
-    assert.equal(await spend(store, 'install-1', 100), WELCOME_CREDITS - 200);
-    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS - 200);
+/*
+ * Spending, on a balance that was bought. Written against the welcome credits
+ * until Expyr AI became a Pro feature and those went to zero; the grant is the
+ * same machinery either way, and buying is now the only way to have any.
+ */
+test('spending comes off the balance, once each time', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', 'txn_1', 1500);
+
+    assert.equal(await spend(store, 'install-1', 100), WELCOME_CREDITS + 1400);
+    assert.equal(await spend(store, 'install-1', 100), WELCOME_CREDITS + 1300);
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS + 1300);
   });
 });
 
@@ -501,7 +512,8 @@ test('a new account is opened with the welcome credits, once', async () => {
  */
 test('spending everything does not earn another welcome', async () => {
   await onDisk(async (store) => {
-    await spend(store, 'install-1', WELCOME_CREDITS);
+    await redeem(store, 'install-1', 'txn_1', 500);
+    await spend(store, 'install-1', WELCOME_CREDITS + 500);
     assert.equal(await availableTo(store, 'install-1'), 0);
     await assert.rejects(() => spend(store, 'install-1', 10), InsufficientCredits);
   });
@@ -525,9 +537,10 @@ test('credits bought are spendable on top of the welcome ones', async () => {
 /* The refund path, for a model call that took the money and produced nothing. */
 test('a refund puts back exactly what the charge took', async () => {
   await onDisk(async (store) => {
+    await redeem(store, 'install-1', 'txn_1', 500);
     const after = await spend(store, 'install-1', 40);
     assert.equal(await refund(store, 'install-1', 40), after + 40);
-    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS);
+    assert.equal(await availableTo(store, 'install-1'), WELCOME_CREDITS + 500);
   });
 });
 
@@ -539,7 +552,8 @@ test('a refund puts back exactly what the charge took', async () => {
 test('having been welcomed survives the process that wrote it', async () => {
   const dir = temporaryDir();
   try {
-    await spend(new FileCreditStore(dir), 'install-1', WELCOME_CREDITS);
+    await redeem(new FileCreditStore(dir), 'install-1', 'txn_1', 10);
+    await spend(new FileCreditStore(dir), 'install-1', WELCOME_CREDITS + 10);
 
     const later = new FileCreditStore(dir);
     assert.equal(await availableTo(later, 'install-1'), 0);
@@ -551,6 +565,7 @@ test('having been welcomed survives the process that wrote it', async () => {
 
 test('one install spending does not touch another', async () => {
   await onDisk(async (store) => {
+    await redeem(store, 'install-1', 'txn_1', 500);
     await spend(store, 'install-1', 200);
     assert.equal(await availableTo(store, 'install-2'), WELCOME_CREDITS);
   });

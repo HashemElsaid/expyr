@@ -15,7 +15,12 @@ import { PRO_CREDITS } from '@/lib/credit-packs';
 import { successFeedback } from '@/lib/haptics';
 import { PRO_PRODUCT_ID, plans, purchase, restore, type PurchaseOutcome } from '@/lib/purchases';
 import { useDocuments } from '@/store/documents';
-import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, WELCOME_CREDITS, useSettings } from '@/store/settings';
+import {
+  FREE_DOCUMENT_LIMIT,
+  FREE_SCAN_LIMIT,
+  FREE_SUBSCRIPTION_LIMIT,
+  useSettings,
+} from '@/store/settings';
 
 /** Shorter than the word, and it reads the same in any language. */
 const UNLIMITED = '∞';
@@ -32,13 +37,16 @@ const UNLIMITED = '∞';
  * it, and says it in the one place a person is comparing the two plans.
  */
 const COMPARISON: { label: string; free: string; pro: string }[] = [
-  { label: 'Items you track', free: String(FREE_ITEM_LIMIT), pro: UNLIMITED },
-  { label: 'Photos scanned', free: String(FREE_SCAN_LIMIT), pro: UNLIMITED },
-  {
-    label: 'Expyr AI credits',
-    free: String(WELCOME_CREDITS),
-    pro: String(WELCOME_CREDITS + PRO_CREDITS),
-  },
+  { label: 'Documents', free: String(FREE_DOCUMENT_LIMIT), pro: UNLIMITED },
+  { label: 'Subscriptions', free: String(FREE_SUBSCRIPTION_LIMIT), pro: UNLIMITED },
+  { label: 'Photo scans', free: String(FREE_SCAN_LIMIT), pro: UNLIMITED },
+  /*
+   * The only row whose free side is a word rather than a number, and the only
+   * one whose Pro side is a figure rather than an infinity. Expyr AI is what
+   * Pro is for: it costs real money per use, so it is an allowance rather than
+   * an endless one, and a free account has none of it.
+   */
+  { label: 'Expyr AI', free: 'Off', pro: `${PRO_CREDITS} credits` },
 ];
 
 export default function PaywallScreen() {

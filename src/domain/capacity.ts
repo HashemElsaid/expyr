@@ -27,6 +27,19 @@
  * correctly: `Math.min(chosen, Infinity)` is `chosen`, so nothing downstream
  * needs to know whether a person is on the free plan.
  */
+/**
+ * Which of the two free ceilings a category counts against.
+ *
+ * By category rather than by recurrence, because this is asked before anybody
+ * has said how often the thing recurs: the category list is the first choice
+ * made, and the answer has to be the same when the wall is shown as when the
+ * item is saved. A bill counts as a subscription because the ceiling is about
+ * money leaving on a schedule, which is what a bill is.
+ */
+export function kindOf(typeId: string): 'document' | 'subscription' {
+  return typeId === 'membership' || typeId === 'bill' ? 'subscription' : 'document';
+}
+
 export function roomFor({
   tracked,
   limit,

@@ -30,7 +30,8 @@ import {
 } from '@/data/document-types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { defaultExpiry, startingExpiry } from '@/domain/expiry';
-import { roomFor, splitImport } from '@/domain/capacity';
+import { kindOf, roomFor, splitImport } from '@/domain/capacity';
+import { isSubscription } from '@/domain/documents';
 import { needsTypeConfirmation, titleAfterCorrection } from '@/domain/scan-review';
 import { useTheme } from '@/hooks/use-theme';
 import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from '@/lib/dates';
@@ -48,7 +49,12 @@ import {
   type ScanResult,
 } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
-import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
+import {
+  FREE_DOCUMENT_LIMIT,
+  FREE_SCAN_LIMIT,
+  FREE_SUBSCRIPTION_LIMIT,
+  useSettings,
+} from '@/store/settings';
 import { Attachment, DocumentType, DocumentTypeId, ExtractedField, TrackedDocument } from '@/types';
 
 type Step = 'choose' | 'type' | 'confirmType' | 'review' | 'remind' | 'form' | 'scansSpent';
@@ -99,7 +105,6 @@ export default function AddDocumentScreen() {
 
   const editing = params.id ? documents.find((d) => d.id === params.id) : undefined;
   const renewing = params.renew === '1' && !!editing;
-  const overFreeLimit = !editing && !settings.premium && documents.length >= FREE_ITEM_LIMIT;
   const outOfScans = !settings.premium && settings.scansUsed >= FREE_SCAN_LIMIT;
   const scansLeft = Math.max(0, FREE_SCAN_LIMIT - settings.scansUsed);
 
@@ -132,6 +137,31 @@ export default function AddDocumentScreen() {
    * blank form does not, and must not be saveable until it does.
    */
   const [dateChosen, setDateChosen] = useState(Boolean(editing));
+
+  /**
+   * What a free account holds of each kind, and whether this one can be added.
+   *
+   * Counted by what the app calls a subscription everywhere else, so the
+   * ceilings agree with the two halves of the Timeline. Which ceiling applies
+   * to the thing being added comes from its category, because that is chosen
+   * before anybody says how often it recurs.
+   *
+   * Before a category is chosen there is nothing to check against, so the wall
+   * only stands in the way when both are full and nothing at all can be
+   * added.
+   */
+  const held = {
+    document: documents.filter((doc) => !isSubscription(doc)).length,
+    subscription: documents.filter(isSubscription).length,
+  };
+  const ceiling = { document: FREE_DOCUMENT_LIMIT, subscription: FREE_SUBSCRIPTION_LIMIT };
+  const full = (kind: 'document' | 'subscription') => held[kind] >= ceiling[kind];
+
+  const overFreeLimit =
+    !editing &&
+    !settings.premium &&
+    (typeId ? full(kindOf(typeId)) : full('document') && full('subscription'));
+
 
   const [expiry, setExpiry] = useState<Date>(() =>
     editing ? startingExpiry(editing, params.renew === '1') : defaultExpiry()
@@ -410,7 +440,7 @@ export default function AddDocumentScreen() {
 
     const room = roomFor({
       tracked: documents.length,
-      limit: FREE_ITEM_LIMIT,
+      limit: FREE_DOCUMENT_LIMIT,
       premium: settings.premium,
     });
     const { take, blocked } = splitImport(keepers.length, room);
@@ -440,7 +470,7 @@ export default function AddDocumentScreen() {
       if (blocked > 0) {
         Alert.alert(
           `${take} added. ${blocked} more need Expyr Pro.`,
-          `The free plan holds ${FREE_ITEM_LIMIT} items. Pro takes the limit off, so the rest of what was in that picture can be tracked too.`,
+          `The free plan holds ${FREE_DOCUMENT_LIMIT} documents. Pro takes the limit off, so the rest of what was in that picture can be tracked too.`,
           [
             { text: 'Not now', style: 'cancel', onPress: () => router.back() },
             { text: 'See Pro', onPress: () => router.replace('/paywall') },
@@ -728,7 +758,8 @@ export default function AddDocumentScreen() {
           */}
         <ThemedText type="largeTitle">The free plan is full.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-          It holds {FREE_ITEM_LIMIT} items. Unlock Expyr to track everything you own, and everyone
+          It holds {FREE_DOCUMENT_LIMIT} documents and {FREE_SUBSCRIPTION_LIMIT} subscriptions.
+          Unlock Expyr to track everything you own, and everyone
           in the house.
         </ThemedText>
         <View style={styles.wallAction}>

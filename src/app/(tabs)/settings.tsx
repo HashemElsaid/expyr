@@ -200,12 +200,18 @@ export default function SettingsScreen() {
               * middot, under a mint pill that said Top up. The row goes to
               * Top up now, like every other row that goes somewhere.
               */}
+            {/*
+              * Credits are a Pro thing now, so a free account is offered the
+              * plan rather than a shop it cannot buy from. The balance is
+              * still shown, because a balance granted before this change is
+              * still theirs and becomes spendable the day they buy.
+              */}
             <ListRow
               symbol="sparkles"
               tint="purple"
               title="Expyr AI credits"
-              value={formatCredits(settings.credits.balance)}
-              onPress={() => router.push('/top-up')}
+              value={settings.premium ? formatCredits(settings.credits.balance) : 'With Pro'}
+              onPress={() => router.push(settings.premium ? '/top-up' : '/paywall')}
             />
 
             {/*

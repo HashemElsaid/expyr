@@ -19,8 +19,9 @@ import {
   titleFor,
   type FoundSubscription,
 } from '@/lib/subscriptions';
+import { isSubscription } from '@/domain/documents';
 import { useDocuments } from '@/store/documents';
-import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
+import { FREE_SCAN_LIMIT, FREE_SUBSCRIPTION_LIMIT, useSettings } from '@/store/settings';
 import type { Recurrence } from '@/types';
 
 /**
@@ -133,9 +134,13 @@ export default function SubscriptionsScreen() {
      * hold them, because believing you are being reminded about a payment
      * nothing is watching is the worst outcome available here.
      */
+    /*
+      * Against the subscription ceiling and counting only subscriptions, so
+      * somebody's passports do not use up the room for their Netflix.
+      */
     const room = roomFor({
-      tracked: documents.length,
-      limit: FREE_ITEM_LIMIT,
+      tracked: documents.filter(isSubscription).length,
+      limit: FREE_SUBSCRIPTION_LIMIT,
       premium: settings.premium,
     });
     const { take, blocked } = splitImport(chosen.size, room);
@@ -173,7 +178,7 @@ export default function SubscriptionsScreen() {
       if (blocked > 0) {
         Alert.alert(
           `${take} added. ${blocked} more need Expyr Pro.`,
-          `The free plan holds ${FREE_ITEM_LIMIT} items. Pro takes the limit off, so the rest of your subscriptions can be tracked too.`,
+          `The free plan holds ${FREE_SUBSCRIPTION_LIMIT} subscriptions. Pro takes the limit off, so the rest of your subscriptions can be tracked too.`,
           [
             { text: 'Not now', style: 'cancel', onPress: () => router.back() },
             { text: 'See Pro', onPress: () => router.replace('/paywall') },

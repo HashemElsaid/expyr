@@ -231,6 +231,28 @@ describe('the app and the service agree on what things cost', () => {
    * before RegExp ever sees it, so every lookup quietly returned null and the
    * guard would have passed no matter what the service said.
    */
+  /**
+   * The phone's copy of the same figure, read as text.
+   *
+   * Not imported, deliberately. `src/store/settings.tsx` pulls in
+   * AsyncStorage and expo-constants, and importing it here took expo-modules-
+   * core with it and sank this whole file: twenty-eight tests stopped running
+   * and the suite still said everything passed, because a file that fails to
+   * load reports as a failed file rather than a failed test.
+   */
+  const phone = readFileSync('src/store/settings.tsx', 'utf8');
+  /* Spelled out, because a backslash escape does not survive every editor. */
+  const NEWLINE = String.fromCharCode(10);
+
+  function phoneNumber(name: string): number | null {
+    const line = phone
+      .split(NEWLINE)
+      .find((candidate) => candidate.startsWith(`export const ${name} = `));
+    if (!line) return null;
+    const digits = line.slice(line.indexOf('=') + 1).replace(/[^0-9]/g, '');
+    return digits ? Number(digits) : 0;
+  }
+
   function serverNumber(name: string): number | null {
     const line = pricing
       .split('\n')
@@ -250,12 +272,22 @@ describe('the app and the service agree on what things cost', () => {
   });
 
   /*
-   * The phone shows a new install thirty pages' worth and the service grants
-   * it. If the service granted less, somebody would be shown credits that were
-   * refused the moment they tried to spend them.
+   * Whatever a new install is given, both sides have to give the same amount,
+   * or somebody is shown credits that are refused the moment they spend them.
+   *
+   * That figure is now zero: Expyr AI is a Pro feature and the credits that
+   * come with Pro are the opening balance. The assertion is against the
+   * phone's own constant rather than a number written here, so this keeps
+   * meaning something if it is ever turned back on.
    */
   it('opens a new account with what the app promises', () => {
-    expect(serverNumber('WELCOME_CREDITS')).toBe(priceOfPages(30));
+    expect(serverNumber('WELCOME_CREDITS')).toBe(phoneNumber('WELCOME_CREDITS'));
+  });
+
+  /* Proves that reader too, so an unreadable file cannot pass as agreement. */
+  it('can read the phone half at all', () => {
+    expect(phoneNumber('WELCOME_CREDITS')).not.toBeNull();
+    expect(phoneNumber('NOTHING_LIKE_THIS')).toBeNull();
   });
 
   it('would notice a disagreement', () => {

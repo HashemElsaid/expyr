@@ -4,6 +4,8 @@ import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { PrimaryButton } from '@/components/form';
+import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -202,6 +204,72 @@ export default function AskScreen() {
    * even when the wording is not.
    */
   const nothingRead = records.length === 0;
+
+  /*
+   * Expyr AI is what Pro is for.
+   *
+   * Reading a document and answering a question both cost real money at
+   * Anthropic every time, which is the one place in this app with a cost per
+   * use. It was free for everybody, paid for by nobody, and that is the
+   * feature the purchase now buys.
+   *
+   * A whole screen rather than a greyed-out one: somebody who cannot use this
+   * should be told what it is, once, and shown the way to it. A disabled
+   * version of a feature teaches nothing and invites poking.
+   *
+   * Every document a free account holds is still read and still kept, so the
+   * day Pro is bought there is nothing to redo.
+   */
+  if (!settings.premium) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <ScrollView contentContainerStyle={styles.locked} showsVerticalScrollIndicator={false}>
+            <ThemedText type="largeTitle">Expyr AI</ThemedText>
+
+            <Icon name="sparkles" size={44} color={theme.accent} style={styles.lockedMark} />
+
+            <ThemedText type="body" themeColor="textSecondary">
+              Ask about anything you are tracking and get the answer out of the document itself.
+              When the tenancy ends, what the notice period is, what the policy actually covers,
+              which of your subscriptions renews next.
+            </ThemedText>
+
+            <ListSection
+              title="What it can do"
+              footer={
+                documents.length > 0
+                  ? `Your ${documents.length} ${documents.length === 1 ? 'document is' : 'documents are'} already read and waiting`
+                  : 'Everything you add is read as it is added, so there is nothing to redo later'
+              }>
+              <ListRow
+                symbol="text.magnifyingglass"
+                tint="blue"
+                title="Reads the whole document"
+                subtitle="Not just the date on it"
+              />
+              <ListRow
+                symbol="questionmark.bubble"
+                tint="purple"
+                title="Answers in its own words"
+                subtitle="With the clause it came from"
+              />
+              <ListRow
+                symbol="rectangle.stack"
+                tint="green"
+                title="Across everything at once"
+                subtitle="Or one document at a time"
+              />
+            </ListSection>
+          </ScrollView>
+
+          <View style={styles.lockedFoot}>
+            <PrimaryButton label="See Expyr Pro" onPress={() => router.push('/paywall')} />
+          </View>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -520,6 +588,24 @@ export default function AskScreen() {
 }
 
 const styles = StyleSheet.create({
+  /** The screen a free account sees, which is about the feature rather than in it. */
+  locked: {
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.four,
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  lockedMark: { alignSelf: 'center', marginVertical: Spacing.two },
+  lockedFoot: {
+    paddingHorizontal: Spacing.three,
+    paddingBottom: 72,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
   container: { flex: 1 },
   safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center' },
   flex: { flex: 1 },

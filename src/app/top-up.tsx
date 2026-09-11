@@ -4,6 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { PrimaryButton } from '@/components/form';
 import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -108,6 +109,46 @@ export default function TopUpScreen() {
     });
     successFeedback();
     close();
+  }
+
+  /*
+   * Packs are sold to Pro only, so a free account that reaches this screen by
+   * any route is shown the plan instead. Never a dead end: the way forward is
+   * the one button on it.
+   */
+  if (!settings.premium) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.top}>
+            <Pressable
+              onPress={close}
+              hitSlop={16}
+              accessibilityRole="button"
+              accessibilityLabel="Close">
+              {({ pressed }) => (
+                <Icon
+                  name="xmark.circle.fill"
+                  size={26}
+                  color={pressed ? theme.textSecondary : theme.textTertiary}
+                />
+              )}
+            </Pressable>
+          </View>
+
+          <View style={styles.body}>
+            <ThemedText type="largeTitle">Top Up</ThemedText>
+            <ThemedText type="body" themeColor="textSecondary" style={styles.lockedLine}>
+              Credits are part of Expyr Pro, which comes with enough to read fifty pages.
+            </ThemedText>
+          </View>
+
+          <View style={styles.foot}>
+            <PrimaryButton label="See Expyr Pro" onPress={() => router.replace('/paywall')} />
+          </View>
+        </SafeAreaView>
+      </ThemedView>
+    );
   }
 
   return (
@@ -244,4 +285,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   legal: { textAlign: 'center' },
+  lockedLine: { paddingTop: Spacing.two },
 });

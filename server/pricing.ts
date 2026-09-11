@@ -19,14 +19,18 @@ export const CREDITS_PER_PAGE = 10;
 export const CREDITS_PER_QUESTION = 20;
 
 /**
- * What a new install is given, once: thirty pages' worth.
+ * What a new install is given, which is nothing.
  *
- * Enough to read a tenancy contract and ask about it before deciding whether
- * any of this is worth paying for. Granted by the service rather than claimed
- * by the phone, or it would be thirty free pages per reinstall for anybody who
- * noticed.
+ * It was thirty pages' worth, granted here rather than claimed by the phone so
+ * that it could not be had again per reinstall. Expyr AI is a Pro feature now:
+ * the credits that come with Pro are the opening balance, and a free install
+ * has none.
+ *
+ * Kept as a constant at zero rather than removed, because the grant machinery
+ * around it is correct and the number is one line to change back. A test in
+ * the app suite fails if this and the phone's copy stop agreeing.
  */
-export const WELCOME_CREDITS = 300;
+export const WELCOME_CREDITS = 0;
 
 /** What reading a given number of pages costs. Never less than one page. */
 export function priceOfPages(pages: number): number {

@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -10,15 +9,16 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 
-import { Chip, ErrorNote, Field, Note, PrimaryButton, SecondaryButton } from '@/components/form';
+import { ErrorNote, Note, PrimaryButton } from '@/components/form';
+import { Icon } from '@/components/icon';
+import { ListInput, ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ValuePrompt } from '@/components/value-prompt';
-import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { iconFor, tintFor } from '@/data/document-icons';
 import {
   articleFor,
   DOCUMENT_TYPES,
@@ -51,7 +51,7 @@ import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 import { Attachment, DocumentType, DocumentTypeId, ExtractedField, TrackedDocument } from '@/types';
 
-type Step = 'choose' | 'type' | 'confirmType' | 'review' | 'form' | 'scansSpent';
+type Step = 'choose' | 'type' | 'confirmType' | 'review' | 'remind' | 'form' | 'scansSpent';
 
 /**
  * One of several things found in a single picture, waiting to be confirmed.
@@ -127,7 +127,6 @@ export default function AddDocumentScreen() {
   const [owner, setOwner] = useState(editing?.owner ?? forOwner ?? '');
   const [namingOwner, setNamingOwner] = useState(false);
   const [notes, setNotes] = useState(editing?.notes ?? '');
-  const [showNotes, setShowNotes] = useState(Boolean(editing?.notes));
   const [files, setFiles] = useState<Attachment[]>(editing?.files ?? []);
   const [leadDays, setLeadDays] = useState<number[]>(editing?.leadDays ?? []);
   const [busy, setBusy] = useState<'scanning' | 'attaching' | null>(null);
@@ -157,16 +156,9 @@ export default function AddDocumentScreen() {
    * what somebody unticks is theirs to untick.
    */
   const [review, setReview] = useState<Reviewed[] | null>(null);
-  /** Which row is having its category changed, if any. */
-  const [recategorising, setRecategorising] = useState<number | null>(null);
-  /** Which row is having its title changed, and what to. */
-  const [retitling, setRetitling] = useState<number | null>(null);
-  const [rowTitle, setRowTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showAndroidPicker, setShowAndroidPicker] = useState(false);
-  /** The four other ways in, folded away until somebody asks for them. */
-  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ title: renewing ? 'Renewed' : editing ? 'Edit' : 'New entry' });
@@ -196,7 +188,6 @@ export default function AddDocumentScreen() {
     setDocumentNumber(editing.documentNumber ?? '');
     setOwner(editing.owner ?? '');
     setNotes(editing.notes ?? '');
-    setShowNotes(Boolean(editing.notes));
     setFiles(editing.files);
     setLeadDays(editing.leadDays);
     setStep('form');
@@ -360,6 +351,19 @@ export default function AddDocumentScreen() {
     }
   }
 
+  /**
+   * What is left of the free scans, and only once the end is in sight.
+   *
+   * The group's footer, which is where iOS explains a group, rather than a
+   * centred line under the buttons.
+   */
+  function footerForScans(): string | undefined {
+    if (settings.premium || scansLeft > 3) return undefined;
+    return scansLeft === 0
+      ? 'No free scans left. Typing a date in is still free'
+      : `${scansLeft} free ${scansLeft === 1 ? 'scan' : 'scans'} left`;
+  }
+
   async function runScan(source: 'camera' | 'library' | 'files') {
     setError(null);
     if (outOfScans) {
@@ -448,34 +452,6 @@ export default function AddDocumentScreen() {
   }
 
   function pickType(t: DocumentType) {
-    /*
-     * The same grid, standing in for one row of the review list. Sharing it
-     * means there is never a second category list to keep in step with the
-     * catalogue, which is the reason the manual path points at this one too.
-     */
-    if (recategorising !== null) {
-      const at = recategorising;
-      setReview(
-        (current) =>
-          current?.map((row, index) =>
-            index === at
-              ? {
-                  ...row,
-                  typeId: t.id,
-                  title: titleAfterCorrection(
-                    row.title,
-                    labelFor(getDocumentType(row.typeId), settings.country),
-                    labelFor(t, settings.country)
-                  ),
-                }
-              : row
-          ) ?? null
-      );
-      setRecategorising(null);
-      setStep('review');
-      return;
-    }
-
     // A title the user never touched is one of ours, under either naming.
     const isAutoTitle =
       !title.trim() ||
@@ -749,98 +725,65 @@ export default function AddDocumentScreen() {
       <ThemedView style={styles.container}>
         <ScrollView contentContainerStyle={styles.chooseContent}>
           <View style={styles.chooseIcon}>
-            <MaterialCommunityIcons name="line-scan" size={44} color={theme.textTertiary} />
+            <Icon name="doc.viewfinder" size={52} color={theme.accent} />
           </View>
-          <ThemedText type="largeTitle" style={styles.centeredText}>
-            Show it to Expyr
-          </ThemedText>
           <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-            A document, a screenshot, or a PDF. Expyr reads the date.
+            A document, a screenshot, or a PDF. Expyr reads the date off it.
           </ThemedText>
 
           {error && <ErrorNote message={error} />}
 
           {/*
-           * One way in, and four others behind a word.
-           *
-           * This screen used to offer five: photograph, pick from the library,
-           * upload a PDF, import subscriptions, type it in — three of them
-           * rendered identically, one under the next. Every one is worth having
-           * and none of them is the answer. The app's whole pitch is "point the
-           * camera at it", so that is the button, and the rest wait to be
-           * asked for.
-           *
-           * The photo library and the PDF picker are not lesser features; they
-           * are lesser *first moves*. Somebody who wants them knows they want
-           * them and will look.
-           */}
-          <PrimaryButton label="Take a photo" onPress={() => runScan('camera')} />
-
-          <Pressable
-            onPress={() => {
-              tapFeedback();
-              setMoreOpen((open) => !open);
-            }}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: moreOpen }}
-            style={styles.link}>
-            <View style={styles.moreRow}>
-              <ThemedText type="footnote" themeColor="textTertiary">
-                {moreOpen ? 'Fewer ways' : 'Other ways to add'}
-              </ThemedText>
-              <MaterialCommunityIcons
-                name={moreOpen ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={theme.textTertiary}
-              />
-            </View>
-          </Pressable>
-
-          {moreOpen && (
-            /*
-             * A plain View, not an entering animation. reanimated's `entering`
-             * left every one of these on the page with visibility: hidden and
-             * never cleared it — four options, correctly rendered, permanently
-             * invisible. A fade is decoration; the options are the feature, and
-             * shipping something invisible on one platform is the thing this
-             * whole change was meant to stop.
-             */
-            <View style={styles.moreWays}>
-              <SecondaryButton
-                label="Choose a photo"
-                icon="image-outline"
-                onPress={() => runScan('library')}
-              />
-              <SecondaryButton
-                label="Upload a PDF"
-                icon="folder-open-outline"
-                onPress={() => runScan('files')}
-              />
-              {/*
-               * A different job from the others: one screenshot stands for every
-               * subscription somebody pays for, rather than one document.
-               */}
-              <SecondaryButton
-                label="Import my subscriptions"
-                icon="repeat-variant"
-                onPress={() => router.replace('/subscriptions')}
-              />
-              <Pressable onPress={() => setStep('type')} style={styles.link}>
-                <ThemedText type="footnote" themeColor="textTertiary">
-                  Enter it myself
-                </ThemedText>
-              </Pressable>
-            </View>
-          )}
-
-          {/* Only worth mentioning once the end is actually in sight. */}
-          {!settings.premium && scansLeft <= 3 && (
-            <ThemedText type="footnote" themeColor="textTertiary" style={styles.centeredText}>
-              {scansLeft === 0
-                ? 'No free scans left. Typing a date in is still free.'
-                : `${scansLeft} free ${scansLeft === 1 ? 'scan' : 'scans'} left.`}
-            </ThemedText>
-          )}
+            * Five rows in a group, where there used to be one filled button,
+            * a disclosure reading "Other ways to add", and four more buttons
+            * behind it.
+            *
+            * The disclosure existed because four outlined pills stacked under
+            * a filled one was clutter, and it was solving the right problem
+            * the wrong way: rows in a list are not clutter. A person reads
+            * five of them at a glance and takes the first, which is the
+            * camera, which is the app's whole pitch.
+            *
+            * The cost is that the camera is no longer the only loud thing on
+            * the screen. It is first, it is the only blue tile, and the symbol
+            * above is a viewfinder.
+            */}
+          <ListSection footer={footerForScans()}>
+            <ListRow
+              symbol="camera.fill"
+              tint="blue"
+              title="Take a photo"
+              onPress={() => runScan('camera')}
+            />
+            <ListRow
+              symbol="photo.on.rectangle"
+              tint="gray"
+              title="Choose a photo"
+              onPress={() => runScan('library')}
+            />
+            <ListRow
+              symbol="folder.fill"
+              tint="gray"
+              title="Upload a PDF"
+              onPress={() => runScan('files')}
+            />
+            {/*
+              * A different job from the others: one screenshot stands for
+              * every subscription somebody pays for, rather than one document.
+              */}
+            <ListRow
+              symbol="repeat"
+              tint="purple"
+              title="Import my subscriptions"
+              onPress={() => router.replace('/subscriptions')}
+            />
+            <ListRow
+              symbol="keyboard"
+              tint="gray"
+              title="Enter it myself"
+              onPress={() => setStep('type')}
+            />
+          </ListSection>
         </ScrollView>
       </ThemedView>
     );
@@ -859,108 +802,66 @@ export default function AddDocumentScreen() {
     const keeping = review.filter((row) => row.keep).length;
     return (
       <ThemedView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.typeGridContent}>
+        <ScrollView contentContainerStyle={styles.listContent}>
           {error && <ErrorNote message={error} />}
-          <ThemedText type="largeTitle">
-            Found {countWord(review.length).toLowerCase()} things.
-          </ThemedText>
-          <ThemedText type="body" themeColor="textSecondary" style={styles.reviewIntro}>
-            Keep whatever you want tracked. Tap a name to change it, or the category under it to
-            put it right.
-          </ThemedText>
 
-          {review.map((row, index) => {
-            const type = getDocumentType(row.typeId);
-            return (
-              <View
+          <ListSection
+            title={`Found ${countWord(review.length).toLowerCase()} things`}
+            /*
+              * Keep or leave, and nothing else. The list used to offer
+              * renaming and recategorising too, which meant every item
+              * appeared twice: once to tick and once to correct.
+              *
+              * Both are still possible, on the item's own screen, after it is
+              * saved. That is the same trade the date already makes here, and
+              * it is only defensible because the category is now editable
+              * afterwards, which it was not until this commit.
+              */
+            footer="Anything wrong is editable once it is saved">
+            {review.map((row, index) => (
+              <ListRow
                 key={`${row.title}-${index}`}
-                style={[styles.reviewRow, { borderColor: row.keep ? theme.accent : theme.border }]}>
-                <Pressable
-                  onPress={() => {
-                    tapFeedback();
-                    setReview(
-                      (current) =>
-                        current?.map((other, at) =>
-                          at === index ? { ...other, keep: !other.keep } : other
-                        ) ?? null
-                    );
-                  }}
-                  hitSlop={8}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: row.keep }}
-                  accessibilityLabel={row.title}>
-                  <MaterialCommunityIcons
-                    name={row.keep ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                    size={22}
-                    color={row.keep ? theme.accent : theme.textTertiary}
-                  />
-                </Pressable>
+                symbol={iconFor(row.typeId)}
+                tint={row.keep ? undefined : 'gray'}
+                title={row.title}
+                subtitle={`${labelFor(getDocumentType(row.typeId), settings.country)}${
+                  row.item.expiryDate ? `, ${longDate(row.item.expiryDate)}` : ''
+                }`}
+                chevron={false}
+                onPress={() => {
+                  tapFeedback();
+                  setReview(
+                    (current) =>
+                      current?.map((other, at) =>
+                        at === index ? { ...other, keep: !other.keep } : other
+                      ) ?? null
+                  );
+                }}
+                control={
+                  row.keep ? (
+                    <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
+                  ) : undefined
+                }
+              />
+            ))}
+          </ListSection>
 
-                <View style={styles.flex}>
-                  <Pressable
-                    onPress={() => {
-                      tapFeedback();
-                      setRowTitle(row.title);
-                      setRetitling(index);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Rename ${row.title}`}>
-                    <ThemedText type="headline">{row.title}</ThemedText>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() => {
-                      tapFeedback();
-                      setRecategorising(index);
-                      setStep('type');
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Change the category of ${row.title}`}>
-                    <ThemedText type="footnote" themeColor="textTertiary">
-                      {labelFor(type, settings.country)}
-                      {row.item.expiryDate ? ` · ${longDate(row.item.expiryDate)}` : ''}
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              </View>
-            );
-          })}
-
-          <View style={styles.wallAction}>
-            <PrimaryButton
-              label={
-                saving
-                  ? 'Adding…'
-                  : keeping === 0
-                    ? 'Nothing selected'
-                    : `Track ${keeping} ${keeping === 1 ? 'thing' : 'things'}`
-              }
-              onPress={saveReview}
-              disabled={keeping === 0 || saving}
-            />
-          </View>
         </ScrollView>
 
-        <ValuePrompt
-          visible={retitling !== null}
-          title="What should this be called?"
-          value={rowTitle}
-          placeholder="A name you will recognise"
-          autoCapitalize="words"
-          onChange={setRowTitle}
-          onCancel={() => setRetitling(null)}
-          onSubmit={() => {
-            const at = retitling;
-            setRetitling(null);
-            if (at === null) return;
-            setReview(
-              (current) =>
-                current?.map((row, index) =>
-                  index === at ? { ...row, title: rowTitle.trim() || row.title } : row
-                ) ?? null
-            );
-          }}
-        />
+        <View style={styles.foot}>
+          <PrimaryButton
+            label={
+              saving
+                ? 'Adding'
+                : keeping === 0
+                  ? 'Nothing selected'
+                  : `Track ${keeping} ${keeping === 1 ? 'thing' : 'things'}`
+            }
+            onPress={saveReview}
+            disabled={keeping === 0 || saving}
+          />
+        </View>
+
       </ThemedView>
     );
   }
@@ -968,50 +869,81 @@ export default function AddDocumentScreen() {
   if (step === 'type') {
     return (
       <ThemedView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.typeGridContent}>
+        <ScrollView contentContainerStyle={styles.listContent}>
           {error && <ErrorNote message={error} />}
-          <ThemedText type="footnote" themeColor="textTertiary" style={styles.sectionLabel}>
-            What are you tracking?
-          </ThemedText>
-          <View style={styles.typeList}>
+          {/*
+            * The catalogue, as a grouped list with its own colours. It was
+            * fifteen ruled rows with a chevron each, which is a table of
+            * contents; this is a list somebody can find a passport in without
+            * reading every line, because the blue ones are the identity
+            * documents and they are at the top.
+            */}
+          <ListSection title="What are you tracking?">
             {DOCUMENT_TYPES.map((t) => (
-              <Pressable key={t.id} onPress={() => pickType(t)} accessibilityRole="button">
-                {({ pressed }) => (
-                  <View
-                    style={[
-                      styles.typeRow,
-                      { borderBottomColor: theme.border },
-                      pressed && styles.dim,
-                    ]}>
-                    <ThemedText type="headline" style={styles.flex}>
-                      {labelFor(t, settings.country)}
-                    </ThemedText>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={20}
-                      color={theme.textTertiary}
-                    />
-                  </View>
-                )}
-              </Pressable>
+              <ListRow
+                key={t.id}
+                symbol={iconFor(t.id)}
+                tint={tintFor(t.id)}
+                title={labelFor(t, settings.country)}
+                onPress={() => pickType(t)}
+              />
             ))}
-          </View>
+          </ListSection>
         </ScrollView>
+      </ThemedView>
+    );
+  }
+
+  /* Which reminders to book, chosen the way iOS chooses several from a list. */
+  if (step === 'remind') {
+    return (
+      <ThemedView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.listContent}>
+          <ListSection title="Remind me before" footer={nudgeSummary}>
+            {LEAD_DAY_OPTIONS.map((day) => (
+              <ListRow
+                key={day}
+                symbol="bell.fill"
+                tint={leadDays.includes(day) ? 'red' : 'gray'}
+                title={leadLabel(day)}
+                chevron={false}
+                onPress={() => toggleLeadDay(day)}
+                control={
+                  leadDays.includes(day) ? (
+                    <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
+                  ) : undefined
+                }
+              />
+            ))}
+          </ListSection>
+        </ScrollView>
+
+        <View style={styles.foot}>
+          <PrimaryButton label="Done" onPress={() => setStep('form')} />
+        </View>
       </ThemedView>
     );
   }
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
         {renewing && (
           <Note text="Date moved forward by the usual period. Check it against the new document." />
         )}
         {scanNote && <Note text={scanNote} />}
         {error && <ErrorNote message={error} />}
 
-        <Field label="Name">
-          <TextInput
+        {/*
+          * The form is grouped lists now, which is how Contacts, Calendar and
+          * Reminders all edit. It was ruled lines under grey labels, with a 26
+          * point semibold field for the name: a paper form, carefully set, on
+          * a phone where every form looks like this instead.
+          */}
+        <ListSection>
+          <ListInput
+            symbol={iconFor(typeId!)}
+            tint={tintFor(typeId!)}
             value={title}
             onChangeText={setTitle}
             /*
@@ -1020,64 +952,63 @@ export default function AddDocumentScreen() {
              * write their own, and what they need then is the pattern.
              */
             placeholder={titleExampleFor(type!, settings.country)}
-            placeholderTextColor={theme.textTertiary}
-            style={[styles.titleInput, { color: theme.text, borderBottomColor: theme.textTertiary }]}
+            autoCapitalize="words"
           />
-        </Field>
 
-        <Field label="Category">
-          <Pressable onPress={() => !editing && setStep('type')} disabled={!!editing}>
-            <View style={[styles.ruledRow, { borderBottomColor: theme.border }]}>
-              <ThemedText type="body" style={styles.flex}>
-                {labelFor(type!, settings.country)}
-              </ThemedText>
-              {!editing && (
-                <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
-                  Change
-                </ThemedText>
-              )}
-            </View>
-          </Pressable>
-        </Field>
+          {/*
+            * Editable on an existing item, which it was not before: the row
+            * was disabled once a document had been saved, so a passport that
+            * came back as a residence visa could not be put right at all
+            * without deleting it and starting again. That is the aftermath of
+            * the scan bug, and the reason the review list can afford to be a
+            * plain checklist.
+            */}
+          <ListRow
+            symbol="tag.fill"
+            tint="gray"
+            title="Category"
+            value={labelFor(type!, settings.country)}
+            onPress={() => setStep('type')}
+          />
+        </ListSection>
 
-        <Field label="Expires">
-          <View style={[styles.ruledRow, { borderBottomColor: theme.border }]}>
-            {/*
-              * Blank rather than plausible. A date nobody chose, printed in the
-              * same type as one they did, is indistinguishable from an answer.
-              */}
-            <ThemedText
-              type="body"
-              themeColor={dateChosen ? 'text' : 'textTertiary'}
-              style={styles.flex}>
-              {dateChosen ? longDate(toISODate(expiry)) : 'Not set yet'}
-            </ThemedText>
-            {Platform.OS === 'ios' ? (
-              <DateTimePicker
-                value={expiry}
-                mode="date"
-                display="compact"
-                themeVariant={scheme}
-                accentColor={theme.accent}
-                onChange={(_, date) => {
-                  if (!date) return;
-                  setExpiry(date);
-                  setDateChosen(true);
-                }}
-              />
-            ) : (
-              <Pressable
-                onPress={() => (Platform.OS === 'android' ? setShowAndroidPicker(true) : null)}
-                accessibilityRole="button"
-                accessibilityLabel="Change the date">
-                <MaterialCommunityIcons
-                  name="calendar-blank-outline"
-                  size={18}
-                  color={theme.textSecondary}
+        <ListSection>
+          {/*
+            * The date, with the platform's own compact picker on the right of
+            * the row. Blank rather than plausible until somebody chooses: a
+            * date nobody picked, printed in the same type as one they did, is
+            * indistinguishable from an answer.
+            */}
+          <ListRow
+            symbol="calendar"
+            tint={tintFor(typeId!)}
+            title={dateChosen ? 'Expires' : 'Expires'}
+            value={Platform.OS === 'ios' ? undefined : dateChosen ? longDate(toISODate(expiry)) : 'Not set yet'}
+            control={
+              Platform.OS === 'ios' ? (
+                <DateTimePicker
+                  value={expiry}
+                  mode="date"
+                  display="compact"
+                  themeVariant={scheme}
+                  accentColor={theme.accent}
+                  onChange={(_, date) => {
+                    if (!date) return;
+                    setExpiry(date);
+                    setDateChosen(true);
+                  }}
                 />
-              </Pressable>
-            )}
-          </View>
+              ) : (
+                <Pressable
+                  onPress={() => setShowAndroidPicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Change the date">
+                  <Icon name="calendar" size={18} color={theme.accent} />
+                </Pressable>
+              )
+            }
+          />
+
           {Platform.OS === 'android' && showAndroidPicker && (
             <DateTimePicker
               value={expiry}
@@ -1091,194 +1022,167 @@ export default function AddDocumentScreen() {
               }}
             />
           )}
-          {Platform.OS === 'web' && (
-            <TextInput
-              value={toISODate(expiry)}
-              onChangeText={(next) => {
-                const parsed = new Date(`${next}T00:00:00`);
-                if (/^\d{4}-\d{2}-\d{2}$/.test(next) && !Number.isNaN(parsed.getTime())) {
-                  setExpiry(parsed);
-                  setDateChosen(true);
-                }
-              }}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.textTertiary}
-              style={[styles.webDate, { color: theme.textSecondary }]}
-            />
-          )}
-        </Field>
 
-        <Field label="Whose is it">
-          <View style={styles.chipRow}>
-            <Chip
-              label={settings.ownName || 'Mine'}
-              active={!owner}
+          {/*
+            * The lead times behind a row, which is how Calendar keeps Repeat
+            * and Alert. Eight pills in a grid was the whole choice on screen
+            * at all times, for a decision most people make once and never
+            * revisit.
+            */}
+          <ListRow
+            symbol="bell.fill"
+            tint="red"
+            title="Remind me"
+            value={
+              leadDays.length === 0
+                ? 'Never'
+                : `${leadDays.length} ${leadDays.length === 1 ? 'reminder' : 'reminders'}`
+            }
+            onPress={() => setStep('remind')}
+          />
+        </ListSection>
+
+        {/*
+          * Whose it is, as a checklist. It was a row of pills, one per person,
+          * and a pill reading "+ Someone new" which is a button pretending to
+          * be an option.
+          */}
+        <ListSection title="Whose is it">
+          <ListRow
+            symbol="person.fill"
+            tint={!owner ? 'green' : 'gray'}
+            title={settings.ownName || 'Mine'}
+            chevron={false}
+            onPress={() => {
+              setOwner('');
+              setNamingOwner(false);
+            }}
+            control={
+              !owner ? (
+                <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
+              ) : undefined
+            }
+          />
+          {knownOwners.map((name) => (
+            <ListRow
+              key={name}
+              symbol="person.fill"
+              tint={owner === name ? 'green' : 'gray'}
+              title={name}
+              chevron={false}
               onPress={() => {
-                setOwner('');
+                setOwner(name);
                 setNamingOwner(false);
               }}
+              control={
+                owner === name ? (
+                  <Icon name="checkmark" size={15} weight="semibold" color={theme.accent} />
+                ) : undefined
+              }
             />
-            {knownOwners.map((name) => (
-              <Chip
-                key={name}
-                label={name}
-                active={owner === name}
-                onPress={() => { setOwner(name); setNamingOwner(false); }}
-              />
-            ))}
-            <Chip label="+ Someone new" active={namingOwner} onPress={() => setNamingOwner(true)} />
-          </View>
-          {namingOwner && (
-            <TextInput
+          ))}
+          {namingOwner ? (
+            <ListInput
+              symbol="person.badge.plus"
+              tint="green"
               value={owner}
               onChangeText={setOwner}
               placeholder="Their name"
-              placeholderTextColor={theme.textTertiary}
+              autoCapitalize="words"
               autoFocus
-              style={[styles.ruledInput, { color: theme.text, borderBottomColor: theme.border }]}
+            />
+          ) : (
+            <ListRow
+              symbol="person.badge.plus"
+              tint="gray"
+              title="Someone else"
+              chevron={false}
+              onPress={() => {
+                setOwner('');
+                setNamingOwner(true);
+              }}
             />
           )}
-        </Field>
+        </ListSection>
 
         {numberField && (
-          <Field label={`${numberField.label} · optional`}>
-            <TextInput
+          <ListSection footer="Optional">
+            <ListInput
+              symbol="number"
+              tint="gray"
+              label={numberField.label}
               value={documentNumber}
               onChangeText={setDocumentNumber}
               placeholder={numberField.placeholder}
-              placeholderTextColor={theme.textTertiary}
               autoCapitalize="characters"
-              style={[styles.ruledInput, { color: theme.text, borderBottomColor: theme.border }]}
             />
-          </Field>
+          </ListSection>
         )}
 
-        <Field
-          label={
-            files.length > 1
-              ? `Attachments · ${files.length}`
-              : type!.id === 'emirates-id' || type!.id === 'driving-license'
-                ? 'Attachments · both sides if you like'
-                : 'Attachment'
-          }>
+        <ListSection
+          title="Attachments"
+          footer={files.length === 0 ? 'Nothing attached yet' : 'Kept on this phone only'}>
           <View style={styles.thumbRow}>
             {files.map((file) => (
-              <Pressable
-                key={file.key}
-                accessibilityRole="button"
-                accessibilityLabel="Remove this attachment"
-                onLongPress={() => setFiles((c) => c.filter((f) => f.key !== file.key))}>
-                <View>
-                  {file.type === 'pdf' ? (
-                    <View style={[styles.thumb, { borderColor: theme.border }]}>
-                      <MaterialCommunityIcons
-                        name="file-pdf-box"
-                        size={20}
-                        color={theme.textSecondary}
-                      />
-                    </View>
-                  ) : (
-                    <Image
-                      source={{ uri: file.uri }}
-                      style={[styles.thumb, { borderColor: theme.border }]}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <Pressable
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Remove"
-                    onPress={() => setFiles((c) => c.filter((f) => f.key !== file.key))}
-                    style={[styles.removeBadge, { backgroundColor: theme.background }]}>
-                    <MaterialCommunityIcons
-                      name="close-circle"
-                      size={18}
-                      color={theme.textTertiary}
-                    />
-                  </Pressable>
-                </View>
-              </Pressable>
+              <View key={file.key}>
+                {file.type === 'pdf' ? (
+                  <View style={[styles.thumb, { backgroundColor: theme.backgroundSelected }]}>
+                    <Icon name="doc.fill" size={20} color={theme.textSecondary} />
+                  </View>
+                ) : (
+                  <Image
+                    source={{ uri: file.uri }}
+                    style={styles.thumb}
+                    resizeMode="cover"
+                  />
+                )}
+                <Pressable
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove this attachment"
+                  onPress={() => setFiles((c) => c.filter((f) => f.key !== file.key))}
+                  style={styles.removeBadge}>
+                  <Icon name="xmark.circle.fill" size={20} color={theme.textSecondary} />
+                </Pressable>
+              </View>
             ))}
 
             <Pressable
               onPress={() => addAttachment('camera')}
               accessibilityRole="button"
               accessibilityLabel="Take a photo">
-              <View style={[styles.addThumb, { borderColor: theme.border }]}>
-                <MaterialCommunityIcons name="camera-outline" size={18} color={theme.textSecondary} />
+              <View style={[styles.addThumb, { backgroundColor: theme.backgroundSelected }]}>
+                <Icon name="camera.fill" size={18} color={theme.accent} />
               </View>
             </Pressable>
             <Pressable
               onPress={() => addAttachment('files')}
               accessibilityRole="button"
               accessibilityLabel="Choose a file">
-              <View style={[styles.addThumb, { borderColor: theme.border }]}>
-                <MaterialCommunityIcons
-                  name="folder-open-outline"
-                  size={18}
-                  color={theme.textSecondary}
-                />
+              <View style={[styles.addThumb, { backgroundColor: theme.backgroundSelected }]}>
+                <Icon name="folder.fill" size={18} color={theme.accent} />
               </View>
             </Pressable>
           </View>
-          <ThemedText type="footnote" themeColor="textTertiary">
-            {files.length === 0 ? 'Nothing attached yet.' : 'Kept on this phone only.'}
-          </ThemedText>
-        </Field>
+        </ListSection>
 
-        <Field label="Remind me before">
-          {/*
-            * Four to a row, every chip the same width, every label in the same
-            * grammar. It was a wrap that ran out wherever it happened to, with
-            * the first option labelled "1 day", the last "180 days" and the
-            * middle six as bare numbers.
-            */}
-          <View style={styles.leadGrid}>
-            {LEAD_DAY_OPTIONS.map((day) => (
-              <Chip
-                key={day}
-                label={leadLabel(day)}
-                active={leadDays.includes(day)}
-                onPress={() => toggleLeadDay(day)}
-                style={styles.leadChip}
-                tight
-              />
-            ))}
-          </View>
-          <ThemedText type="footnote" themeColor="textTertiary">
-            {nudgeSummary}
-          </ThemedText>
-        </Field>
+        <ListSection title="Notes">
+          <ListInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Anything to remember"
+            multiline
+          />
+        </ListSection>
+      </ScrollView>
 
-        {showNotes ? (
-          <Field label="Notes">
-            <TextInput
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Anything to remember"
-              placeholderTextColor={theme.textTertiary}
-              multiline
-              style={[
-                styles.ruledInput,
-                styles.notes,
-                { color: theme.text, borderBottomColor: theme.border },
-              ]}
-            />
-          </Field>
-        ) : (
-          <Pressable onPress={() => setShowNotes(true)}>
-            <ThemedText type="footnote" themeColor="textTertiary">
-              + Add a note
-            </ThemedText>
-          </Pressable>
-        )}
-
+      <View style={styles.foot}>
         <PrimaryButton
           label={editing ? 'Save' : 'Start tracking'}
           onPress={save}
           disabled={!title.trim() || saving}
         />
-      </ScrollView>
+      </View>
     </ThemedView>
   );
 }
@@ -1287,97 +1191,56 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
   dim: { opacity: 0.6 },
-  centered: { alignItems: 'center', justifyContent: 'center', gap: Spacing.three, padding: Spacing.five },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.three,
+    padding: Spacing.five,
+  },
   centeredText: { textAlign: 'center' },
-  moreRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  moreWays: { gap: Spacing.two, width: '100%' },
-  // An explicit width, so the button fills the column instead of shrinking to
-  // its label. Not alignSelf: 'stretch' — that would override the centring.
+  /* An explicit width, so a button fills the column rather than its label. */
   wallAction: { width: '100%', maxWidth: MaxContentWidth },
   link: { alignItems: 'center', paddingVertical: Spacing.three },
-  chooseContent: { padding: 28, gap: Spacing.three, maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center' },
-  chooseIcon: { alignItems: 'center', marginTop: Spacing.five, marginBottom: Spacing.two },
-  typeGridContent: { padding: 28, maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center' },
-  sectionLabel: { marginBottom: Spacing.three },
-  typeList: { gap: 0 },
-  typeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  formContent: {
-    padding: 28,
-    gap: 26,
+  /** Every list on this screen, inset the way a grouped list is. */
+  listContent: {
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.four,
     maxWidth: MaxContentWidth,
     width: '100%',
     alignSelf: 'center',
   },
-  /*
-    * The document's own name, set large on a ruled line. Semibold rather than
-    * bold: it is a field somebody is typing into, and the heaviest weight in
-    * the app on an empty input reads as a warning.
-    */
-  titleInput: {
-    ...Fonts.strong,
-    fontSize: 26,
-    letterSpacing: -0.3,
-    lineHeight: 32,
-    paddingBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  ruledRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  chooseContent: {
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.four,
     gap: Spacing.three,
-    paddingBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
-  ruledInput: {
-    ...Fonts.body,
-    fontSize: 17,
-    lineHeight: 24,
-    paddingBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  chooseIcon: { alignItems: 'center', marginTop: Spacing.five, marginBottom: Spacing.two },
+  /* The button sits where a thumb already is, under the list rather than in it. */
+  foot: {
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
-  webDate: { ...Fonts.body, fontSize: 13, paddingTop: 6 },
-  notes: { minHeight: 60, textAlignVertical: 'top' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  reviewIntro: { marginBottom: Spacing.two },
-  reviewRow: {
+  thumbRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.three,
-    borderRadius: Radius.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.three,
-    marginBottom: Spacing.two,
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three,
   },
-  /*
-   * Four columns on any phone. The basis is a percentage so the count does not
-   * change with the screen, and every chip grows into the remainder equally so
-   * the rows line up rather than trailing off.
-   */
-  leadGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
-  leadChip: { flexGrow: 1, flexBasis: '21%' },
-  thumbRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, alignItems: 'center' },
-  thumb: {
-    width: 56,
-    height: 40,
-    borderRadius: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  thumb: { width: 56, height: 56, borderRadius: Radius.small, alignItems: 'center', justifyContent: 'center' },
   addThumb: {
     width: 56,
-    height: 40,
-    borderRadius: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderStyle: 'dashed',
+    height: 56,
+    borderRadius: Radius.small,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  removeBadge: { position: 'absolute', top: -7, right: -7, borderRadius: 9 },
+  removeBadge: { position: 'absolute', top: -6, right: -6 },
 });

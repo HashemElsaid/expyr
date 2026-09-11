@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { Icon, type SFSymbol } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
@@ -183,6 +183,71 @@ export function ListRow({
   );
 }
 
+/**
+ * A row somebody types into.
+ *
+ * iOS puts a text field inside a grouped list rather than on a ruled line
+ * under a grey label: Contacts, Calendar and Reminders all edit this way. The
+ * form here was ruled lines with labels above them, which is how a paper form
+ * looks and not how an iPhone form looks.
+ *
+ * The label is optional because the two shapes are different. A field whose
+ * meaning is obvious from the screen, the name of the thing being added, is
+ * just a field with a placeholder in it. A field that needs naming, a document
+ * number, has its name on the left and the value beside it.
+ */
+export function ListInput({
+  symbol,
+  tint,
+  label,
+  placeholder,
+  value,
+  onChangeText,
+  autoCapitalize = 'sentences',
+  autoFocus,
+  multiline,
+}: {
+  symbol?: SFSymbol;
+  tint?: SystemColor;
+  label?: string;
+  placeholder?: string;
+  value: string;
+  onChangeText: (next: string) => void;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoFocus?: boolean;
+  multiline?: boolean;
+}) {
+  const theme = useTheme();
+  const system = useSystemColors();
+
+  return (
+    <View style={[styles.row, multiline && styles.rowTall]}>
+      {symbol && (
+        <View style={[styles.tile, { backgroundColor: system[tint ?? 'gray'] }]}>
+          <Icon name={symbol} size={15} weight="semibold" color="#FFFFFF" />
+        </View>
+      )}
+
+      {label && (
+        <ThemedText type="body" style={styles.inputLabel}>
+          {label}
+        </ThemedText>
+      )}
+
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={theme.textTertiary}
+        autoCapitalize={autoCapitalize}
+        autoFocus={autoFocus}
+        multiline={multiline}
+        style={[styles.input, { color: theme.text }, multiline && styles.inputTall]}
+      />
+    </View>
+  );
+}
+
 const TILE = 29;
 
 const styles = StyleSheet.create({
@@ -206,6 +271,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: { flex: 1, gap: 1 },
+  /** Wide enough for the longest field name, so the values line up. */
+  inputLabel: { width: 116 },
+  input: { flex: 1, fontSize: 17, lineHeight: 22, paddingVertical: 0 },
+  inputTall: { minHeight: 66, textAlignVertical: 'top' },
+  rowTall: { alignItems: 'flex-start', paddingVertical: 12 },
   /** Inset to where the text starts, which is what makes them read as rows. */
   separator: { height: StyleSheet.hairlineWidth, marginLeft: Spacing.three + TILE + Spacing.three },
   footer: { paddingTop: 7, paddingHorizontal: Spacing.two },

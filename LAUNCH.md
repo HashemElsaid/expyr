@@ -299,8 +299,13 @@ scan creates a person and renaming already rewrites their documents.
 service change reaches 1.0 users the moment it is on origin: scans go from
 $0.003 to $0.015 and a subscriptions screenshot on the document path stops
 returning a wrong item and starts pointing at the importer. Render restarted
-on the push and `/health` answered ok within a minute, with the API key,
-Apple key and both disk stores reported present.
+on the push and `/health` answered ok within a minute. The coding session
+then made three live `/extract` calls, about 4 cents: one document classified
+and dated with 1.0's fields intact at the top level; a subscriptions list
+returning no items and a note that sends old builds to the importer; two
+cards in one frame returning two items, both day-first dates read day-first.
+Still needing a phone: the review list, the "is this a passport" question,
+and the MRZ path on a real passport.
 
 Before and after, run the three actual images through: the passport that
 became a visa, the subscriptions screenshot, and the misspelled passport.

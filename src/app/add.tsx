@@ -17,7 +17,8 @@ import {
 import { Chip, ErrorNote, Field, Note, PrimaryButton, SecondaryButton } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
+import { ValuePrompt } from '@/components/value-prompt';
+import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import {
   articleFor,
   DOCUMENT_TYPES,
@@ -28,6 +29,7 @@ import {
 } from '@/data/document-types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { defaultExpiry, startingExpiry } from '@/domain/expiry';
+import { roomFor, splitImport } from '@/domain/capacity';
 import { needsTypeConfirmation, titleAfterCorrection } from '@/domain/scan-review';
 import { useTheme } from '@/hooks/use-theme';
 import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from '@/lib/dates';
@@ -36,12 +38,36 @@ import { newAttachmentKey } from '@/lib/files';
 import { REMINDER_TIME } from '@/lib/notifications';
 import { askForReview } from '@/lib/rating';
 import { leadLabel } from '@/lib/reminder-plan';
-import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
+import {
+  attachFile,
+  pickDocument,
+  pickImage,
+  scanFile,
+  type ScanItem,
+  type ScanResult,
+} from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 import { Attachment, DocumentType, DocumentTypeId, ExtractedField, TrackedDocument } from '@/types';
 
-type Step = 'choose' | 'type' | 'confirmType' | 'form' | 'scansSpent';
+type Step = 'choose' | 'type' | 'confirmType' | 'review' | 'form' | 'scansSpent';
+
+/**
+ * One of several things found in a single picture, waiting to be confirmed.
+ *
+ * Carries the scan's own item so that everything read off the document goes
+ * into the record, and the two things a person is most likely to want to fix
+ * before saving: what it is, and what it is called. The date is not editable
+ * here on purpose. Four inline date pickers in a list is a worse screen than
+ * one correction made afterwards on the item's own page, which already has
+ * "Update the date" on it.
+ */
+type Reviewed = {
+  item: ScanItem;
+  typeId: DocumentTypeId;
+  title: string;
+  keep: boolean;
+};
 
 const LEAD_DAY_OPTIONS = [1, 3, 7, 14, 30, 60, 90, 180];
 
@@ -121,6 +147,20 @@ export default function AddDocumentScreen() {
    * that names the thing it got wrong.
    */
   const [guessed, setGuessed] = useState<DocumentType | null>(null);
+  /**
+   * Everything found in one picture, when it held more than one thing.
+   *
+   * The prompt used to say "return exactly one item", so somebody who
+   * photographed two ID cards on a table got one of them and no word about the
+   * other. Nothing is dropped in silence now: everything found is listed, and
+   * what somebody unticks is theirs to untick.
+   */
+  const [review, setReview] = useState<Reviewed[] | null>(null);
+  /** Which row is having its category changed, if any. */
+  const [recategorising, setRecategorising] = useState<number | null>(null);
+  /** Which row is having its title changed, and what to. */
+  const [retitling, setRetitling] = useState<number | null>(null);
+  const [rowTitle, setRowTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showAndroidPicker, setShowAndroidPicker] = useState(false);
@@ -258,6 +298,67 @@ export default function AddDocumentScreen() {
     setStep('form');
   }
 
+  /**
+   * Saves everything still ticked, as far as the free plan allows.
+   *
+   * The same arithmetic the subscription import uses, for the same reason: a
+   * picture can hold more things than the plan has room for, and the two
+   * answers that are not acceptable are refusing the lot and silently keeping
+   * the first few. What fits is saved and the rest is named out loud.
+   */
+  async function saveReview() {
+    if (!review) return;
+    const keepers = review.filter((row) => row.keep);
+    if (keepers.length === 0) return;
+
+    const room = roomFor({
+      tracked: documents.length,
+      limit: FREE_ITEM_LIMIT,
+      premium: settings.premium,
+    });
+    const { take, blocked } = splitImport(keepers.length, room);
+
+    if (take === 0) {
+      router.replace('/paywall');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      for (const row of keepers.slice(0, take)) {
+        const type = getDocumentType(row.typeId);
+        await addDocument({
+          typeId: row.typeId,
+          title: row.title.trim() || labelFor(type, settings.country),
+          expiryDate: row.item.expiryDate,
+          documentNumber: type.numberField ? row.item.documentNumber : undefined,
+          // The picture is of all of them, so each record carries it.
+          files,
+          leadDays: type.defaultLeadDays,
+          fields: row.item.fields.length > 0 ? row.item.fields : undefined,
+        });
+      }
+      successFeedback();
+
+      if (blocked > 0) {
+        Alert.alert(
+          `${take} added. ${blocked} more need Expyr Pro.`,
+          `The free plan holds ${FREE_ITEM_LIMIT} items. Pro takes the limit off, so the rest of what was in that picture can be tracked too.`,
+          [
+            { text: 'Not now', style: 'cancel', onPress: () => router.back() },
+            { text: 'See Pro', onPress: () => router.replace('/paywall') },
+          ]
+        );
+        return;
+      }
+      router.back();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Those could not be saved.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function runScan(source: 'camera' | 'library' | 'files') {
     setError(null);
     if (outOfScans) {
@@ -269,13 +370,56 @@ export default function AddDocumentScreen() {
       if (!picked) return;
       setBusy('scanning');
       const { result, fileUri: scannedUri } = await scanFile(picked, settings.country);
+
+      /*
+       * A list of subscriptions, which has a reader of its own that does it
+       * properly. The person chose a photo and it turned out to be their
+       * Subscriptions screen; they are not supposed to know there are two
+       * readers, so the picture goes to the right one rather than the person
+       * being told to start again somewhere else.
+       *
+       * Not counted against the scan allowance here, because that screen
+       * counts its own read and this one produced nothing.
+       */
+      if (result.imageKind === 'subscriptions') {
+        /*
+         * The picture they picked, not the copy that was sent. `scanFile`
+         * downscales before uploading, and handing that on would compress a
+         * screenshot full of small text twice before the reader that has to
+         * read every line of it ever sees it.
+         */
+        router.replace({ pathname: '/subscriptions', params: { image: picked.uri } });
+        return;
+      }
+
+      const many = (result.items ?? []).filter((item) => item.found);
+
       // Only a scan that actually read something counts against the allowance.
-      if (!result.found) {
+      if (!result.found && many.length === 0) {
         setError(result.note || 'No date found in that file.');
         setStep('type');
         return;
       }
       if (!settings.premium) update({ scansUsed: settings.scansUsed + 1 });
+
+      /*
+       * Two cards on a table are two items. One card photographed front and
+       * back is one, which the service decides rather than this screen.
+       */
+      if (many.length > 1) {
+        setReview(
+          many.map((item) => ({
+            item,
+            typeId: item.typeId,
+            title: item.title || labelFor(getDocumentType(item.typeId), settings.country),
+            keep: true,
+          }))
+        );
+        setFiles([{ uri: scannedUri, type: picked.type, key: newAttachmentKey() }]);
+        setStep('review');
+        return;
+      }
+
       applyScan(result, scannedUri, picked.type);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong while scanning.');
@@ -303,6 +447,34 @@ export default function AddDocumentScreen() {
   }
 
   function pickType(t: DocumentType) {
+    /*
+     * The same grid, standing in for one row of the review list. Sharing it
+     * means there is never a second category list to keep in step with the
+     * catalogue, which is the reason the manual path points at this one too.
+     */
+    if (recategorising !== null) {
+      const at = recategorising;
+      setReview(
+        (current) =>
+          current?.map((row, index) =>
+            index === at
+              ? {
+                  ...row,
+                  typeId: t.id,
+                  title: titleAfterCorrection(
+                    row.title,
+                    labelFor(getDocumentType(row.typeId), settings.country),
+                    labelFor(t, settings.country)
+                  ),
+                }
+              : row
+          ) ?? null
+      );
+      setRecategorising(null);
+      setStep('review');
+      return;
+    }
+
     // A title the user never touched is one of ours, under either naming.
     const isAutoTitle =
       !title.trim() ||
@@ -669,6 +841,125 @@ export default function AddDocumentScreen() {
             </ThemedText>
           )}
         </ScrollView>
+      </ThemedView>
+    );
+  }
+
+  /*
+   * Everything found in one picture, and what happens to it.
+   *
+   * The old prompt returned exactly one item, so a photograph of two cards
+   * produced one record and not a word about the other. Listing them is the
+   * fix, and the list is also where the two things most likely to be wrong can
+   * be put right before anything is written: what each one is, and what it is
+   * called.
+   */
+  if (step === 'review' && review) {
+    const keeping = review.filter((row) => row.keep).length;
+    return (
+      <ThemedView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.typeGridContent}>
+          {error && <ErrorNote message={error} />}
+          <ThemedText type="headline">
+            Found {countWord(review.length).toLowerCase()} things.
+          </ThemedText>
+          <ThemedText type="body" themeColor="textSecondary" style={styles.reviewIntro}>
+            Keep whatever you want tracked. Tap a name to change it, or the category under it to
+            put it right.
+          </ThemedText>
+
+          {review.map((row, index) => {
+            const type = getDocumentType(row.typeId);
+            return (
+              <View
+                key={`${row.title}-${index}`}
+                style={[styles.reviewRow, { borderColor: row.keep ? theme.accent : theme.border }]}>
+                <Pressable
+                  onPress={() => {
+                    tapFeedback();
+                    setReview(
+                      (current) =>
+                        current?.map((other, at) =>
+                          at === index ? { ...other, keep: !other.keep } : other
+                        ) ?? null
+                    );
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: row.keep }}
+                  accessibilityLabel={row.title}>
+                  <MaterialCommunityIcons
+                    name={row.keep ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                    size={22}
+                    color={row.keep ? theme.accent : theme.textTertiary}
+                  />
+                </Pressable>
+
+                <View style={styles.flex}>
+                  <Pressable
+                    onPress={() => {
+                      tapFeedback();
+                      setRowTitle(row.title);
+                      setRetitling(index);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Rename ${row.title}`}>
+                    <ThemedText type="bodyMedium">{row.title}</ThemedText>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      tapFeedback();
+                      setRecategorising(index);
+                      setStep('type');
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Change the category of ${row.title}`}>
+                    <ThemedText type="small" themeColor="textTertiary">
+                      {labelFor(type, settings.country)}
+                      {row.item.expiryDate ? ` · ${longDate(row.item.expiryDate)}` : ''}
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })}
+
+          <View style={styles.wallAction}>
+            <PrimaryButton
+              label={
+                saving
+                  ? 'Adding…'
+                  : keeping === 0
+                    ? 'Nothing selected'
+                    : `Track ${keeping} ${keeping === 1 ? 'thing' : 'things'}`
+              }
+              onPress={saveReview}
+              disabled={keeping === 0 || saving}
+            />
+          </View>
+        </ScrollView>
+
+        <ValuePrompt
+          visible={retitling !== null}
+          title="What should this be called?"
+          value={rowTitle}
+          placeholder="A name you will recognise"
+          autoCapitalize="words"
+          onChange={setRowTitle}
+          onCancel={() => setRetitling(null)}
+          onSubmit={() => {
+            const at = retitling;
+            setRetitling(null);
+            if (at === null) return;
+            setReview(
+              (current) =>
+                current?.map((row, index) =>
+                  index === at ? { ...row, title: rowTitle.trim() || row.title } : row
+                ) ?? null
+            );
+          }}
+        />
       </ThemedView>
     );
   }
@@ -1047,6 +1338,16 @@ const styles = StyleSheet.create({
   webDate: { ...Fonts.body, fontSize: 13, paddingTop: 6 },
   notes: { minHeight: 60, textAlignVertical: 'top' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  reviewIntro: { marginBottom: Spacing.two },
+  reviewRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.three,
+    borderRadius: Radius.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.three,
+    marginBottom: Spacing.two,
+  },
   /*
    * Four columns on any phone. The basis is a percentage so the count does not
    * change with the screen, and every chip grows into the remainder equally so

@@ -1,7 +1,7 @@
 import { fetchBrandIcon, isDomain } from './brand-icon.ts';
 import { askDocument, briefDocument, readDocument } from './comprehend.ts';
 import { invalid, ServiceError, unavailable } from './errors.ts';
-import { extractFromImage } from './extract.ts';
+import { extractFromImage, flatten } from './extract.ts';
 import { FileGuidanceStore, isFresh, LayeredGuidanceStore } from './guidance-cache.ts';
 import { generateGuidance, type Guidance } from './guidance.ts';
 import { accountKeyFor, appleKeys, verifyAppleIdentityToken } from './apple-identity.ts';
@@ -317,9 +317,14 @@ export const ROUTES: Record<string, Route> = {
     costs: true,
     handle: async (ctx) => {
       const request = parse(ExtractRequest, ctx.body);
-      const result = await extractFromImage(request);
-      // The count, never the fields. They are the document.
-      ctx.note({ note: `confidence=${result.confidence}`, n_fields: result.fields.length });
+      const scan = await extractFromImage(request);
+      const result = flatten(scan);
+      // The counts, never the fields. They are the document.
+      ctx.note({
+        note: `kind=${result.imageKind} confidence=${result.confidence}`,
+        n_items: scan.items.length,
+        n_fields: result.fields.length,
+      });
       return json(result);
     },
   },

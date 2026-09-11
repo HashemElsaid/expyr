@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { reconcileWithMrz, type Extraction } from './extract.ts';
+import { flatten, reconcileWithMrz, type Extraction } from './extract.ts';
 
 /* ICAO's published specimen, whose check digits are known to be correct. */
 const PASSPORT_MRZ = [
@@ -116,4 +116,35 @@ test('does not mistake a note field for the holder of the document', () => {
   );
   assert.equal(fixed.fields[0].value, 'MINISTRY OF THE INTERIOR');
   assert.equal(fixed.fields[1].value, 'ANNA MARIA ERIKSSON');
+});
+
+/**
+ * 1.0.0 is live and reads these fields off the top level of the response.
+ * Moving them inside `items` would break every copy of it on a phone.
+ */
+test('the first item stays where the shipped app looks for it', () => {
+  const flat = flatten({ imageKind: 'documents', items: [scan(), scan({ title: 'Second' })] });
+  assert.equal(flat.typeId, 'passport');
+  assert.equal(flat.found, true);
+  assert.equal(flat.items.length, 2);
+  assert.equal(flat.imageKind, 'documents');
+});
+
+/*
+ * The bug, from an old build's point of view. It used to be handed the first
+ * subscription as a document and threw the rest away without saying so. Now it
+ * is told nothing was found, and where to go instead.
+ */
+test('a subscriptions list tells an old build where the importer is', () => {
+  const flat = flatten({ imageKind: 'subscriptions', items: [] });
+  assert.equal(flat.found, false);
+  assert.equal(flat.items.length, 0);
+  assert.match(flat.note, /Subscriptions importer/);
+});
+
+test('an empty answer is an answer rather than a crash', () => {
+  const flat = flatten({ imageKind: 'document', items: [] });
+  assert.equal(flat.found, false);
+  assert.equal(flat.typeId, 'other');
+  assert.match(flat.note, /another photo/);
 });

@@ -118,6 +118,32 @@ export const ExtractionSchema = z.object({
 
 export type Extraction = z.infer<typeof ExtractionSchema>;
 
+/**
+ * What the picture is, which has to be answered before what it says.
+ *
+ * "Return exactly one item" was the whole of the old instruction, so somebody
+ * who chose their iOS Subscriptions screenshot on the document path got the
+ * first subscription saved as a document and the other six thrown away in
+ * silence. There are two readers here and the person is not supposed to know
+ * that, so this one says what it is looking at and the app decides who reads
+ * it.
+ */
+export const ImageKindSchema = z.enum(['document', 'documents', 'subscriptions']);
+export type ImageKind = z.infer<typeof ImageKindSchema>;
+
+export const ScanSchema = z.object({
+  imageKind: ImageKindSchema,
+  /**
+   * Every item in the picture. Empty for a list of subscriptions, which
+   * `subscriptions.ts` reads properly: teaching this prompt to do it as well
+   * would be a second, worse copy of a prompt that already works, and two
+   * copies of the same knowledge is the pair that drifts.
+   */
+  items: z.array(ExtractionSchema),
+});
+
+export type Scan = z.infer<typeof ScanSchema>;
+
 export type Category = { id: string; label: string; hint?: string };
 
 function buildSystemPrompt(today: string, categories: Category[]): string {
@@ -129,13 +155,36 @@ function buildSystemPrompt(today: string, categories: Category[]): string {
 
 Today's date is ${today}.
 
-The user has photographed or uploaded one item. It is usually one of:
+The user has photographed or uploaded a picture. It is usually one of:
 - an official document (Emirates ID, residence visa, passport, car registration/Mulkiya, insurance policy, tenancy contract, driving licence, trade licence)
 - a warranty card, membership card, or subscription receipt
 - a screenshot of an email or portal page stating when one of the above expires
 - a PDF such as a tenancy contract, insurance policy or licence certificate
 
-Return exactly one item: the single most important date on it.
+FIRST, SAY WHAT THE PICTURE IS
+
+- "document": one thing, however many sides or pages of it are showing. The
+  front and back of one Emirates ID is one document. A passport data page and
+  the residence visa stuck opposite it is one document, the one being tracked.
+- "documents": two or more separate things in the same frame, such as two ID
+  cards laid on a table, or a passport and a driving licence side by side. Each
+  gets its own item.
+- "subscriptions": a list of services somebody is paying for. The iOS
+  Subscriptions screen, Google Play's, a card or bank statement, a page from a
+  service's own billing section. Return imageKind "subscriptions" and an EMPTY
+  items array: a different reader handles these and reads them better. Do not
+  return the first one as a document, which is what used to happen and lost the
+  rest.
+
+THEN RETURN EVERY ITEM YOU FIND
+
+One entry in items per separate thing, each with the single most important date
+on that thing. One item for a "document", several for "documents", none at all
+for "subscriptions".
+
+A photograph showing both sides of one card is one item. Never split it into
+two by side. Never merge two distinct cards into one item because they belong
+to the same person.
 
 WHAT THE OBJECT IS, BEFORE WHAT IT SAYS
 
@@ -284,7 +333,7 @@ export async function extractFromImage(opts: {
   imageBase64: string;
   mediaType: SupportedMediaType;
   categories: Category[];
-}): Promise<Extraction> {
+}): Promise<Scan> {
   const today = new Date().toISOString().slice(0, 10);
 
   // PDFs go in as a document block; photos as an image block.
@@ -314,7 +363,7 @@ export async function extractFromImage(opts: {
     output_config: {
       // Keeps thinking tokens down on the models that support it; omitted elsewhere.
       ...(EFFORT_CAPABLE.includes(MODEL) ? { effort: 'low' as const } : {}),
-      format: zodOutputFormat(ExtractionSchema),
+      format: zodOutputFormat(ScanSchema),
     },
     messages: [
       {
@@ -325,8 +374,8 @@ export async function extractFromImage(opts: {
             type: 'text',
             text:
               opts.mediaType === 'application/pdf'
-                ? 'Extract the expiry date from this document. Contracts often state a start and an end date — return the end date.'
-                : 'Extract the expiry date from this image.',
+                ? 'Say what this is, then extract the expiry date. Contracts often state a start and an end date — return the end date.'
+                : 'Say what this picture is, then extract every item in it.',
           },
         ],
       },
@@ -335,16 +384,13 @@ export async function extractFromImage(opts: {
 
   if (response.stop_reason === 'refusal') {
     return {
-      found: false,
-      typeId: 'other',
-      title: '',
-      expiryDate: '',
-      documentNumber: '',
-      confidence: 'low',
-      typeConfidence: 'low',
-      mrz: '',
-      note: "This image couldn't be processed. Try entering the details by hand.",
-      fields: [],
+      imageKind: 'document',
+      items: [
+        {
+          ...NOTHING_READ,
+          note: "This image couldn't be processed. Try entering the details by hand.",
+        },
+      ],
     };
   }
 
@@ -352,5 +398,46 @@ export async function extractFromImage(opts: {
   if (!parsed) {
     throw new Error('Model response did not match the expected schema');
   }
-  return reconcileWithMrz(parsed);
+  return { ...parsed, items: parsed.items.map(reconcileWithMrz) };
+}
+
+/** An item that says nothing, for the cases where there is nothing to say. */
+const NOTHING_READ: Extraction = {
+  found: false,
+  typeId: 'other',
+  title: '',
+  expiryDate: '',
+  documentNumber: '',
+  confidence: 'low',
+  typeConfidence: 'low',
+  mrz: '',
+  note: '',
+  fields: [],
+};
+
+/**
+ * The response, in a shape the app already in the App Store can read.
+ *
+ * 1.0.0 is live and reads `found`, `typeId`, `expiryDate` and the rest off the
+ * top level of this object. Moving them inside `items` would break every copy
+ * of it on a phone, so the first item stays where it has always been and the
+ * list sits beside it. A build that knows about `items` reads those; one that
+ * does not carries on seeing exactly what it saw yesterday.
+ *
+ * The one deliberate change for old builds is the subscriptions case. They
+ * used to get the first subscription saved as a document, silently, with the
+ * rest discarded. They now get nothing found and a sentence saying where the
+ * importer is, which is a worse-looking answer and a truer one.
+ */
+export function flatten(scan: Scan): Extraction & { imageKind: ImageKind; items: Extraction[] } {
+  const first =
+    scan.items[0] ??
+    (scan.imageKind === 'subscriptions'
+      ? {
+          ...NOTHING_READ,
+          note: 'This is a list of subscriptions. Settings has a Subscriptions importer that reads the whole list at once.',
+        }
+      : { ...NOTHING_READ, note: 'Nothing on this could be read. Try another photo.' });
+
+  return { ...first, imageKind: scan.imageKind, items: scan.items };
 }

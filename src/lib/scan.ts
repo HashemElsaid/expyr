@@ -24,7 +24,10 @@ export type PickedFile = {
   name?: string;
 };
 
-export type ScanResult = {
+/** What the service says the picture is, so the app can pick a reader. */
+export type ImageKind = 'document' | 'documents' | 'subscriptions';
+
+export type ScanItem = {
   found: boolean;
   typeId: DocumentTypeId;
   title: string;
@@ -44,6 +47,23 @@ export type ScanResult = {
    * has not been deployed yet, so every reader treats it as optional.
    */
   fields: ExtractedField[];
+};
+
+/**
+ * One picture, read.
+ *
+ * The first item is spread across the top level because that is where the app
+ * has always read it from, and because the service keeps it there for the copy
+ * of 1.0.0 on the App Store. `items` is the whole truth: one entry for a
+ * document, several for a photograph of several, none for a subscriptions list,
+ * which has a reader of its own.
+ *
+ * Both are optional because a service that has not been deployed yet sends
+ * neither, and a build talking to one should behave exactly as it did before.
+ */
+export type ScanResult = ScanItem & {
+  imageKind?: ImageKind;
+  items?: ScanItem[];
 };
 
 export async function pickImage(source: 'camera' | 'library'): Promise<PickedFile | null> {
@@ -158,19 +178,26 @@ export async function scanFile(
     }
   );
 
-  // A category this build does not know about would break every screen that
-  // looks one up, so an unfamiliar answer falls back rather than being trusted.
-  const known = DOCUMENT_TYPES.some((t) => t.id === result.typeId);
+  /*
+   * Shaped here, at the edge, so no screen ever sees a raw transcription, and
+   * so an older service that sends no fields at all becomes an empty list
+   * rather than undefined. Applied to every item and not only the first,
+   * because a photograph of two cards is now two items and the second one is
+   * nobody's special case.
+   */
+  const settle = (item: ScanItem): ScanItem => ({
+    ...item,
+    // A category this build does not know about would break every screen that
+    // looks one up, so an unfamiliar answer falls back rather than being trusted.
+    typeId: DOCUMENT_TYPES.some((t) => t.id === item.typeId) ? item.typeId : 'other',
+    fields: tidyFields(item.fields),
+  });
+
   return {
     result: {
-      ...result,
-      typeId: known ? result.typeId : 'other',
-      /*
-       * Shaped here, at the edge, so no screen ever sees a raw transcription —
-       * and so an older service that sends no fields at all becomes an empty
-       * list rather than undefined.
-       */
-      fields: tidyFields(result.fields),
+      ...settle(result),
+      ...(result.imageKind ? { imageKind: result.imageKind } : {}),
+      ...(Array.isArray(result.items) ? { items: result.items.map(settle) } : {}),
     },
     fileUri: uri,
   };

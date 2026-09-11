@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -37,6 +37,17 @@ export default function SubscriptionsScreen() {
   const { documents, addDocument } = useDocuments();
   const { settings, update } = useSettings();
 
+  /**
+   * An image the document scanner handed over.
+   *
+   * The person chose "Choose a photo" on the document path and it turned out
+   * to be their Subscriptions screen. They are not supposed to know there are
+   * two readers here, so the scan says which one the picture needs and the
+   * picture arrives here rather than the person being told to start again.
+   */
+  const params = useLocalSearchParams<{ image?: string }>();
+  const handedOver = typeof params.image === 'string' ? params.image : undefined;
+
   const [found, setFound] = useState<FoundSubscription[] | null>(null);
   const [chosen, setChosen] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -45,16 +56,13 @@ export default function SubscriptionsScreen() {
 
   const outOfScans = !settings.premium && settings.scansUsed >= FREE_SCAN_LIMIT;
 
-  async function readScreenshot() {
-    setError(null);
-    if (outOfScans) {
-      router.push('/paywall');
-      return;
-    }
+  /*
+   * Reads a picture that is already in hand, whether it was chosen here or
+   * handed over by the document scanner.
+   */
+  async function read(picked: { uri: string; type: 'image' }) {
+    setBusy(true);
     try {
-      const picked = await pickImage('library');
-      if (!picked) return;
-      setBusy(true);
       const scan = await readSubscriptionScreenshot(picked);
       if (!settings.premium) update({ scansUsed: settings.scansUsed + 1 });
 
@@ -82,6 +90,31 @@ export default function SubscriptionsScreen() {
       setBusy(false);
     }
   }
+
+  async function readScreenshot() {
+    setError(null);
+    if (outOfScans) {
+      router.push('/paywall');
+      return;
+    }
+    try {
+      const picked = await pickImage('library');
+      if (!picked) return;
+      await read({ uri: picked.uri, type: 'image' });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'That did not work. Try again.');
+    }
+  }
+
+  /* Once, on arrival, for an image the scanner passed through. */
+  const started = useRef(false);
+  useEffect(() => {
+    if (!handedOver || started.current) return;
+    started.current = true;
+    void read({ uri: handedOver, type: 'image' });
+    // Reading it is the whole reason this screen was opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handedOver]);
 
   async function addChosen() {
     if (!found || chosen.size === 0) return;

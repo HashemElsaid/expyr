@@ -74,9 +74,23 @@ Watch four things, all free in App Store Connect:
 | Installs to Pro | The only number that pays for anything. **Break-even is 0.29%** |
 | Support messages per 100 installs | Under 3 is normal. Count them by cause, not volume |
 
-Two more that App Store Connect will not give you, and that decide the pricing
-question in `MONEY.md`: **how many installs open Expyr AI at all**, and **how
-many Pro buyers ever top up.**
+**Where those live.** App Store Connect → the app → **Analytics** for
+impressions, page views, App Units, crashes and retention; **Sales and
+Trends** for every download and every in-app purchase as a transaction, broken
+out by product and country, which is where Expyr Pro versus each credit pack
+is counted. Both lag a day or more. Installs and purchases are complete;
+sessions, active devices and retention count only people who opted in to
+sharing analytics with developers, so treat them as a sample. Apple reports
+counts, never identities.
+
+Two more that decide the pricing question in `MONEY.md`: **how many installs
+open Expyr AI at all**, and **how many Pro buyers ever top up.** The second is
+arithmetic on Sales and Trends: credit-pack purchases over Pro purchases. The
+first is invisible to Apple, because it is behaviour inside an app that ships
+no analytics SDK on purpose. It has to be counted on the server, where every
+`/extract`, `/read` and `/ask` already arrives: calls per day, and distinct
+install tokens that ever read. No tracking of anyone, and it is the only way
+to answer the question at week eight.
 
 ---
 

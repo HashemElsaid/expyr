@@ -87,7 +87,15 @@ no pricing changes, no model changes.
    app, reinstall, restore, confirm Pro returns. It was never separately
    tested before submission.
 
-7. **Bump the version to 1.0.1** so App Store Connect accepts the build
+7. **Count feature use on the server.** The week-eight pricing decision needs
+   how many installs ever open Expyr AI, and Apple cannot see inside the app.
+   Every `/extract`, `/read` and `/ask` already lands on Render. Count calls per
+   day per route, and distinct install tokens that have ever hit `/read`, and
+   expose it somewhere the account holder can read: a `/stats` route behind the
+   shared token, or a daily line in the logs. No per-person tracking, no new
+   SDK, nothing the privacy labels would have to mention.
+
+8. **Bump the version to 1.0.1** so App Store Connect accepts the build
    against a new version record.
 
 Open and non-blocking, from earlier sections: the dark-mode shadow glow in

@@ -70,19 +70,42 @@ function iap(): Promise<Iap | null> {
 
 /** Whether this build can sell anything at all. */
 export async function storeAvailable(): Promise<boolean> {
-  return (await iap()) !== null;
+  return (await connect()) !== null;
 }
 
 let connected = false;
 
+/**
+ * Opens the store, or answers that there is not one.
+ *
+ * The guard above this was written believing that importing expo-iap in a
+ * runtime without it would fail, so `iap()` catching the import was the whole
+ * of the check. It is not: expo-iap resolves its native module lazily, behind
+ * a Proxy, on the first property anybody touches. So in Expo Go the import
+ * succeeds, `iap()` hands back a module, every caller believes there is a
+ * store, and the failure arrives later as "Cannot find native module 'ExpoIap'"
+ * thrown from whichever line first used it.
+ *
+ * Which is how somebody tapping Top up in Expo Go got a red rejection toast
+ * instead of the sentence written for exactly that case, three functions away.
+ *
+ * initConnection is the first property touched, so it is the honest place to
+ * find out. A failure here means this runtime has no store, which is a fact
+ * about the build rather than an error to report: every caller already has a
+ * path for it.
+ */
 async function connect(): Promise<Iap | null> {
   const store = await iap();
   if (!store) return null;
-  if (!connected) {
+  if (connected) return store;
+
+  try {
     await store.initConnection();
     connected = true;
+    return store;
+  } catch {
+    return null;
   }
-  return store;
 }
 
 /**

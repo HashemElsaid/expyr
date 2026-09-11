@@ -51,7 +51,9 @@ export default function SettingsScreen() {
   const [canProtect, setCanProtect] = useState(false);
 
   useEffect(() => {
-    canSignIn().then(setCanProtect);
+    // Catching, like every other promise on this screen: an unhandled
+    // rejection in Expo Go is a red toast over the app.
+    canSignIn().then(setCanProtect).catch(() => setCanProtect(false));
   }, []);
 
   async function protectCredits() {

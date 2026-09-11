@@ -165,7 +165,7 @@ Variable, per install, in the first month:
 
 | | Cost | Note |
 |---|---|---|
-| Scanning, about 8 items | $0.024 | $0.003 each, Haiku |
+| Scanning, about 8 items | $0.024 | $0.003 each, Haiku. Moving to Sonnet 5 for accuracy, item 12 in `LAUNCH.md`: about $0.015 each, so $0.12 here and $0.15 an install worst case |
 | Welcome credits actually spent | $0.056 | see the assumption below |
 | Renewal guidance | ~$0 | generated once per category and region, cached 90 days, shared by everybody |
 | **Per install** | **~$0.08** | |

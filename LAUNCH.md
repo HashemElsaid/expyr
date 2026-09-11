@@ -202,6 +202,63 @@ Open and non-blocking, from earlier sections: the dark-mode shadow glow in
 section 8, and the Haiku-versus-Sonnet comparison for the brief in
 `PRICING.md`.
 
+### From the first outside users, 11 September
+
+Three stumbles from three people in one afternoon, all in the scan, which is
+the feature the listing leads on. These outrank everything above that is not
+already done.
+
+12. **The document type is guessed wrong.** A passport came back as an
+    Emirates ID once and as a residence visa twice; the entry read "Residence
+    Visa for AEHED SAID SHERIF" with the note "Expiry date printed as
+    20/08/2026 in the visa details". Extraction runs on `claude-haiku-4-5`
+    by default (`EXPYR_MODEL` in `server/extract.ts`) and the prompt lists
+    the categories with no tells for telling them apart. Three parts:
+    - **Move `/extract` to `claude-sonnet-5`.** About $0.015 a scan against
+      $0.003; ten free scans is $0.15 an install worst case, and the whole
+      product is "it read the document right". Costed in `MONEY.md`.
+    - **Give the prompt the physical tells**, not keywords. A passport is a
+      booklet data page with a two-line MRZ beginning `P<`, and it stays a
+      passport even though it names a nationality and a visa may be stuck in
+      it. An Emirates ID is a card headed UNITED ARAB EMIRATES / IDENTITY
+      CARD with a 784 number and a three-line MRZ beginning `I<`. A residence
+      visa is a passport page or e-visa printout carrying UID, file number,
+      sponsor and RESIDENCE. Decide the type from what the object is, then
+      read the dates.
+    - **Return a type confidence.** When it is not high, the add screen asks
+      one question before anything else: "This looks like a passport. Is that
+      right?" with the category picker one tap away. A wrong category is
+      wrong guidance, wrong lead time and a wrong title, so it is the one
+      thing worth interrupting for.
+
+13. **One screenshot, many things.** The prompt says "Return exactly one
+    item". So "Choose a photo" on the document path, given an iOS
+    subscriptions list, returned the first subscription as a document and
+    dropped the rest. The subscriptions path in `subscriptions.tsx` reads
+    lists fine, but the person does not know there are two paths, and should
+    not have to. One entry point: the model first says what the image is, a
+    document, several documents, or a list of subscriptions, and returns
+    every item it finds. The app then shows a review list, "Found 4 things in
+    this screenshot", each with its category and date, tick to keep, tap to
+    fix, then saves them against the free ceiling with the paywall for any
+    that do not fit. Two sides of one Emirates ID are one item; two cards on
+    a table are two.
+
+14. **A clear passport, a misspelled name, and no way to fix it.** Two
+    faults. The name should come from the MRZ on passports and Emirates IDs,
+    which is check-digit protected and spelled exactly as the printed name;
+    read both, prefer the MRZ, and flag when they disagree. And every
+    extracted field must be editable somewhere. `add.tsx` around line 102
+    keeps them read-only on purpose, to keep the form short, which is right,
+    but the document's own screen then has to allow tap-to-edit on each
+    field, including the person's name. A household member created from a
+    scan needs the same. A name nobody can correct is worse than no name,
+    because it goes into a government form.
+
+Before and after, run the three actual images through: the passport that
+became a visa, the subscriptions screenshot, and the misspelled passport.
+Keep them out of the repo.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

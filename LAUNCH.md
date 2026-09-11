@@ -351,6 +351,62 @@ They are on Hashem's phone and stay out of the repo.
     deploy is proven by comparing it with `origin/main` rather than by the
     service merely answering.
 
+17. **The screens still read as machine-made, and the font was only the
+    first tell.** Hashem, 11 September, with three screenshots and the
+    offending parts circled, on the system font: tracked uppercase eyebrows
+    ("FRIDAY 11 SEPTEMBER", "CREDITS", "OVERDUE", "PLAN"), a big numeral
+    with a shrunken unit beside it ("10 credits"), a chatty grey second line
+    under every row with a full stop ("25 booked with iOS, each at 9am."),
+    the middot-joined caption, the three-sentence fine print under a buy
+    button, a mint pill button inside every row, and a headline that is a
+    sentence with a period ("One expired."). Each is a signature of
+    generated interfaces; together they are unmistakable. This is a
+    restructure of the visual language, not a style tweak, and the rule is:
+    **Expyr uses Apple's own vocabulary, so that a screen set beside
+    Settings or Reminders reads as a native app rather than an imitation.**
+
+    The vocabulary, applied everywhere:
+    - **Type**: Apple's text styles only, at their sizes and weights: Large
+      Title, Title 2, Headline, Body, Subheadline, Footnote, Caption. No
+      `letterSpacing` anywhere; SF tracks itself. No `textTransform:
+      uppercase` outside grouped-list section headers, and those are
+      Footnote grey with no added tracking, as in Settings. Dynamic Type on.
+      The `label` style in `themed-text.tsx`, 1.1 tracking and uppercase,
+      goes.
+    - **Lists**: inset grouped lists, the Settings pattern: rounded group,
+      rows with a leading SF Symbol, title, a value or chevron on the right.
+      Settings, Top up, the document screen and Household use it.
+    - **Buttons**: one filled primary button per screen, at the bottom.
+      Row-level actions are tinted text ("Top Up", "Unlock") or a chevron.
+      No pills inside rows, no "Test" and "Reset" buttons beside labels.
+    - **Numbers**: number and unit in one size, "10 credits", "1,500
+      credits", "AED 12.99", right-aligned in the row. The unit never
+      shrinks and never floats beside a display numeral.
+    - **Secondary lines**: only when they carry a fact the person acts on;
+      sentence fragments, no full stop, no middot. "25 booked with iOS, each
+      at 9am." becomes "25 scheduled" or nothing. "Saved on this iPhone ·
+      included in your backup" becomes a Footnote under the group, one
+      clause.
+    - **Headlines**: a Large Title that names the screen, "Timeline",
+      "Settings", "Expyr AI". Not a sentence, no period. The date line above
+      it goes; the day is in the status bar. State lives in section headers:
+      an "Overdue" header in red over the overdue rows.
+    - **Fine print**: one line under a buy button, the least Apple requires:
+      "One-time purchase. Credits do not expire." Nothing else.
+    - **Icons**: SF Symbols via `expo-symbols`, nothing from
+      MaterialCommunityIcons, including the tab bar and the document tiles.
+    - **Colour**: keep paper and ink and the mint tint, and use iOS semantic
+      colours for secondary and tertiary text rather than custom browns, so
+      the greys are the greys people already know.
+    - **The timeline row**: a normal row, title, "Expired 20 Aug" as the
+      subheadline, the SF Symbol tile on the left. The big-date tile with the
+      dot goes.
+
+    Delivery: screen by screen, Timeline, Settings, Top up, Paywall, Add,
+    the document screen, Household, Expyr AI. Hashem checks each in Expo Go.
+    The test is the one he gave: if it still looks generated, it is not
+    done, and removing an element beats restyling it.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

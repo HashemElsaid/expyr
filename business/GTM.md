@@ -83,6 +83,11 @@ sessions, active devices and retention count only people who opted in to
 sharing analytics with developers, so treat them as a sample. Apple reports
 counts, never identities.
 
+**First outside user, 11 September.** A driving licence scanned, three
+subscriptions imported from a screenshot, and both came through with the right
+dates and prices first time, on the shipped binary. One data point, but it is
+the one that says the two features the listing leads on work for a stranger.
+
 Two more that decide the pricing question in `MONEY.md`: **how many installs
 open Expyr AI at all**, and **how many Pro buyers ever top up.** The second is
 arithmetic on Sales and Trends: credit-pack purchases over Pro purchases. The

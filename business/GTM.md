@@ -137,12 +137,14 @@ app will ever get, and the page ends by offering to remember the next one. It
 is slow to start, it compounds, and it is the only thing here that works while
 you sleep.
 
-**Publishing checklist**, once the figures are verified:
+**Publishing checklist:**
 
-1. Push to `main`, since GitHub Pages serves `docs/` from there
+1. ~~Push to `main`, since GitHub Pages serves `docs/` from there~~ Pushed
+   11 September, with the site switched to the system font in the same push
 2. Confirm all five render at hashemelsaid.github.io/expyr/guides/
 3. Submit the guides index to Google Search Console. Without it, indexing takes
-   weeks rather than days
+   weeks rather than days. Needs the site verified under the Google account
+   once, which only the account holder can do
 4. Only then start pointing anybody at them
 
 ### Reddit, r/dubai and r/UAE

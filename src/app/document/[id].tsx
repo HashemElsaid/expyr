@@ -554,83 +554,100 @@ export default function DocumentDetailScreen() {
          * generic renewal guidance below it. Almost nobody reads what they sign.
          */}
         {/*
-         * The allowance is spent and this document has never been read. This is
-         * the moment the feature is worth paying for, so it says what it would
-         * do rather than hiding that anything exists.
-         */}
-        {doc.files.length > 0 && !brief && (
-          <Pressable
-            onPress={
+          * What can be asked of this document, and what to do if nothing can
+          * yet.
+          *
+          * This was a card offering to read the document, which is the step
+          * item 18 removed: the reading happens when the document is opened
+          * now, or has already happened off the scan. What is left is one row,
+          * and which row it is depends on the one thing a person needs to know.
+          *
+          * While it is working, it says so and how far along it is. Read, it
+          * offers the only thing worth offering, which is asking. Short of
+          * credits, it says so and goes to the top-up, because running out is
+          * a thing to fix rather than an error to sit under. Unread on a free
+          * account, it says what Pro would do, since the words are already
+          * kept and the day Pro is bought there is nothing to redo.
+          */}
+        {doc.files.length > 0 && (
+          <ListSection>
+            {stage !== null ? (
+              <ListRow
+                symbol="doc.text.magnifyingglass"
+                tint="blue"
+                title={
+                  stage === 'counting'
+                    ? 'Checking the document'
+                    : stage === 'transcribing'
+                      ? 'Reading it'
+                      : 'Working out what it says'
+                }
+                subtitle={
+                  stage === 'transcribing' && progress
+                    ? progress.total > progress.of
+                      ? `Page ${progress.page} of ${progress.of}, of ${progress.total}`
+                      : `Page ${progress.page} of ${progress.of}`
+                    : undefined
+                }
+              />
+            ) : shortOfCredits ? (
+              <ListRow
+                symbol="sparkles"
+                tint="purple"
+                title="Top up to ask about this"
+                subtitle={`Not read yet. ${shortOfCredits} pages to read`}
+                chevron={false}
+                onPress={() => router.push('/top-up')}
+              />
+            ) : readable ? (
+              <>
+                <ListRow
+                  symbol="sparkles"
+                  tint="purple"
+                  title="Ask Expyr AI about this"
+                  chevron={false}
+                  onPress={() => router.navigate(`/ask?id=${doc.id}`)}
+                />
+                {/*
+                  * Read, but the summary did not land. Asking already works
+                  * off the transcript, so this is an offer rather than a
+                  * repair, and it costs nothing: the charge is on reading and
+                  * asking, not on summarising.
+                  */}
+                {!brief && (
+                  <ListRow
+                    symbol="text.alignleft"
+                    tint="blue"
+                    title="Summarise this document"
+                    chevron={false}
+                    onPress={retrySummary}
+                  />
+                )}
+              </>
+            ) : !settings.premium ? (
+              <ListRow
+                symbol="sparkles"
+                tint="purple"
+                title="Ask Expyr AI about this"
+                subtitle="With Expyr Pro. This document is already read and waiting"
+                chevron={false}
+                onPress={() => router.push('/paywall')}
+              />
+            ) : (
               /*
-               * A refusal that leads somewhere. Running out mid-document is a
-               * thing to fix, not an error to sit under, so the card that says
-               * so is also the way to the top-up.
+               * Pro, nothing read, and nothing running: the automatic read
+               * declined at the price, or failed. The one case where reading
+               * is still a button, and it names what it will cost.
                */
-              shortOfCredits ? () => router.push('/top-up') : readable ? retrySummary : readNow
-            }
-            disabled={stage !== null}
-            accessibilityRole="button">
-            {({ pressed }) => (
-              <View
-                style={[
-                  styles.readPrompt,
-                  { borderColor: theme.border },
-                  (pressed || stage !== null) && styles.dim,
-                ]}>
-                <Icon name="doc.text.magnifyingglass" size={20} color={theme.accent} />
-                <View style={styles.flex}>
-                  <ThemedText type="headline">
-                    {stage === 'counting'
-                      ? 'Checking the document…'
-                      : stage === 'transcribing'
-                        ? 'Reading it…'
-                        : stage === 'summarising'
-                        ? 'Working out what it says…'
-                        : shortOfCredits
-                          ? 'Not enough credits to read this'
-                          : readable
-                            ? 'Summarise this document'
-                            : 'Read this document'}
-                  </ThemedText>
-                  <ThemedText type="footnote" themeColor="textTertiary">
-                    {stage === 'counting'
-                      ? 'Counting the pages.'
-                      : /*
-                         * A moving count, and nothing else. Everything this
-                         * line used to add — how long it takes, that it only
-                         * happens once — was either guesswork or something the
-                         * count already says by moving.
-                         */
-                        stage === 'transcribing'
-                        ? progress
-                          ? progress.total > progress.of
-                            ? `Page ${progress.page} of ${progress.of}, of ${progress.total}`
-                            : `Page ${progress.page} of ${progress.of}`
-                          : ''
-                        : stage === 'summarising'
-                          ? 'Almost there.'
-                          : readable
-                            ? 'Read. The summary did not finish, but you can ask it questions.'
-                            : /* The one thing worth saying, because this one costs credits. */
-                              'Find out what you agreed to, then ask it anything.'}
-                  </ThemedText>
-                </View>
-              </View>
+              <ListRow
+                symbol="doc.text.magnifyingglass"
+                tint="blue"
+                title="Read this document"
+                chevron={false}
+                onPress={() => readNow()}
+              />
             )}
-          </Pressable>
-        )}
-
-        {/*
-         * Reading survived but summarising did not. The transcript is what
-         * answers questions, so the feature is usable and should say so rather
-         * than hiding behind a missing summary.
-         */}
-        {readable && !brief && stage === null && (
-          <SecondaryAction
-            icon="sparkles"
-            label="Ask about this document"
-            onPress={() => router.navigate(`/ask?id=${doc.id}`)}
-          />
+          </ListSection>
         )}
 
         {brief && (

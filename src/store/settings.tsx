@@ -94,6 +94,14 @@ export type Settings = {
    */
   ownName: string;
   /**
+   * Whether opening a document reads it.
+   *
+   * On by default, because the alternative was a button nobody found. Here for
+   * the person who would rather decide each time, and only meaningful with
+   * Pro, since reading is what Pro buys.
+   */
+  autoRead: boolean;
+  /**
    * Whether the rating prompt has been used up.
    *
    * One per install, spent at the moment a renewal is recorded. Its own flag
@@ -130,6 +138,7 @@ const DEFAULTS: Settings = {
   lockOffered: false,
   people: [],
   ownName: '',
+  autoRead: true,
   ratingAsked: false,
   account: null,
 };
@@ -295,6 +304,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             typeof parsed.ownName === 'string' && parsed.ownName
               ? parsed.ownName
               : nameFromDevice(Constants.deviceName),
+          autoRead: parsed.autoRead ?? DEFAULTS.autoRead,
           ratingAsked: parsed.ratingAsked ?? DEFAULTS.ratingAsked,
           /*
            * Named explicitly, like everything above it. This object is rebuilt

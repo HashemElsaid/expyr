@@ -35,6 +35,14 @@ export type ScanItem = {
   documentNumber: string;
   confidence: 'high' | 'medium' | 'low';
   /**
+   * Everything the page says, when the service typed it out.
+   *
+   * Stored as the document's transcript the moment it is saved, so Expyr AI
+   * can answer about it without anybody pressing anything. Optional, because
+   * a service that has not been deployed yet does not send it.
+   */
+  text?: string;
+  /**
    * How sure the service was of the category, which is a different question
    * from the date and was wrong in the opposite direction on the scans that
    * put it here. Optional, because a service that has not been deployed yet

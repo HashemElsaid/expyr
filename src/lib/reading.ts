@@ -135,6 +135,28 @@ function clearProgress(documentId: string) {
  * be answered from the pages that happened to arrive — confidently, and from
  * half the document.
  */
+/**
+ * Keeps text the scan already produced, as though a read had happened.
+ *
+ * The scan looks at the page to find the date, so it types the page out at the
+ * same time and this is where that lands. No credits are charged for it:
+ * nothing was spent beyond the scan, and a second model call over the same
+ * pixels would be waste.
+ *
+ * The summary is not written here. It is a separate call with a real cost, and
+ * the document's own screen asks for one when somebody opens it. What this
+ * buys is that Expyr AI can answer about the document at all.
+ */
+export function storeReading(documentId: string, text: string) {
+  const trimmed = text.trim();
+  if (trimmed === '') return;
+  try {
+    saveTranscript(documentId, trimmed);
+  } catch {
+    // A transcript that will not save costs an answer, never the document.
+  }
+}
+
 export function hasReading(documentId: string): boolean {
   if (Platform.OS === 'web') return false;
   try {

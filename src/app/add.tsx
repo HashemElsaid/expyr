@@ -40,6 +40,7 @@ import { newAttachmentKey } from '@/lib/files';
 import { REMINDER_TIME } from '@/lib/notifications';
 import { askForReview } from '@/lib/rating';
 import { leadLabel } from '@/lib/reminder-plan';
+import { storeReading } from '@/lib/reading';
 import {
   attachFile,
   pickDocument,
@@ -195,6 +196,8 @@ export default function AddDocumentScreen() {
    * that names the thing it got wrong.
    */
   const [guessed, setGuessed] = useState<DocumentType | null>(null);
+  /** The page as the scan typed it out, kept until there is a document to put it on. */
+  const [scanned, setScanned] = useState<string | null>(null);
   /**
    * Everything found in one picture, when it held more than one thing.
    *
@@ -391,6 +394,7 @@ export default function AddDocumentScreen() {
     setLeadDays(scannedType.defaultLeadDays);
     setFiles([{ uri: scannedUri, type: scannedKind, key: newAttachmentKey() }]);
     setFields(result.fields ?? []);
+    setScanned(result.text?.trim() ? result.text : null);
     setScanNote(
       result.confidence === 'high' ? result.note : `${result.note} Check the date before saving.`
     );
@@ -454,7 +458,7 @@ export default function AddDocumentScreen() {
     try {
       for (const row of keepers.slice(0, take)) {
         const type = getDocumentType(row.typeId);
-        await addDocument({
+        const made = await addDocument({
           typeId: row.typeId,
           title: row.title.trim() || labelFor(type, settings.country),
           expiryDate: row.item.expiryDate,
@@ -464,6 +468,9 @@ export default function AddDocumentScreen() {
           leadDays: type.defaultLeadDays,
           fields: row.item.fields.length > 0 ? row.item.fields : undefined,
         });
+
+        // Each thing found in the picture keeps its own share of the words.
+        if (row.item.text?.trim()) storeReading(made.id, row.item.text);
       }
       successFeedback();
 
@@ -725,6 +732,19 @@ export default function AddDocumentScreen() {
     }
 
     const created = await addDocument(draft);
+
+    /*
+     * The words the scan already read, kept as though the document had been
+     * read, because it has been: the model looked at the page to find the
+     * date and typed it out in the same pass.
+     *
+     * This is what stops reading being a step. It used to need a button at
+     * the bottom of the document's own screen, which nobody found, so Expyr
+     * AI looked empty to everybody who had not gone looking for it. No
+     * credits are charged, because nothing was spent beyond the scan.
+     */
+    if (scanned) storeReading(created.id, scanned);
+
     successFeedback();
 
     /*

@@ -243,6 +243,29 @@ export default function SettingsScreen() {
           </ListSection>
 
           {/*
+            * Only with Pro, because reading is what Pro buys and a switch that
+            * controls nothing is worse than no switch.
+            */}
+          {settings.premium && (
+            <ListSection
+              title="Expyr AI"
+              footer="Opening a document reads it, so you can ask about it straight away. Turn this off to decide each time">
+              <ListRow
+                symbol="text.magnifyingglass"
+                tint="blue"
+                title="Read documents automatically"
+                control={
+                  <Switch
+                    value={settings.autoRead}
+                    onValueChange={(next) => update({ autoRead: next })}
+                    trackColor={{ true: theme.accent, false: theme.backgroundSelected }}
+                  />
+                }
+              />
+            </ListSection>
+          )}
+
+          {/*
            * Answered once during onboarding and rarely thought about again, so
            * it states the answer and keeps the pickers behind it.
            */}

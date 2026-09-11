@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { successFeedback, tapFeedback } from '@/lib/haptics';
@@ -150,6 +150,36 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
   }, [doc?.id]);
 
   /**
+   * Reading, without anybody asking for it.
+   *
+   * The one thing a person had to find and press, and did not: the button was
+   * at the bottom of this screen and Expyr AI looked empty to everybody who
+   * never scrolled to it. Opening a document now reads it.
+   *
+   * Four conditions, and each is load-bearing. Nothing already read, because a
+   * photographed document arrives with its words already kept and a second
+   * model call over the same page would be waste. Something to read. The
+   * setting on, for anybody who would rather decide each time. And Pro,
+   * because this is the feature Pro is for and the one that costs money per
+   * use.
+   *
+   * `readNow` does the rest and has always done it: it counts the pages for
+   * nothing, refuses politely when the balance will not cover them, and asks
+   * first above ten pages. None of that needed rewriting to be automatic.
+   */
+  const started = useRef<string | null>(null);
+  useEffect(() => {
+    if (!doc || !settings.premium || !settings.autoRead) return;
+    if (doc.files.length === 0) return;
+    if (hasReading(doc.id) || isReading(doc.id)) return;
+    // Once per document per mount, so a re-render cannot start a second read.
+    if (started.current === doc.id) return;
+    started.current = doc.id;
+    void readNow(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc?.id, settings.premium, settings.autoRead]);
+
+  /**
    * Reads the document, after saying what it will cost.
    *
    * Counting the pages is free, so the price can be put to somebody before a
@@ -157,12 +187,19 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
    * would make the app feel like it was haggling; above that, being asked is
    * the difference between a purchase and a surprise.
    */
-  async function readNow() {
+  /**
+   * Reads the document, after saying what it will cost.
+   *
+   * `automatic` when nobody pressed anything, which changes two things: no
+   * haptic, since a tap somebody did not make should not buzz, and a refusal
+   * is silent rather than an alert about a thing they did not ask for.
+   */
+  async function readNow(automatic = false) {
     if (!doc || stage) return;
     const first = doc.files[0];
     if (!first) return;
 
-    tapFeedback();
+    if (!automatic) tapFeedback();
     setShortOfCredits(null);
 
     let pages: number;
@@ -171,10 +208,12 @@ export function useDocumentReading(doc: TrackedDocument | undefined): DocumentRe
       pages = await countPages(first);
     } catch (error) {
       setStage(null);
-      Alert.alert(
-        'Could not read that',
-        error instanceof Error ? error.message : 'Something went wrong.'
-      );
+      if (!automatic) {
+        Alert.alert(
+          'Could not read that',
+          error instanceof Error ? error.message : 'Something went wrong.'
+        );
+      }
       return;
     }
 

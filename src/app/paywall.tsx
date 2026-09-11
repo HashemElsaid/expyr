@@ -17,11 +17,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { topUp } from '@/domain/credits';
+import { trackedSentence } from '@/domain/renewal-value';
 import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
 import { PRO_CREDITS, PRO_PAGES } from '@/lib/credit-packs';
 import { successFeedback } from '@/lib/haptics';
 import { PRO_PRODUCT_ID, plans, purchase, restore, type PurchaseOutcome } from '@/lib/purchases';
+import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 
 /** Shorter than the word, and it reads the same in any language. */
@@ -41,7 +43,20 @@ export default function PaywallScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { settings, update } = useSettings();
+  const { documents } = useDocuments();
   const [busy, setBusy] = useState(false);
+
+  /*
+   * Their own paperwork, at the top of the screen that is about to ask them
+   * for money. Three of the four ways in here are a ceiling they just hit, so
+   * they arrive having watched the app work and then be stopped; this is the
+   * one line on the screen they can check against what they are holding.
+   *
+   * Null on an empty list, which can only be somebody who came from Settings.
+   * "You are tracking 0 items" on the screen selling a tracker argues the
+   * other way.
+   */
+  const opener = trackedSentence(documents, settings.country);
   /*
    * Read once per render rather than at module load, so the price follows the
    * phone's region — and, once StoreKit is wired, the storefront's own
@@ -148,6 +163,11 @@ export default function PaywallScreen() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Enter step={0} style={styles.hero}>
             <ThemedText type="headline">Free, or everything.</ThemedText>
+            {opener && (
+              <ThemedText type="body" themeColor="textSecondary">
+                {opener}.
+              </ThemedText>
+            )}
           </Enter>
 
           <Enter step={1}>

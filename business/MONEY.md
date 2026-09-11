@@ -328,6 +328,59 @@ are measured rather than assumed.
 
 ---
 
+## Hard paywall, considered and declined, 11 September
+
+RevenueCat's benchmark piece puts hard paywalls at a **10.7% median** of
+downloads to paid against **2.1% for freemium**, with the hard-paywall floor at
+4.2%. Read on its own that says gate everything. Read against this app it says
+the opposite, for four reasons.
+
+**Those are subscription apps with trials.** A hard paywall there means a
+seven-day free trial in front of a subscription, and the conversion counts
+people who forgot to cancel. Expyr sells a one-off, and StoreKit offers no
+trial on a non-consumable. A hard paywall here is "pay AED 149 to an unknown
+app before it shows you anything", which is a different product from the one
+measured.
+
+**The denominator moves.** Hard-paywall apps convert a higher share of far
+fewer installs, and the installs they do get are bought with ads. Every
+channel in `GTM.md` is organic: search pages, Reddit, a video. A person who
+lands from "how to renew your Emirates ID" and meets a price screen leaves.
+App Store ranking is also driven by download volume, which a hard paywall
+cuts first.
+
+**The article's own test says freemium.** Its rule is hard paywall for acute
+problems, freemium for long-term habits. Expyr is opened twice a year and its
+value arrives months later as a fine that did not happen. That is the habit
+case.
+
+**Break-even is 0.29%.** Freemium's median of 2.1% is seven times that. The
+economics do not need the hard-paywall rate; they need installs.
+
+What the piece is right about, and what to take from it: **freemium is a
+product strategy, and it lives or dies on where the gate sits.** The 75% LTV
+gain in its case study came from a multistep paywall that showed value before
+price. So the levers are in 1.0.1 and after, not in the model:
+
+1. **The gate fires at the value moment, never on launch.** At the sixth item,
+   at the eleventh scan, and when a subscription import overflows the free
+   ceiling, which is item 5 in `LAUNCH.md`. Each of those is a person who has
+   just seen the app work.
+2. **The paywall shows what the person already has.** "You are tracking 5
+   items worth AED 2,340 in renewals" beats a feature list. Same screen, one
+   line of their own data at the top.
+3. **Decide with numbers at week eight.** Under 0.29% Pro with healthy
+   installs: the gate or the price. Under 1% with a good scan rate: test a
+   reverse trial, seven days of Pro at first launch, then the free tier, which
+   is a local flag and needs no StoreKit. Tiny installs: nothing about the
+   paywall matters, and a hard one would make it worse.
+
+Not RevenueCat, incidentally. Purchases go through `expo-iap` straight to
+StoreKit; the RevenueCat mention in `settings.tsx` is a comment about a
+possible future, not a dependency.
+
+---
+
 ## Open, and blocking nothing yet
 
 - **The withholding rate Apple shows at tax-form submission.** Expected to be

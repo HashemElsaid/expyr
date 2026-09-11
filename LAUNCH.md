@@ -311,6 +311,18 @@ Before and after, run the three actual images through: the passport that
 became a visa, the subscriptions screenshot, and the misspelled passport.
 They are on Hashem's phone and stay out of the repo.
 
+15. **One rule for titles.** Decided with Hashem 11 September, after the
+    scan wrote "Residence Visa for AEHED SAID SHERIF". The title says what
+    the thing is; the owner field says whose it is; the app shows them
+    together. A title is the thing in the words a person would say, with one
+    distinguishing detail when there is one: "Egyptian passport", "Toyota
+    Corolla Mulkiya", "Marina Heights tenancy", "Driving licence", "Netflix".
+    Never a date and never a person's name, because the name already lives
+    in Whose is it and two copies drift. Category word first, so a list
+    scans by kind. The extraction prompt writes titles by this rule, the
+    placeholder on the add screen shows it, and every list row shows the
+    owner beside the title so nothing is lost by taking the name out.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

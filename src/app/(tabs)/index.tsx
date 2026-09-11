@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -15,12 +15,7 @@ import { TimelineRow, TimelineSectionHeader } from '@/components/timeline-row';
 import { buildSections } from '@/domain/timeline';
 import { searchableText } from '@/domain/fields';
 import { useTheme } from '@/hooks/use-theme';
-import {
-  countdownShort,
-  countWord,
-  daysUntil,
-  mastheadDate,
-} from '@/lib/dates';
+import { daysUntil } from '@/lib/dates';
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
@@ -223,32 +218,20 @@ export default function HomeScreen() {
           ListHeaderComponent={
             <View>
               <View style={styles.masthead}>
-                <ThemedText type="footnote" themeColor="textTertiary">
-                  {mastheadDate()}
-                </ThemedText>
                 {/*
-                 * Expired is a different fact from due soon, and one figure
-                 * covering both flattens the one already costing money into
-                 * the three that are not.
-                 *
-                 * "Four need you" was the other half of this and read as a
-                 * plea with the request missing: need you to do what? A
-                 * masthead states, the way "All quiet" and "Two expired" do.
-                 */}
-                {documents.length > 0 && (
-                  <ThemedText type="largeTitle" style={styles.verdict}>
-                    {allClear
-                      ? 'All quiet.'
-                      : expired.length > 0
-                        ? `${countWord(expired.length)} expired.`
-                        : `${countWord(soon.length)} due soon.`}
-                  </ThemedText>
-                )}
-                {allClear && next && documents.length > 0 && (
-                  <ThemedText type="body" themeColor="textSecondary" style={styles.reassurance}>
-                    Next: {next.title}, {countdownShort(daysUntil(next.expiryDate))}.
-                  </ThemedText>
-                )}
+                  * The name of the screen, and that is all.
+                  *
+                  * This was a masthead: a tracked uppercase date, then a
+                  * verdict set as a sentence with a full stop, "One expired.",
+                  * then a line of reassurance under it. Three pieces of
+                  * invented furniture where iOS puts one Large Title, and the
+                  * first thing anybody saw on opening the app.
+                  *
+                  * The state did not go missing; it moved to where iOS keeps
+                  * it. A red "Overdue" header sits over the overdue rows, and
+                  * each row reddens its own date once it has passed.
+                  */}
+                <ThemedText type="largeTitle">Timeline</ThemedText>
               </View>
 
               {/*
@@ -286,11 +269,7 @@ export default function HomeScreen() {
                   {({ pressed }) => (
                     <View
                       style={[styles.banner, { borderColor: theme.border }, pressed && styles.dim]}>
-                      <MaterialCommunityIcons
-                        name="calendar-sync-outline"
-                        size={18}
-                        color={theme.textTertiary}
-                      />
+                      <Icon name="calendar.badge.clock" size={18} color={theme.textTertiary} />
                       <ThemedText type="footnote" style={styles.flex}>
                         Nothing due for months. The ones that catch people out come round every
                         year: {missingAnnual.slice(0, 3).join(', ')}.
@@ -316,7 +295,7 @@ export default function HomeScreen() {
                     styles.search,
                     { borderColor: theme.border, backgroundColor: theme.backgroundElement },
                   ]}>
-                  <MaterialCommunityIcons name="magnify" size={17} color={theme.textTertiary} />
+                  <Icon name="magnifyingglass" size={16} color={theme.textTertiary} />
                   <TextInput
                     value={query}
                     onChangeText={setQuery}
@@ -330,11 +309,7 @@ export default function HomeScreen() {
                   />
                   {query.length > 0 && (
                     <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Clear">
-                      <MaterialCommunityIcons
-                        name="close-circle"
-                        size={17}
-                        color={theme.textTertiary}
-                      />
+                      <Icon name="xmark.circle.fill" size={17} color={theme.textTertiary} />
                     </Pressable>
                   )}
                 </View>
@@ -355,11 +330,7 @@ export default function HomeScreen() {
               {notificationsOn === false && documents.length > 0 && (
                 <Pressable onPress={turnOnNotifications} accessibilityRole="button">
                   <View style={[styles.banner, { borderColor: theme.border }]}>
-                    <MaterialCommunityIcons
-                      name="bell-off-outline"
-                      size={18}
-                      color={theme.urgentSoft}
-                    />
+                    <Icon name="bell.slash" size={18} color={theme.urgentSoft} />
                     <ThemedText type="footnote" style={styles.flex}>
                       Reminders are off. Tap to turn them on.
                     </ThemedText>
@@ -431,16 +402,16 @@ export default function HomeScreen() {
                     <ThemedText type="footnote" themeColor="textTertiary">
                       {archived.length} archived
                     </ThemedText>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={18}
-                      color={theme.textTertiary}
-                    />
+                    <Icon name="chevron.right" size={14} weight="semibold" color={theme.textTertiary} />
                   </Pressable>
                 )}
-                {/* Answers the question a sign-in screen usually answers. */}
+                {/*
+                  * Answers the question a sign-in screen usually answers. One
+                  * clause now: it was two joined by a middot, which is a
+                  * punctuation mark almost nothing on iOS uses in a caption.
+                  */}
                 <ThemedText type="footnote" themeColor="textTertiary" style={styles.assurance}>
-                  Saved on this iPhone · included in your backup
+                  Saved on this iPhone
                 </ThemedText>
               </View>
             ) : null
@@ -455,7 +426,7 @@ function EmptyState({ onAdd, onBrowse }: { onAdd: () => void; onBrowse: () => vo
   const theme = useTheme();
   return (
     <View style={styles.empty}>
-      <ThemedText type="largeTitle">Nothing yet.</ThemedText>
+      <ThemedText type="title2">Nothing tracked yet</ThemedText>
       {/*
         * Two halves, because the app has two and only one of them was ever
         * mentioned. "Photograph a visa, a licence, a tenancy contract" told a
@@ -470,7 +441,7 @@ function EmptyState({ onAdd, onBrowse }: { onAdd: () => void; onBrowse: () => vo
       <Pressable onPress={onAdd} accessibilityRole="button">
         {({ pressed }) => (
           <View style={[styles.cta, { backgroundColor: theme.accent }, pressed && styles.dim]}>
-            <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
+            <ThemedText type="headline" style={{ color: theme.accentContrast }}>
               Add your first item
             </ThemedText>
           </View>
@@ -483,7 +454,7 @@ function EmptyState({ onAdd, onBrowse }: { onAdd: () => void; onBrowse: () => vo
         */}
       <Pressable onPress={onBrowse} accessibilityRole="button">
         {({ pressed }) => (
-          <ThemedText type="footnote" themeColor="textTertiary" style={pressed && styles.dim}>
+          <ThemedText type="body" style={[{ color: theme.accent }, pressed && styles.dim]}>
             See everything you can track
           </ThemedText>
         )}

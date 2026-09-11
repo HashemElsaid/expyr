@@ -1,4 +1,4 @@
-import type { SFSymbol } from '@/components/symbol';
+import type { SFSymbol } from '@/components/icon';
 import { DocumentTypeId } from '@/types';
 
 /**

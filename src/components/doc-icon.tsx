@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
-import { Symbol } from '@/components/symbol';
+import { Icon } from '@/components/icon';
 import { Radius } from '@/constants/theme';
 import { iconFor } from '@/data/document-icons';
 import { useTheme } from '@/hooks/use-theme';
@@ -62,7 +62,7 @@ export function DocIcon({ typeId, iconDomain, size = 46, tint }: Props) {
           backgroundColor: theme.backgroundSelected,
         },
       ]}>
-      <Symbol
+      <Icon
         name={iconFor(typeId)}
         size={Math.round(size * 0.5)}
         color={tint ?? theme.textSecondary}

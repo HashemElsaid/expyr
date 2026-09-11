@@ -1,10 +1,15 @@
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { ColorValue, StyleProp, ViewStyle } from 'react-native';
 
 export type { SFSymbol };
 
 /**
  * An SF Symbol, which is the iOS icon set.
+ *
+ * Called Icon rather than Symbol because Symbol is a JavaScript global. A file
+ * that forgot the import did not fail with "cannot find name"; it resolved to
+ * the built-in and reported that a SymbolConstructor is not a valid JSX
+ * element, which is four lines of TypeScript for a missing import.
  *
  * Every icon in the app was MaterialCommunityIcons, which is Google's. It is a
  * good set and it is the wrong one: it sits beside Apple's own symbols in the
@@ -24,7 +29,7 @@ export type { SFSymbol };
  * one beside a Headline wants Semibold. Having one place to say so stops that
  * being decided nine times.
  */
-export function Symbol({
+export function Icon({
   name,
   size = 22,
   color,
@@ -33,8 +38,13 @@ export function Symbol({
 }: {
   name: SFSymbol;
   size?: number;
-  /** Defaults to the symbol's own colour, which is rarely what is wanted. */
-  color?: string;
+  /**
+   * Defaults to the symbol's own colour, which is rarely what is wanted.
+   *
+   * ColorValue rather than string, because the tab bar hands its icons a
+   * colour that may be a platform colour rather than a hex string.
+   */
+  color?: ColorValue;
   weight?: 'ultraLight' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold';
   style?: StyleProp<ViewStyle>;
 }) {

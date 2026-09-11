@@ -441,6 +441,26 @@ They are on Hashem's phone and stay out of the repo.
     default. Ordered after the screen restructure since it changes the
     document page's bottom half.
 
+19. **The free tier tightens and Expyr AI moves inside Pro.** Decided by
+    Hashem 11 September, after the hard-paywall discussion in `MONEY.md`.
+    Free: **3 documents, 2 subscriptions, 10 scans, no Expyr AI.** Pro:
+    unlimited documents, subscriptions and scans, 500 credits, and credit
+    packs sold only to Pro. So `FREE_ITEM_LIMIT` becomes two constants, 3
+    for documents and 2 for subscriptions, each enforced at its own add
+    path; `WELCOME_CREDITS` becomes 0; reading and asking are gated on
+    `premium`, and the Expyr AI tab for a free user is a single screen that
+    says what it does with the paywall behind one button; Top up is
+    reachable only with Pro. The subscription import still reads the whole
+    screenshot and shows the yearly total, since that is the demo, then
+    saves two and offers Pro for the rest; the review list already does
+    this shape. Anyone already above a limit keeps what they have and
+    cannot add. Existing welcome balances stay in the ledger and become
+    usable the day Pro is bought, and item 18's free scan text is stored
+    for free users too, so on purchase every document they hold is already
+    askable, which the paywall says. Copy that states the free tier
+    changes with it: the paywall table, `STORE.md` description and review
+    notes (done), the landing page if it says five.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

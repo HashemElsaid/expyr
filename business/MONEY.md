@@ -166,14 +166,16 @@ Variable, per install, in the first month:
 | | Cost | Note |
 |---|---|---|
 | Scanning, about 8 items | $0.024 | $0.003 each, Haiku. Moving to Sonnet 5 for accuracy, item 12 in `LAUNCH.md`: about $0.015 each, so $0.12 here and $0.15 an install worst case |
-| Welcome credits actually spent | $0.056 | see the assumption below |
+| Welcome credits actually spent | $0.056 | see the assumption below. **Zero from 1.0.1**: Expyr AI is Pro-only, decided 11 September |
 | Renewal guidance | ~$0 | generated once per category and region, cached 90 days, shared by everybody |
 | **Per install** | **~$0.08** | |
 
 The welcome figure assumes 35% of installs try Expyr AI at all, and that those
-who do spend about twenty of their thirty free pages. **Both are guesses and
-both need replacing with observed numbers in the first month.** The worst case,
-where everybody uses it and burns all thirty pages, is $0.32 per install.
+who do spend about twenty of their thirty free pages. **From 1.0.1 there are
+no welcome credits**: the free tier is 3 documents, 2 subscriptions and 10
+scans with no Expyr AI, so a free install costs scans only, $0.15 at the very
+worst and a few cents typically. The only model cost a free user can create
+is a scan.
 
 ---
 

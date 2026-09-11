@@ -49,17 +49,19 @@ silence invites "what am I paying for?" at every renewal.
 
 Free plan, enforced in code:
 
-| Ceiling | Free |
-|---|---|
-| Items tracked | **5** |
-| Photos scanned | **10** |
+| Ceiling | Free, from 1.0.1 | Free, in 1.0 |
+|---|---|---|
+| Documents tracked | **3** | 5 items, documents and subscriptions combined |
+| Subscriptions tracked | **2** | |
+| Photos scanned | **10** | 10 |
+| Expyr AI | **Pro only** | 300 welcome credits |
 
-Expyr AI is separate, and paid for in credits rather than capped: ten credits
-reads a page, twenty answers a question, and a new install starts with thirty
-pages' worth. See `PRICING.md`.
-
-Five items is deliberate: it fits one person's own papers, so the wall lands on
-the sixth item, which is almost always someone else's.
+Decided 11 September. Expyr AI is part of Pro, which includes 500 credits;
+more are sold in packs, to Pro only: ten credits reads a page, twenty answers
+a question. Three documents is deliberate: passport, Emirates ID, visa, and
+the wall lands on the driving licence, which is the person's own and the one
+with the fine. Two subscriptions lets the import show its yearly total and
+then stop.
 
 ## Two English listings, not one
 
@@ -177,10 +179,10 @@ Settings whenever you like.
 
 FREE TO START
 
-Track five items and ten scans free, for as long as you like. Enough for your
-passport, your license and your car. Unlock Expyr with a single payment to
-track everything you own, and everyone in your household. One payment. Nothing
-renews, nothing to cancel.
+Track three documents and two subscriptions free, for as long as you like.
+Enough to see how it works. Unlock Expyr Pro with a single payment to track
+everything you own and everyone in your household, and to ask Expyr AI about
+any of it. One payment. Nothing renews, nothing to cancel.
 ```
 
 ### What changed, and the one thing to watch
@@ -443,8 +445,8 @@ in the background and none are required to use the app.
 
 THE BUSINESS MODEL, IN FULL
 
-Expyr is free for 5 tracked items and 10 scans. Unlocking it removes both
-limits.
+Expyr is free for 3 documents, 2 subscriptions and 10 scans. Unlocking it
+removes all three limits and includes Expyr AI with 500 credits.
 
 Expyr AI, which reads a document in full and answers questions about it, is
 paid for separately in credits, because it costs us money every time it is

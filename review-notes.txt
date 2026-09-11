@@ -43,14 +43,14 @@ background, none required to use the app.
 
 THE BUSINESS MODEL
 
-Expyr is free for 5 tracked items and 10 scans; unlocking removes both. Expyr
-AI, which reads a document in full and answers questions about it, is paid for
-separately in credits because it costs money every time it is used.
+Expyr is free for 3 documents, 2 subscriptions and 10 scans. Expyr AI, which
+reads a document in full and answers questions about it, is part of Expyr Pro
+because it costs money every time it is used.
 
-- ONE non-consumable: AED 149, paid once, removes both limits. Family
-  Shareable, up to six people.
-- THREE consumables: credit packs, spent as Expyr AI is used. Ten credits reads
-  a page, twenty answers a question. New installs get thirty pages' worth.
+- ONE non-consumable: AED 149, paid once. Removes the three limits and
+  includes 500 Expyr AI credits. Family Shareable, up to six people.
+- THREE consumables: credit packs for Pro users who use Expyr AI heavily. Ten
+  credits reads a page, twenty answers a question.
 - NOT a subscription. Nothing auto-renews, nothing to cancel.
 - No other way to pay: no external payment, no web checkout, no link out, no
   third-party billing, and nothing unlocked outside In-App Purchase. No

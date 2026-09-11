@@ -16,17 +16,24 @@ function holding(...typeIds: DocumentTypeId[]) {
  */
 describe('reading a fee out of a sentence', () => {
   it('takes the low end of a range', () => {
-    expect(feeFrom('AED 300-1,200 in government fees (varies by visa type)')).toEqual({
+    expect(feeFrom('AED 700-10,000+ depending on plan and age')).toEqual({
+      currency: 'AED',
+      amount: 700,
+    });
+  });
+
+  it('ignores a second fee added on the end', () => {
+    expect(feeFrom('AED 300 renewal + AED 140-180 eye test + ~AED 20 delivery')).toEqual({
       currency: 'AED',
       amount: 300,
     });
   });
 
-  it('ignores a second fee added on the end', () => {
-    expect(feeFrom('AED 100 per year of validity + ~AED 70 service fees')).toEqual({
-      currency: 'AED',
-      amount: 100,
-    });
+  /* The Mulkiya, which breaks its own figure down in brackets. */
+  it('takes the total rather than a part of it', () => {
+    expect(
+      feeFrom('AED 370 for a private car (AED 350 + AED 20 knowledge and innovation fees)')
+    ).toEqual({ currency: 'AED', amount: 370 });
   });
 
   it('finds a figure in the middle of a sentence', () => {
@@ -37,10 +44,9 @@ describe('reading a fee out of a sentence', () => {
   });
 
   it('is not thrown by a word in front of the money', () => {
-    expect(feeFrom('Ejari registration ~AED 120-220 + rent per your contract')).toEqual({
-      currency: 'AED',
-      amount: 120,
-    });
+    expect(
+      feeFrom('Ejari AED 178 online through Dubai REST, or ~AED 220 at a trustee centre')
+    ).toEqual({ currency: 'AED', amount: 178 });
   });
 
   it('reads a thousands comma as one number', () => {
@@ -99,7 +105,7 @@ describe('what a person is holding', () => {
   it('reports the count and the total separately', () => {
     expect(renewalWorth(holding('residence-visa', 'membership'), 'ae')).toEqual({
       items: 2,
-      worth: { currency: 'AED', amount: 300 },
+      worth: { currency: 'AED', amount: 560 },
     });
   });
 
@@ -112,10 +118,12 @@ describe('the line at the top of the paywall', () => {
   /*
    * A household's own papers, which is who reaches the item ceiling.
    *
-   * The totals below are read off the catalogue as it stands. Item 8 on the
-   * 1.0.1 list corrects several of those fees against the verified guides, so
-   * it will land here as a failing sum rather than a silent change of what the
-   * paywall tells somebody their paperwork is worth. That is the intent.
+   * The totals below are read off the catalogue, which is the point: a change
+   * to a fee lands here as a failing sum rather than as a silent change to
+   * what the paywall tells somebody their paperwork is worth. It has already
+   * earned that once. Correcting the five verified entries moved this total
+   * from AED 1,870 to AED 2,208, almost all of it the residence visa going
+   * from a guessed AED 300 to a checked AED 560.
    */
   const HOUSEHOLD = holding(
     'residence-visa',
@@ -127,7 +135,7 @@ describe('the line at the top of the paywall', () => {
 
   it('says what they hold and what it costs to keep', () => {
     expect(trackedSentence(HOUSEHOLD, 'ae')).toBe(
-      'You are tracking 5 items worth AED 1,870 in renewals'
+      'You are tracking 5 items worth AED 2,208 in renewals'
     );
   });
 

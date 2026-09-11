@@ -6,7 +6,7 @@ import type { DocumentTypeId } from '@/types';
  * What somebody's own paperwork is worth, in the money it costs to renew.
  *
  * For one line at the top of the paywall: "You are tracking 5 items worth
- * AED 1,870 in renewals". The screen underneath it is a table of what the free
+ * AED 2,208 in renewals". The screen underneath it is a table of what the free
  * plan will not do, and a person arrives at it having just been stopped. A
  * sentence made of their own documents makes it about what they are holding
  * rather than what they are denied, and it is the only number on the screen
@@ -15,8 +15,8 @@ import type { DocumentTypeId } from '@/types';
  * Three rules, and each one is about not overstating the case.
  *
  * The figure is the bottom of every range. The catalogue quotes real spans,
- * "AED 300-1,200" for a residence visa, because that is what the authority
- * charges; adding up the top of each would produce a number nobody could
+ * "AED 700-10,000+" for health insurance, because that is what insurers
+ * charge; adding up the top of each would produce a number nobody could
  * defend on a sales screen. The low end can be defended and is still large
  * once there are five of them.
  *
@@ -43,8 +43,8 @@ export type Fee = {
  * Reads the currency out of the string rather than assuming dirhams, so the
  * day a second country's guidance is written this either works or declines to
  * add up two currencies. Taking the first figure is what makes a range resolve
- * to its low end, and it is also what ignores the service fee bolted onto the
- * end of "AED 100 per year of validity + ~AED 70 service fees".
+ * to its low end, and it is also what ignores the second fee bolted onto the
+ * end of "AED 300 renewal + AED 140-180 eye test + ~AED 20 delivery".
  */
 export function feeFrom(cost: string): Fee | null {
   const match = /([A-Z]{3})\s*~?\s*([0-9][0-9,]*)/.exec(cost);

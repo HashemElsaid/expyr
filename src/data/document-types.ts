@@ -5,6 +5,19 @@ import { DocumentType, DocumentTypeId } from '@/types';
  * UAE-focused renewal knowledge base. Costs and fines are approximate
  * (AED, as of 2026) and shown to users with a "verify with the official
  * channel" disclaimer in the UI.
+ *
+ * Five of them are no longer approximate. The residence visa, Emirates ID,
+ * Mulkiya, driving licence and Ejari were checked against primary sources
+ * while the public guides in `docs/guides` were written, and those pages and
+ * these entries now say the same thing. Where they disagreed the page was
+ * right and this file was wrong, by a long way in two places: the visa fee
+ * read AED 300 to 1,200 against a real AED 560, and the Mulkiya late fee read
+ * as a flat AED 500 when it is AED 10 a month capped at AED 500, which is a
+ * fiftieth of the figure somebody would have budgeted for.
+ *
+ * Which five have been checked is written down here because the alternative is
+ * that it lives in a chat message, and the answer decides whether a number on
+ * a screen is a fact or a guess. The rest of the catalogue is still a guess.
  */
 const CATALOGUE: DocumentType[] = [
   {
@@ -24,8 +37,16 @@ const CATALOGUE: DocumentType[] = [
         'Apply through your residency authority’s app, or an accredited service centre',
         'Emirates ID renewal is bundled into the same application',
       ],
-      typicalCost: 'AED 300-1,200 in government fees (varies by visa type; medical + insurance extra)',
-      lateFee: 'AED 50/day overstay fine after the grace period',
+      typicalCost: 'AED 560 in government fees for a standard renewal + AED 150-300 at a service centre (medical and insurance on top)',
+      lateFee: 'AED 50/day once the grace period ends, unified across every emirate since February 2026',
+      /*
+       * No lateFeeRate, although the rate is now verified and the grace period
+       * is usually thirty days. Usually is the problem: Golden and Green visa
+       * holders get up to a hundred and eighty, and the app has no way to know
+       * which somebody holds. A running figure would tell one of them they owe
+       * five thousand dirhams while they owe nothing at all, which is the exact
+       * harm that field's own note warns about.
+       */
       processingTime: '5-10 working days including medical results',
     },
   },
@@ -46,7 +67,7 @@ const CATALOGUE: DocumentType[] = [
         'Complete biometrics at an ICP centre if requested',
         'Collect the new card from the designated post office or opt for delivery',
       ],
-      typicalCost: 'AED 100 per year of validity + ~AED 70 service fees',
+      typicalCost: 'AED 100 per year of validity + AED 40-70 in service fees',
       lateFee: 'AED 20/day, capped at AED 1,000',
       // The 30 days come from the step above: apply within them to avoid fines.
       lateFeeRate: { graceDays: 30, perDay: 20, cap: 1000, currency: 'AED' },
@@ -90,8 +111,8 @@ const CATALOGUE: DocumentType[] = [
         'Vehicles older than 3 years need a technical inspection (passing test)',
         'Renew online through your emirate’s portal, or in person at a testing centre',
       ],
-      typicalCost: 'AED 350-500 + inspection ~AED 120-170 if required',
-      lateFee: 'Fines apply after the 30-day grace period; driving unregistered risks ~AED 500 fine and vehicle impound',
+      typicalCost: 'AED 370 for a private car (AED 350 + AED 20 knowledge and innovation fees) + ~AED 170 inspection if needed',
+      lateFee: 'AED 10 a month after the 30-day grace period, capped at AED 500. You can drive through the grace period while the insurance is valid; after it, driving unregistered is a separate offence and the car can be impounded',
       processingTime: 'Same day (minutes online if no inspection needed)',
     },
   },
@@ -142,8 +163,8 @@ const CATALOGUE: DocumentType[] = [
         'Renew online through your emirate’s portal, or at a service centre',
         'Choose card delivery or collection',
       ],
-      typicalCost: 'AED 300 renewal + ~AED 50 eye test + ~AED 20 delivery',
-      lateFee: 'Late renewal fine applies after a grace period; driving on an expired license is fined',
+      typicalCost: 'AED 300 renewal + AED 140-180 eye test + ~AED 20 delivery',
+      lateFee: 'AED 10 a month after the grace period, capped at AED 500; driving on an expired licence is fined separately',
       processingTime: 'Same day online',
     },
   },
@@ -184,7 +205,7 @@ const CATALOGUE: DocumentType[] = [
         'Negotiate using the RERA index if the increase exceeds the legal cap',
         'Re-register the contract afterwards, because utilities, visas and school registration depend on it',
       ],
-      typicalCost: 'Ejari registration ~AED 120-220 + rent per your contract',
+      typicalCost: 'Ejari AED 178 online through Dubai REST, or ~AED 220 at a trustee centre, + rent per your contract',
       lateFee: 'No fine, but missing notice deadlines locks you into the landlord’s terms',
       processingTime: 'Ejari registration is same-day',
     },

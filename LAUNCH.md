@@ -52,14 +52,13 @@ no pricing changes, no model changes.
 
 ### For the coding session
 
-**1 to 5, 9, 10 and the version bump are on main**, done 10 and 11 September.
+**1 to 5, 8, 9, 10 and the version bump are on main**, done 10 and 11
+September.
 The items are left below as the record of why, with what actually shipped
 noted against each.
 
-Still open: **6** needs a phone, and **7 and 8 have not been started by
-anybody** and are nobody's yet. 8 matters more than it did when it was
-written, because 10 now prints those same fees on the paywall: the visa
-figure it calls wrong is quoted in a line that asks for money.
+Still open: **6** needs a phone, and **7 has not been started by anybody**
+and is nobody's yet.
 
 1. **Bundle 500 credits with Expyr Pro.** Today `premium: true` lifts the item
    and scan ceilings and does nothing else; the 300 welcome credits go to every
@@ -141,6 +140,28 @@ figure it calls wrong is quoted in a line that asks for money.
    Ejari online registration is AED 178, not 120; the visa fee is about AED 560
    for a standard renewal, not 300 to 1,200; the overstay fine is a unified AED
    50 a day since February 2026. Same numbers in-app and on the web pages.
+
+   *Shipped.* The pages were already right, so this was the app catching up to
+   them, and the two now say the same thing about all five: fee, fine, grace
+   period and how long it takes. The Mulkiya was the one worth hurrying: a flat
+   ~AED 500 against AED 10 a month capped at AED 500 is a fiftieth of what
+   somebody would have budgeted for, and the old sentence also implied they
+   could not drive during the grace period when they can, while the insurance
+   is valid.
+
+   Two things deliberately not done. The Mulkiya and licence fines are monthly,
+   and `lateFeeRate` only speaks in days, so they stay sentences rather than
+   running totals; AED 10 a month is not worth a new shape in the type. And the
+   visa still has no `lateFeeRate` even though its AED 50 a day is now
+   verified, because the grace period is thirty days *usually* and up to a
+   hundred and eighty for Golden and Green holders, and the app cannot tell
+   which somebody holds. A running figure would tell one of them they owe five
+   thousand dirhams while they owe nothing. The file says so, where the next
+   person will be tempted.
+
+   The paywall line from item 10 moved with it, from AED 1,870 to AED 2,208 for
+   five household papers, almost all of it the visa going from a guessed AED
+   300 to a checked AED 560. The pinned total in the test is what caught it.
 
 9. **Use the system font everywhere.** The first outside reader of the
    timeline said it looks machine-made, and named the fonts as the reason:

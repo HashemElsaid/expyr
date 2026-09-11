@@ -420,8 +420,12 @@ They are on Hashem's phone and stay out of the repo.
     Decisions: "Next 30 days" not "This month"; empty state keeps one button;
     the collapsing Large Title is **deferred past 1.0.1**, because a real one
     needs a native stack inside each tab and a JavaScript imitation is the
-    kind of near-miss that reads as fake. Open: whether the forest-green
-    accent is too dark for tinted row actions; Hashem judges on Settings.
+    kind of near-miss that reads as fake. Settings in dc5f135: pills
+    gone, action rows in tint, chevrons for navigation, balance as the row
+    value, "25 scheduled" with a "25 of 40" form for the iOS 64-notification
+    cap, Appearance as a segmented control. **Hashem approved Timeline and
+    Settings and kept the forest-green accent.** Remaining: Top up, Paywall,
+    Add, the document screen, Household, Expyr AI.
 
 ### Not code, but goes on the same version
 

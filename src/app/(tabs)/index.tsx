@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     marginTop: Spacing.four,
   },
-  searchInput: { flex: 1, fontFamily: Fonts.body, fontSize: 15, paddingVertical: 2 },
+  searchInput: { flex: 1, ...Fonts.body, fontSize: 15, paddingVertical: 2 },
   noResults: { paddingTop: Spacing.five, textAlign: 'center' },
   banner: {
     flexDirection: 'row',

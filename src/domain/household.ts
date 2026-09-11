@@ -182,13 +182,13 @@ export function personSummary(person: Person): string {
 }
 
 /**
- * The same facts as a headline, set in the serif.
+ * The same facts, set as a headline.
  *
  * Not personSummary with a full stop on the end, which is what the person's
  * page was doing. That string is written for a tile a third of the screen
- * wide, where "8 due soon" in sans-serif digits is right; a display face
- * spells small numbers out, which is the rule the home masthead already
- * follows and this screen was quietly breaking beside it.
+ * wide, where "8 due soon" in figures is right; a headline spells small
+ * numbers out, which is the rule the home masthead already follows and this
+ * screen was quietly breaking beside it.
  *
  * It also said "All clear." directly above the list of everything missing from
  * somebody's file. Expired wins outright when there is any, exactly as the

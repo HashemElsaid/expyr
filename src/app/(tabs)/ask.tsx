@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: Fonts.body,
+    ...Fonts.body,
     fontSize: 15,
     lineHeight: 21,
     maxHeight: 120,

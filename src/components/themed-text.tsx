@@ -54,49 +54,62 @@ export function ThemedText({ style, type = 'body', themeColor, ...rest }: Themed
   );
 }
 
+/*
+ * Sizes and line heights are unchanged from the two downloaded faces they
+ * replace. What changed is how weight and tracking are set.
+ *
+ * Tracking tightens as the size grows, which is what Apple's own scale does
+ * and what the eye needs: letters set at 44 points look loosely spaced at the
+ * spacing that suits 15. Below about 20 points it is left alone.
+ *
+ * Figures that sit in a column get tabular-nums, so a list of amounts and a
+ * countdown that ticks from 10 to 9 do not shuffle sideways. Only figures:
+ * proportional numerals read better inside a sentence, which is everywhere
+ * else.
+ */
 const styles = StyleSheet.create({
   /** Reserved for the app name and hero moments. */
   display: {
-    fontFamily: Fonts.display,
+    ...Fonts.display,
     fontSize: 44,
     lineHeight: 48,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   headline: {
-    fontFamily: Fonts.display,
+    ...Fonts.display,
     fontSize: 30,
     lineHeight: 36,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   title: {
-    fontFamily: Fonts.bodyMedium,
+    ...Fonts.bodyMedium,
     fontSize: 19,
     lineHeight: 25,
     letterSpacing: -0.2,
   },
   body: {
-    fontFamily: Fonts.body,
+    ...Fonts.body,
     fontSize: 15,
     lineHeight: 22,
   },
   bodyMedium: {
-    fontFamily: Fonts.bodyMedium,
+    ...Fonts.bodyMedium,
     fontSize: 15,
     lineHeight: 22,
   },
   small: {
-    fontFamily: Fonts.body,
+    ...Fonts.body,
     fontSize: 13,
     lineHeight: 19,
   },
   smallBold: {
-    fontFamily: Fonts.bodyMedium,
+    ...Fonts.bodyMedium,
     fontSize: 13,
     lineHeight: 19,
   },
   /** Small caps section markers — the editorial signature. */
   label: {
-    fontFamily: Fonts.bodyMedium,
+    ...Fonts.bodyMedium,
     fontSize: 11,
     lineHeight: 14,
     letterSpacing: 1.1,
@@ -104,35 +117,38 @@ const styles = StyleSheet.create({
   },
   /** A tracked document's name in the ledger. */
   ledgerTitle: {
-    fontFamily: Fonts.display,
+    ...Fonts.strong,
     fontSize: 22,
     lineHeight: 26,
     letterSpacing: -0.3,
   },
   /** The time remaining, set beside the title. */
   ledgerFigure: {
-    fontFamily: Fonts.display,
+    ...Fonts.strong,
     fontSize: 20,
     lineHeight: 26,
+    letterSpacing: -0.2,
+    fontVariant: ['tabular-nums'],
   },
   /** The masthead's answer to "do I need to worry?". */
   verdict: {
-    fontFamily: Fonts.display,
+    ...Fonts.display,
     fontSize: 34,
     lineHeight: 38,
-    letterSpacing: -0.4,
+    letterSpacing: -0.7,
   },
   /** The value sitting on a ruled form line. */
   fieldValue: {
-    fontFamily: Fonts.body,
+    ...Fonts.body,
     fontSize: 17,
     lineHeight: 24,
   },
-  /** Large countdown figures. */
+  /** Large countdown figures, and the prices on the paywall. */
   numeral: {
-    fontFamily: Fonts.display,
+    ...Fonts.strong,
     fontSize: 30,
     lineHeight: 32,
     letterSpacing: -0.5,
+    fontVariant: ['tabular-nums'],
   },
 });

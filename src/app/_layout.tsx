@@ -1,7 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
-import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif';
-import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { Stack, useRouter, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -69,27 +66,28 @@ function ErrorScreen({ error, retry }: ErrorBoundaryProps) {
 
 const errorStyles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 },
-  title: { fontFamily: Fonts.display, fontSize: 34, lineHeight: 38, textAlign: 'center' },
-  body: { fontFamily: Fonts.body, fontSize: 15, lineHeight: 22, textAlign: 'center', maxWidth: 320 },
-  detail: { fontFamily: Fonts.body, fontSize: 12, textAlign: 'center', maxWidth: 320 },
+  title: { ...Fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.7, textAlign: 'center' },
+  body: { ...Fonts.body, fontSize: 15, lineHeight: 22, textAlign: 'center', maxWidth: 320 },
+  detail: { ...Fonts.body, fontSize: 12, textAlign: 'center', maxWidth: 320 },
   button: { borderRadius: 999, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
-  buttonLabel: { fontFamily: Fonts.bodyMedium, fontSize: 13 },
+  buttonLabel: { ...Fonts.bodyMedium, fontSize: 13 },
 });
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    [Fonts.display]: InstrumentSerif_400Regular,
-    [Fonts.body]: DMSans_400Regular,
-    [Fonts.bodyMedium]: DMSans_500Medium,
-    [Fonts.bodyBold]: DMSans_700Bold,
-  });
-
+  /*
+   * Straight away, because there is nothing left to wait for.
+   *
+   * This used to wait on two downloaded faces and render null until they
+   * arrived, which is why the app opened on a held splash screen. The system
+   * font is already in memory before any of our code runs, so holding it back
+   * would be a delay in exchange for nothing.
+   *
+   * The splash is still held rather than hidden automatically, and hidden
+   * here, so the first frame is a laid-out screen instead of an empty one.
+   */
   useEffect(() => {
-    // Reveal the app once type is ready; a font failure should not trap the user.
-    if (fontsLoaded || fontError) SplashScreen.hideAsync().catch(() => {});
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) return null;
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
 
   return (
     <SettingsProvider>
@@ -273,7 +271,7 @@ function AppShell() {
           headerStyle: { backgroundColor: theme.background },
           // Back chevrons and bar buttons take the accent; titles stay ink.
           headerTintColor: theme.accent,
-          headerTitleStyle: { fontFamily: Fonts.bodyMedium, fontSize: 17, color: theme.text },
+          headerTitleStyle: { ...Fonts.bodyMedium, fontSize: 17, color: theme.text },
           headerShadowVisible: false,
           headerTitleAlign: 'center',
           /*

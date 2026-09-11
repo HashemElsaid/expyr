@@ -52,9 +52,14 @@ no pricing changes, no model changes.
 
 ### For the coding session
 
-**1 to 5 and 7 are on main**, done 10 September. The items are left below as
-the record of why, with what actually shipped noted against each. Only 6 is
-outstanding, because it needs a phone.
+**1 to 5, 9, 10 and the version bump are on main**, done 10 and 11 September.
+The items are left below as the record of why, with what actually shipped
+noted against each.
+
+Still open: **6** needs a phone, and **7 and 8 have not been started by
+anybody** and are nobody's yet. 8 matters more than it did when it was
+written, because 10 now prints those same fees on the paywall: the visa
+figure it calls wrong is quoted in a line that asks for money.
 
 1. **Bundle 500 credits with Expyr Pro.** Today `premium: true` lifts the item
    and scan ceilings and does nothing else; the 300 welcome credits go to every
@@ -150,6 +155,17 @@ outstanding, because it needs a phone.
    about the design changes: same paper, ink, spacing and radii. The launch
    screen will need the same treatment if it names a font.
 
+   *Shipped.* Both packages and `useFonts` are gone, `Fonts` carries weight
+   rather than a family, and `fontFamily` is left unset rather than named
+   'System' so iOS resolves the optical size and the real bold cuts itself.
+   Sizes and line heights are untouched; tracking now tightens as the size
+   grows. Two judgements the serif never had to make: the large statements
+   take 700 and row titles and figures take 600, because 700 at 22 points
+   several times down a ledger shouts; and the title field on the add form
+   takes 600, since the heaviest weight in the app on an empty input reads as
+   a warning. The splash is no longer held waiting for type. Nothing in
+   `app.json` named a font, and the PDF stylesheet never did.
+
 10. **The paywall opens with the person's own numbers.** Above the plan table,
     one line built from their data: "You are tracking 5 items worth AED 2,340
     in renewals", using the items they have and the fees from
@@ -160,6 +176,24 @@ outstanding, because it needs a phone.
     work; this line makes the screen about what they have rather than what
     they lack. Never show the paywall on launch. The reasoning is in
     `business/MONEY.md`, under the hard-paywall section.
+
+    *Shipped.* `src/domain/renewal-value.ts` reads the money out of the fee
+    prose, which is written for people and not for parsers: ranges, tildes, a
+    second fee bolted on the end, a word in front of the currency. It takes the
+    bottom of every range, because adding up the top of each would make a
+    number nobody could defend on a sales screen, and a document with no known
+    fee adds nothing rather than an estimate. Five household papers come to
+    AED 1,870 today.
+
+    One thing the item did not say, and it matters: the money shows only where
+    the fees have been checked, which is the UAE. Everywhere else the app
+    already refuses to show renewal fees rather than guess at them, and a
+    paywall quoting dirhams to somebody in Karachi is that same invention with
+    a price on it. Outside the UAE the line is the count alone.
+
+    "Never on launch" needed no change, and now has a test: the paywall is
+    reached from `add.tsx`, `subscriptions.tsx` and Settings, and neither the
+    root layout nor onboarding mentions it.
 
 11. **Bump the version to 1.0.1** so App Store Connect accepts the build
     against a new version record.

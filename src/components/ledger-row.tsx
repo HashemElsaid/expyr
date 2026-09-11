@@ -12,8 +12,8 @@ import { countdownShort, daysUntil, shortDate } from '@/lib/dates';
 import { TrackedDocument } from '@/types';
 
 /**
- * Things that get renewed are set in the serif and carry a runway; things you
- * simply run out — a warranty, a subscription — compress to a single line. The
+ * Things that get renewed are set large and carry a runway; things you simply
+ * run out — a warranty, a subscription — compress to a single line. The
  * distinction is whether the category has a renewal period at all.
  */
 export function isDocumentClass(doc: TrackedDocument): boolean {

@@ -77,7 +77,7 @@ export function verdictPhrase(days: number): string {
   return `${countdownShort(days)}.`;
 }
 
-/** Spelled out up to ten — reads better set in the serif. */
+/** Spelled out up to ten — reads better in a headline. */
 export function countWord(n: number): string {
   const words = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
   return words[n] ?? String(n);

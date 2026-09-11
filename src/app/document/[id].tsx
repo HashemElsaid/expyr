@@ -7,9 +7,10 @@ import { ActionMenu, MenuButton, PrimaryAction, SecondaryAction, type MenuAction
 import { DataRow } from '@/components/document/data-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ValuePrompt } from '@/components/value-prompt';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { expiryVerb, isSubscription } from '@/domain/documents';
-import { displayFields } from '@/domain/fields';
+import { displayFields, withFieldValue } from '@/domain/fields';
 import { provenanceNote, worthShowing } from '@/domain/renewal-guidance';
 import { runningLateFee } from '@/domain/late-fee';
 import { useDocumentReading } from '@/hooks/use-document-reading';
@@ -27,7 +28,7 @@ import { dayMonth, daysUntil, longDate, shortDate, verdictPhrase } from '@/lib/d
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
-import { TrackedDocument } from '@/types';
+import { ExtractedField, TrackedDocument } from '@/types';
 
 /** Reminder dates derived from the schedule — no extra state to keep in sync. */
 function reminderDates(doc: TrackedDocument) {
@@ -46,12 +47,23 @@ export default function DocumentDetailScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { documents, archived, removeDocument, setArchived } = useDocuments();
+  const { documents, archived, removeDocument, setArchived, updateDocument } = useDocuments();
   const { settings } = useSettings();
   const [guideOpen, setGuideOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [pointsOpen, setPointsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  /**
+   * The field being corrected, and what it is being corrected to.
+   *
+   * A very clear passport came back with its holder's name misspelled and
+   * nothing in the app could change it. The form deliberately keeps these
+   * read-only, which is right, because eleven text inputs would bury the
+   * handful of things the app acts on. So the correcting happens here, where
+   * there is room to read them.
+   */
+  const [editing, setEditing] = useState<ExtractedField | null>(null);
+  const [draft, setDraft] = useState('');
 
   const doc = [...documents, ...archived].find((d) => d.id === id);
   /*
@@ -212,6 +224,31 @@ export default function DocumentDetailScreen() {
     router.push(canRoll ? `/add?id=${doc!.id}&renew=1` : `/add?id=${doc!.id}`);
   }
 
+  /**
+   * Writes one corrected field back.
+   *
+   * The whole document goes back through `updateDocument`, which is the only
+   * way in: it rebuilds the record, keeps the attachments and stamps the time.
+   * Spreading the document into it preserves the archive flag and the renewal
+   * history, which are on the record rather than in the form.
+   *
+   * An emptied value removes the field. A scan that invented a row is the
+   * other half of one that misread it, and there would otherwise be no way to
+   * be rid of it.
+   */
+  async function saveField() {
+    const target = editing;
+    const next = draft;
+    setEditing(null);
+    if (!doc || !target) return;
+
+    await updateDocument(doc.id, {
+      ...doc,
+      fields: withFieldValue(doc.fields ?? [], target, next),
+    });
+    successFeedback();
+  }
+
   async function sendCopy() {
     if (!doc || sending) return;
     tapFeedback();
@@ -245,6 +282,24 @@ export default function DocumentDetailScreen() {
   return (
     <ThemedView style={styles.container}>
       <ActionMenu open={menuOpen} onClose={() => setMenuOpen(false)} actions={menuActions} />
+
+      <ValuePrompt
+        visible={editing !== null}
+        title={editing?.label ?? ''}
+        hint="As it is printed on the document. Clear it to remove the line."
+        value={draft}
+        placeholder={editing?.label}
+        /*
+         * Nothing is capitalised for them. These are copied off a document
+         * character for character, and a name in a passport is upper case
+         * while a policy number is whatever the insurer chose.
+         */
+        autoCapitalize="none"
+        allowEmpty
+        onChange={setDraft}
+        onCancel={() => setEditing(null)}
+        onSubmit={saveField}
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { borderBottomColor: theme.border }]}>
@@ -427,11 +482,17 @@ export default function DocumentDetailScreen() {
                   value={entry.value}
                   bordered={index > 0}
                   copyable={entry.kind === 'number' || entry.kind === 'money'}
+                  onEdit={() => {
+                    tapFeedback();
+                    setDraft(entry.value);
+                    setEditing(entry);
+                  }}
                 />
               ))}
             </View>
             <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
-              Check anything you are about to rely on.
+              Read off the document, so check anything you are about to rely on. Tap a line to
+              correct it, or clear it to remove it.
             </ThemedText>
           </View>
         )}

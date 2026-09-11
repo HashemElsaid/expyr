@@ -1,22 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActionMenu, type MenuAction } from '@/components/document/actions';
-import { PrimaryButton, SecondaryButton } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ValuePrompt } from '@/components/value-prompt';
 import { findGaps } from '@/data/gaps';
 import { buildHousehold, MINE, personSummary, type Person } from '@/domain/household';
 import { useTheme } from '@/hooks/use-theme';
@@ -373,7 +364,7 @@ export default function HouseholdScreen() {
         actions={menu ? actionsFor(menu.person) : []}
       />
 
-      <NamePrompt
+      <ValuePrompt
         visible={adding || renaming !== null}
         title={
           adding
@@ -389,6 +380,8 @@ export default function HouseholdScreen() {
           setRenaming(null);
         }}
         onSubmit={adding ? commitAdd : commitRename}
+        placeholder="Their name"
+        autoCapitalize="words"
       />
     </ThemedView>
   );
@@ -536,64 +529,6 @@ function PersonCard({
   );
 }
 
-/**
- * Asking for a name. A modal rather than Alert.prompt, which exists on iOS
- * only — a household is not an iPhone-only idea, and a control that silently
- * does nothing on one platform is worse than a plainer one that works.
- */
-function NamePrompt({
-  visible,
-  title,
-  value,
-  onChange,
-  onCancel,
-  onSubmit,
-}: {
-  visible: boolean;
-  title: string;
-  value: string;
-  onChange: (next: string) => void;
-  onCancel: () => void;
-  onSubmit: () => void;
-}) {
-  const theme = useTheme();
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <Pressable style={styles.backdrop} onPress={onCancel}>
-        {/* Stops a tap inside the card counting as a tap on the backdrop. */}
-        <Pressable
-          style={[
-            styles.prompt,
-            { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-          ]}
-          onPress={() => {}}>
-          <ThemedText type="bodyMedium">{title}</ThemedText>
-
-          <TextInput
-            value={value}
-            onChangeText={onChange}
-            placeholder="Their name"
-            placeholderTextColor={theme.textTertiary}
-            autoFocus
-            autoCapitalize="words"
-            returnKeyType="done"
-            onSubmitEditing={onSubmit}
-            style={[styles.input, { borderColor: theme.border, color: theme.text }]}
-          />
-
-          <View style={styles.promptActions}>
-            <SecondaryButton label="Cancel" onPress={onCancel} />
-            <View style={styles.flex}>
-              <PrimaryButton label="Save" onPress={onSubmit} disabled={!value.trim()} />
-            </View>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
@@ -642,28 +577,4 @@ const styles = StyleSheet.create({
 
   items: { paddingTop: 8, marginTop: 2, gap: 6, borderTopWidth: StyleSheet.hairlineWidth },
   item: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-
-  backdrop: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 28,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-  },
-  prompt: {
-    width: '100%',
-    maxWidth: 360,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 20,
-    gap: 14,
-  },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  promptActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 });

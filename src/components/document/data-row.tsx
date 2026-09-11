@@ -21,11 +21,21 @@ export function DataRow({
   value,
   bordered,
   copyable,
+  onEdit,
 }: {
   label: string;
   value: string;
   bordered?: boolean;
   copyable?: boolean;
+  /**
+   * Given where the value came off a document and can therefore be wrong.
+   *
+   * When both this and `copyable` are set the row edits and the icon copies,
+   * each with its own hit area. Tapping the row is the discoverable gesture
+   * and correcting a misread number matters more than saving a tap on the
+   * copy, which the icon still gives.
+   */
+  onEdit?: () => void;
 }) {
   const theme = useTheme();
   const [copied, setCopied] = useState(false);
@@ -44,12 +54,14 @@ export function DataRow({
     timer.current = setTimeout(() => setCopied(false), 1600);
   }
 
+  const editable = onEdit !== undefined;
+
   return (
     <Pressable
-      onPress={copy}
-      disabled={!copyable}
-      accessibilityRole={copyable ? 'button' : undefined}
-      accessibilityLabel={copyable ? `Copy ${label}` : undefined}>
+      onPress={editable ? onEdit : copy}
+      disabled={!editable && !copyable}
+      accessibilityRole={editable || copyable ? 'button' : undefined}
+      accessibilityLabel={editable ? `Edit ${label}` : copyable ? `Copy ${label}` : undefined}>
       <View
         style={[
           styles.row,
@@ -61,13 +73,33 @@ export function DataRow({
         <ThemedText type="body" style={styles.value}>
           {value}
         </ThemedText>
-        {copyable && (
-          <MaterialCommunityIcons
-            name={copied ? 'check' : 'content-copy'}
-            size={15}
-            color={copied ? theme.accent : theme.textTertiary}
-            style={styles.mark}
-          />
+        {copyable ? (
+          /*
+           * Its own target once the row belongs to editing, so both actions
+           * survive on a row that wants both.
+           */
+          <Pressable
+            onPress={copy}
+            hitSlop={12}
+            disabled={!editable}
+            accessibilityRole="button"
+            accessibilityLabel={`Copy ${label}`}>
+            <MaterialCommunityIcons
+              name={copied ? 'check' : 'content-copy'}
+              size={15}
+              color={copied ? theme.accent : theme.textTertiary}
+              style={styles.mark}
+            />
+          </Pressable>
+        ) : (
+          editable && (
+            <MaterialCommunityIcons
+              name="pencil-outline"
+              size={14}
+              color={theme.textTertiary}
+              style={styles.mark}
+            />
+          )
         )}
       </View>
     </Pressable>

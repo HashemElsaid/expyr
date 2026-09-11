@@ -109,6 +109,46 @@ export function displayFields(doc: TrackedDocument): ExtractedField[] {
 }
 
 /**
+ * One field corrected, or removed when it is emptied.
+ *
+ * A very clear passport scan came back with the holder's name misspelled and
+ * nothing anywhere in the app could change it. The service reads the name off
+ * the machine-readable zone now, which fixes the common case, and this fixes
+ * the rest: every field the scan produced can be corrected by the person
+ * holding the document, who is the only one who can actually see it.
+ *
+ * Emptying a field deletes it, deliberately. The other half of a wrong value
+ * is an invented one, a field the document does not carry at all, and leaving
+ * somebody able to blank it but not remove it would leave a labelled hole in
+ * the list.
+ *
+ * Matched by reference first, since the caller is holding the object out of
+ * `displayFields`, which filters and so preserves it. Label and value are the
+ * fallback for a caller that rebuilt the list on the way through.
+ */
+export function withFieldValue(
+  fields: readonly ExtractedField[],
+  target: ExtractedField,
+  value: string
+): ExtractedField[] {
+  const byReference = fields.indexOf(target);
+  const index =
+    byReference >= 0
+      ? byReference
+      : fields.findIndex(
+          (field) => labelKey(field.label) === labelKey(target.label) && field.value === target.value
+        );
+
+  // Nothing to correct. A list rebuilt rather than a correction lost.
+  if (index === -1) return [...fields];
+
+  const next = tidy(value);
+  if (next === '') return fields.filter((_, at) => at !== index);
+
+  return fields.map((field, at) => (at === index ? { ...field, value: next } : field));
+}
+
+/**
  * The first field of a kind, when one screen wants one particular fact.
  * Household wants the name; a subscription row wants the price.
  */

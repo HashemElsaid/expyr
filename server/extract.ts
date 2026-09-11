@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
 
+import { parseMrz } from './mrz.ts';
+
 /**
  * Built on first use, not at import, so the server still starts (and can report
  * a clear error) when the key is missing. The key never reaches the phone —
@@ -95,6 +97,15 @@ export const ExtractionSchema = z.object({
    * title, so anything short of high is worth one question before the form.
    */
   typeConfidence: z.enum(['high', 'medium', 'low']),
+  /**
+   * The machine-readable zone, transcribed character for character.
+   *
+   * Not for the user. `mrz.ts` parses it, checks it against its own check
+   * digits and uses it to spell the name and read the expiry, both of which a
+   * model reads more reliably from a monospaced strip designed for machines
+   * than from a stylised line over a watermark.
+   */
+  mrz: z.string(),
   note: z.string(),
   /**
    * Everything else the document says. The app was built around one date, which
@@ -167,6 +178,7 @@ Rules:
 - documentNumber only when an official number is clearly legible AND the category is one that actually carries a number. Otherwise return an empty string. Never guess digits that are blurred or cropped.
 - confidence is "high" only when you read the date clearly and are certain it is the expiry or due date.
 - typeConfidence is about the category alone and says nothing about the date. "high" when the tells above settle what the object is. "medium" or "low" when you are working from the words rather than the object: a title you are inferring from, two documents on one page, a crop that cuts off the machine-readable lines, a photograph too poor to tell a card from a page. The app asks the user a single question when this is not high, so saying low costs one tap and saves a wrong category. Guessing high costs somebody the wrong renewal guidance for a year.
+- mrz is the machine-readable zone copied out exactly, one output line per printed line, when the picture shows one: the two lines of 44 characters at the foot of a passport data page, or the three lines of 30 characters on the back of an identity card. Copy every character including the < fillers, keep the lines in order, and do not tidy or correct anything that looks wrong to you. Return an empty string when no zone is visible, when it is cut off, or when you cannot read it with confidence. This is the one field where a faithful copy matters more than a sensible reading: it is checked against its own check digits, and a copy that has been helpfully corrected fails that check and is thrown away.
 - note is one short plain-language sentence telling the user which date you used. No jargon.
 - Always return the date even when it has already passed. Expyr deliberately tracks expired items so the user can renew or discard them, so a past date is a correct answer with found set to true. Never reject an item for being out of date.
 - Set found to false only when no expiry or due date is legible anywhere in the image. In that case set expiryDate to an empty string and use note to say what you saw instead.
@@ -187,6 +199,83 @@ Never invent information that is not visible in the image.
 
 Categories:
 ${list}`;
+}
+
+/**
+ * The documents that carry a machine-readable zone of their own.
+ *
+ * The guard, and it is not a formality. A residence visa is very often
+ * photographed on the page facing the passport data page, so the zone in the
+ * frame belongs to the passport and not to the thing being tracked. Taking a
+ * visa's expiry from it would replace a correct date with a real date off the
+ * wrong document, which is worse than any misreading.
+ */
+const CARRIES_MRZ = new Set(['passport', 'emirates-id']);
+
+/** Same name or not, ignoring the things that are not the spelling. */
+function sameName(a: string, b: string): boolean {
+  const bare = (name: string) =>
+    name
+      .toUpperCase()
+      .replace(/[^A-Z ]/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .join(' ');
+  return bare(a) === bare(b);
+}
+
+/**
+ * Takes the name and the expiry from the machine-readable zone when there is
+ * one to be trusted.
+ *
+ * Only when every check digit in the zone agrees with the field beside it. The
+ * name itself has no check digit, so this is evidence rather than proof: a
+ * transcription that got four check digits right is not one that invented a
+ * name. When any of them disagrees the whole zone is dropped, because a single
+ * wrong character means the line was misread and the name sits on that line.
+ *
+ * Exported for its own tests, and pure so that they need no model.
+ */
+export function reconcileWithMrz(item: Extraction): Extraction {
+  if (!CARRIES_MRZ.has(item.typeId)) return item;
+
+  const mrz = parseMrz(item.mrz);
+  if (!mrz || !mrz.valid || !mrz.full) return item;
+
+  const fields = [...item.fields];
+  const index = fields.findIndex(
+    (field) => field.kind === 'name' && field.label.toLowerCase().includes('name')
+  );
+
+  let nameFixed = false;
+  if (index === -1) {
+    fields.unshift({ label: 'Full name', value: mrz.full, kind: 'name' });
+  } else if (!sameName(fields[index].value, mrz.full)) {
+    fields[index] = { ...fields[index], value: mrz.full };
+    nameFixed = true;
+  }
+
+  const dateFixed = mrz.expiryDate !== '' && mrz.expiryDate !== item.expiryDate;
+
+  /*
+   * Said plainly, because somebody is about to check this against the document
+   * in their hand and should know why the app disagrees with what they can see
+   * printed on it.
+   */
+  const said = dateFixed
+    ? 'The date is read from the machine-readable strip, which cannot be confused for day and month.'
+    : nameFixed
+      ? 'The name is read from the machine-readable strip, which spells it the same way and is easier to read.'
+      : '';
+
+  return {
+    ...item,
+    expiryDate: dateFixed ? mrz.expiryDate : item.expiryDate,
+    // A zone that checks out is the document telling us what it is.
+    typeConfidence: 'high',
+    note: said ? `${item.note} ${said}`.trim() : item.note,
+    fields,
+  };
 }
 
 export type SupportedMediaType = 'image/jpeg' | 'image/png' | 'application/pdf';
@@ -253,6 +342,7 @@ export async function extractFromImage(opts: {
       documentNumber: '',
       confidence: 'low',
       typeConfidence: 'low',
+      mrz: '',
       note: "This image couldn't be processed. Try entering the details by hand.",
       fields: [],
     };
@@ -262,5 +352,5 @@ export async function extractFromImage(opts: {
   if (!parsed) {
     throw new Error('Model response did not match the expected schema');
   }
-  return parsed;
+  return reconcileWithMrz(parsed);
 }

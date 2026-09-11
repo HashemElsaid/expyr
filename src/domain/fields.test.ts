@@ -7,6 +7,7 @@ import {
   searchableText,
   tidyFields,
   valueForColumn,
+  withFieldValue,
 } from '@/domain/fields';
 import { makeDocument } from '@/test/factories';
 import type { ExtractedField } from '@/types';
@@ -211,5 +212,56 @@ describe('valueForColumn', () => {
 
   it('gives an empty cell rather than undefined', () => {
     expect(valueForColumn(makeDocument('passport'), 'Insurer')).toBe('');
+  });
+});
+
+/**
+ * The scan that could not be corrected: a clear passport, the name misspelled,
+ * and nothing in the app able to change it.
+ */
+describe('correcting a field', () => {
+  const name = { label: 'Full name', value: 'AEHED SAID SHERIF', kind: 'name' as const };
+  const number = { label: 'Passport number', value: 'A1234567', kind: 'number' as const };
+  const fields = [name, number];
+
+  it('replaces the value and leaves everything else alone', () => {
+    expect(withFieldValue(fields, name, 'HASHEM SAID SHERIF')).toEqual([
+      { label: 'Full name', value: 'HASHEM SAID SHERIF', kind: 'name' },
+      number,
+    ]);
+  });
+
+  it('does not mutate the list it was given', () => {
+    withFieldValue(fields, name, 'HASHEM SAID SHERIF');
+    expect(name.value).toBe('AEHED SAID SHERIF');
+  });
+
+  /*
+   * The other half of a wrong value is an invented one: a field the document
+   * does not carry. Emptying it removes the row rather than leaving a labelled
+   * hole in the list.
+   */
+  it('removes a field that is emptied', () => {
+    expect(withFieldValue(fields, name, '   ')).toEqual([number]);
+  });
+
+  it('tidies the spacing of what it is given, and nothing else', () => {
+    expect(withFieldValue(fields, name, '  HASHEM   SAID  ')[0].value).toBe('HASHEM SAID');
+  });
+
+  /* The caller holds an object out of displayFields, which filters in place. */
+  it('finds the field by reference', () => {
+    const rebuilt = [{ ...name }, { ...number }];
+    expect(withFieldValue(rebuilt, rebuilt[1], 'B7654321')[1].value).toBe('B7654321');
+  });
+
+  it('finds it again when the caller rebuilt the object', () => {
+    const copy = { label: 'full  name', value: 'AEHED SAID SHERIF', kind: 'name' as const };
+    expect(withFieldValue(fields, copy, 'HASHEM')[0].value).toBe('HASHEM');
+  });
+
+  it('changes nothing when the field is not there at all', () => {
+    const stranger = { label: 'Nothing like it', value: 'x', kind: 'other' as const };
+    expect(withFieldValue(fields, stranger, 'y')).toEqual(fields);
   });
 });

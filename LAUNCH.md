@@ -461,6 +461,38 @@ They are on Hashem's phone and stay out of the repo.
     changes with it: the paywall table, `STORE.md` description and review
     notes (done), the landing page if it says five.
 
+20. **No dead ends, anywhere.** Hashem, 11 September, on the New entry
+    form: the only way out is X, which throws away the scan and the form
+    and starts over. The rule for the whole app: **every screen has a way
+    back that keeps what the person has done.**
+    - Multi-step flows are a native stack with Back on every step after the
+      first, and the left-edge swipe works. Back from the entry form returns
+      to the way-in step (camera, photo, file, type it in) with the scanned
+      result and anything typed still there, so a person can retake the
+      photo or change source without losing the form.
+    - X and swipe-down close the whole sheet. If anything has been entered,
+      one native alert first: Discard changes? Keep Editing / Discard. Never
+      a silent loss.
+    - A draft survives an accidental close or an app switch: reopening the
+      add flow within the session offers to continue where they left off.
+    - Rows that open a picker (Category, Remind me, Whose is it) come back
+      to the form with the choice made and nothing else changed.
+    - Delete is reversible for a few seconds, or confirmed first; never
+      instant on a tap.
+    - Keyboard: Next moves between fields, Done closes, the field in focus is
+      never hidden behind the keyboard, and the date row opens the native
+      date picker.
+    - Every error is a sentence in plain words with the one action that
+      fixes it, and nothing that looks like code or a status.
+    - Every empty screen says what it is for and has one button.
+    - Anything that takes more than a second shows that it is working, and
+      can be cancelled.
+    - Dynamic Type and VoiceOver labels on everything, since Apple's own
+      screens have them and their absence is the kind of thing that reads
+      as not-quite-native.
+    Delivered with the screen restructure, since every screen is being
+    touched anyway; the add flow first because it is where he hit it.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

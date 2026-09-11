@@ -75,10 +75,10 @@ export default function OnboardingScreen() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {step === 'welcome' && (
             <View style={styles.pane}>
-              <ThemedText type="display" style={styles.centered}>
+              <ThemedText type="largeTitle" style={styles.centered}>
                 Expyr
               </ThemedText>
-              <ThemedText type="headline" style={styles.centered}>
+              <ThemedText type="largeTitle" style={styles.centered}>
                 Nothing expires unnoticed.
               </ThemedText>
               {/*
@@ -105,7 +105,7 @@ export default function OnboardingScreen() {
 
           {step === 'location' && (
             <View style={styles.pane}>
-              <ThemedText type="headline" style={styles.centered}>
+              <ThemedText type="largeTitle" style={styles.centered}>
                 Where do you live?
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
@@ -126,7 +126,7 @@ export default function OnboardingScreen() {
 
               {usesEmirates(country) && (
                 <View style={styles.options}>
-                  <ThemedText type="label" themeColor="textTertiary">
+                  <ThemedText type="footnote" themeColor="textTertiary">
                     Which emirate
                   </ThemedText>
                   {EMIRATES.map((option) => {
@@ -147,7 +147,7 @@ export default function OnboardingScreen() {
                                 : theme.backgroundElement,
                             },
                           ]}>
-                          <ThemedText type="bodyMedium" style={styles.flex}>
+                          <ThemedText type="headline" style={styles.flex}>
                             {option.label}
                           </ThemedText>
                           {selected && (
@@ -158,7 +158,7 @@ export default function OnboardingScreen() {
                     );
                   })}
                   <ThemedText
-                    type="small"
+                    type="footnote"
                     themeColor={nudgeEmirate ? 'urgentSoft' : 'textTertiary'}>
                     Vehicles and licences are run by each emirate, not federally, so Expyr needs
                     this to send you to the right one.
@@ -181,7 +181,7 @@ export default function OnboardingScreen() {
                     * It also rendered a space before the full stop, so it read
                     * "for Canada yet ." on every screen it appeared on.
                     */}
-                  <ThemedText type="small" themeColor="textSecondary">
+                  <ThemedText type="footnote" themeColor="textSecondary">
                     Everything that tracks dates and reminds you works here.{' '}
                     {country === 'other'
                       ? 'Renewal steps, fees and fines are written country by country, so you will not see them.'
@@ -203,13 +203,13 @@ export default function OnboardingScreen() {
                 color={theme.textTertiary}
                 style={styles.centered}
               />
-              <ThemedText type="headline" style={styles.centered}>
+              <ThemedText type="largeTitle" style={styles.centered}>
                 One last thing
               </ThemedText>
               <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
                 Your iPhone will ask you to confirm on the next screen.
               </ThemedText>
-              <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
+              <ThemedText type="footnote" themeColor="textTertiary" style={styles.centered}>
                 Your iPhone will ask you to confirm on the next screen.
               </ThemedText>
             </View>
@@ -261,7 +261,7 @@ export default function OnboardingScreen() {
                   { backgroundColor: theme.accent },
                   (pressed || asking) && styles.dim,
                 ]}>
-                <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                   {needsCountry
                     ? 'Choose your country'
                     : needsEmirate
@@ -276,7 +276,7 @@ export default function OnboardingScreen() {
 
           {step === 'reminders' && (
             <Pressable onPress={finish} style={styles.skip}>
-              <ThemedText type="small" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 Not now
               </ThemedText>
             </Pressable>

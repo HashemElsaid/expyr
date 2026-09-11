@@ -162,7 +162,7 @@ export default function PaywallScreen() {
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Enter step={0} style={styles.hero}>
-            <ThemedText type="headline">Free, or everything.</ThemedText>
+            <ThemedText type="largeTitle">Free, or everything.</ThemedText>
             {opener && (
               <ThemedText type="body" themeColor="textSecondary">
                 {opener}.
@@ -175,13 +175,13 @@ export default function PaywallScreen() {
               <View style={styles.tableHead}>
                 <View style={styles.flex} />
                 <View style={[styles.cell, styles.headCell]}>
-                  <ThemedText type="label" themeColor="textTertiary">
+                  <ThemedText type="footnote" themeColor="textTertiary">
                     Free
                   </ThemedText>
                 </View>
                 <View
                   style={[styles.cell, styles.headCell, { backgroundColor: theme.backgroundSelected }]}>
-                  <ThemedText type="label" style={{ color: theme.accent }}>
+                  <ThemedText type="footnote" style={{ color: theme.accent }}>
                     Pro
                   </ThemedText>
                 </View>
@@ -195,12 +195,12 @@ export default function PaywallScreen() {
                     {row.label}
                   </ThemedText>
                   <View style={styles.cell}>
-                    <ThemedText type="numeral" themeColor="textTertiary">
+                    <ThemedText type="figure" themeColor="textTertiary">
                       {row.free}
                     </ThemedText>
                   </View>
                   <View style={[styles.cell, { backgroundColor: theme.backgroundSelected }]}>
-                    <ThemedText type="numeral" style={{ color: theme.accent }}>
+                    <ThemedText type="figure" style={{ color: theme.accent }}>
                       {UNLIMITED}
                     </ThemedText>
                   </View>
@@ -208,7 +208,7 @@ export default function PaywallScreen() {
               ))}
             </View>
 
-            <ThemedText type="small" themeColor="textTertiary" style={styles.footnote}>
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.footnote}>
               Pro comes with {PRO_CREDITS.toLocaleString('en-US')} Expyr AI credits, enough to
               read {PRO_PAGES} pages. More can be bought any time.
             </ThemedText>
@@ -221,16 +221,16 @@ export default function PaywallScreen() {
                 { borderColor: theme.accent, backgroundColor: theme.backgroundSelected },
               ]}>
               <View style={styles.flex}>
-                <ThemedText type="bodyMedium">{plan.title}</ThemedText>
+                <ThemedText type="headline">{plan.title}</ThemedText>
                 {plan.footnote && (
-                  <ThemedText type="small" themeColor="textTertiary">
+                  <ThemedText type="footnote" themeColor="textTertiary">
                     {plan.footnote}
                   </ThemedText>
                 )}
               </View>
               <View style={styles.priceFigure}>
-                <ThemedText type="numeral">{price}</ThemedText>
-                <ThemedText type="label" themeColor="textTertiary">
+                <ThemedText type="figure">{price}</ThemedText>
+                <ThemedText type="footnote" themeColor="textTertiary">
                   {plan.cadence}
                 </ThemedText>
               </View>
@@ -244,7 +244,7 @@ export default function PaywallScreen() {
                     { backgroundColor: theme.accent },
                     (pressed || busy) && styles.dim,
                   ]}>
-                  <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                  <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                     {busy ? 'One moment…' : 'Unlock Expyr Pro'}
                   </ThemedText>
                 </View>
@@ -252,7 +252,7 @@ export default function PaywallScreen() {
             </Pressable>
 
             <Pressable onPress={restorePurchases} style={styles.restore} accessibilityRole="button">
-              <ThemedText type="smallBold" style={{ color: theme.accent }}>
+              <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                 Restore a previous purchase
               </ThemedText>
             </Pressable>
@@ -265,7 +265,7 @@ export default function PaywallScreen() {
              * one would be worse than leaving it out.
              */}
             <View style={[styles.legal, { borderTopColor: theme.border }]}>
-              <ThemedText type="small" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 {plan.title}, {price}, {plan.cadence}. Payment is charged to your Apple Account
                 at confirmation. This is a one-off purchase: it does not renew, there is nothing to
                 cancel, and you will not be charged again. It removes the free limits on tracked
@@ -275,15 +275,15 @@ export default function PaywallScreen() {
 
               <View style={styles.legalLinks}>
                 <Pressable accessibilityRole="link" onPress={() => router.push('/terms')}>
-                  <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                  <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                     Terms of Use
                   </ThemedText>
                 </Pressable>
-                <ThemedText type="small" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   ·
                 </ThemedText>
                 <Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}>
-                  <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                  <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                     Privacy Policy
                   </ThemedText>
                 </Pressable>

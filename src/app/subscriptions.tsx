@@ -211,7 +211,7 @@ export default function SubscriptionsScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!found ? (
           <>
-            <ThemedText type="headline">Every subscription, in one go</ThemedText>
+            <ThemedText type="largeTitle">Every subscription, in one go</ThemedText>
             <ThemedText type="body" themeColor="textSecondary">
               iPhone already keeps the list. Screenshot it and Expyr will read the names, the
               prices and the dates they charge you, then remind you before each one does. A
@@ -235,7 +235,7 @@ export default function SubscriptionsScreen() {
                   {busy ? (
                     <ActivityIndicator color={theme.accentContrast} />
                   ) : (
-                    <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                    <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                       Choose the screenshot
                     </ThemedText>
                   )}
@@ -243,14 +243,14 @@ export default function SubscriptionsScreen() {
               )}
             </Pressable>
 
-            <ThemedText type="small" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               It also reads Google Play&apos;s list, or a card statement. The screenshot is read
               once and never stored anywhere but this phone.
             </ThemedText>
           </>
         ) : (
           <>
-            <ThemedText type="headline">
+            <ThemedText type="largeTitle">
               {found.length} found. Track which?
             </ThemedText>
             <ThemedText type="body" themeColor="textSecondary">
@@ -284,8 +284,8 @@ export default function SubscriptionsScreen() {
                         color={on ? theme.accent : theme.textTertiary}
                       />
                       <View style={styles.flex}>
-                        <ThemedText type="bodyMedium">{titleFor(sub)}</ThemedText>
-                        <ThemedText type="small" themeColor="textTertiary">
+                        <ThemedText type="headline">{titleFor(sub)}</ThemedText>
+                        <ThemedText type="footnote" themeColor="textTertiary">
                           {[
                             noteFor(sub),
                             sub.renewsOn
@@ -296,7 +296,7 @@ export default function SubscriptionsScreen() {
                             .join(' · ')}
                         </ThemedText>
                         {tracked && (
-                          <ThemedText type="small" style={{ color: theme.urgentSoft }}>
+                          <ThemedText type="footnote" style={{ color: theme.urgentSoft }}>
                             You already track something with this name.
                           </ThemedText>
                         )}
@@ -319,7 +319,7 @@ export default function SubscriptionsScreen() {
                     (pressed || saving) && styles.dim,
                   ]}>
                   <ThemedText
-                    type="smallBold"
+                    type="footnoteStrong"
                     style={{
                       color: chosen.size === 0 ? theme.textTertiary : theme.accentContrast,
                     }}>
@@ -336,7 +336,7 @@ export default function SubscriptionsScreen() {
         )}
 
         {error && (
-          <ThemedText type="small" style={{ color: theme.urgentStrong }}>
+          <ThemedText type="footnote" style={{ color: theme.urgentStrong }}>
             {error}
           </ThemedText>
         )}
@@ -349,10 +349,10 @@ function Step({ n, text }: { n: string; text: string }) {
   const theme = useTheme();
   return (
     <View style={styles.step}>
-      <ThemedText type="label" themeColor="textTertiary">
+      <ThemedText type="footnote" themeColor="textTertiary">
         {n}
       </ThemedText>
-      <ThemedText type="small" style={styles.flex}>
+      <ThemedText type="footnote" style={styles.flex}>
         {text}
       </ThemedText>
       <View style={[styles.stepRule, { backgroundColor: theme.border }]} />

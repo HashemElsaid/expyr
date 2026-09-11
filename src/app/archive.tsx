@@ -55,7 +55,7 @@ export default function ArchiveScreen() {
                 {({ pressed }) => (
                   <View style={[styles.restoreRow, pressed && styles.dim]}>
                     <MaterialCommunityIcons name="tray-full" size={15} color={theme.accent} />
-                    <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                    <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                       Move back to my items
                     </ThemedText>
                   </View>

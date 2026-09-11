@@ -12,8 +12,22 @@ export const Colors = {
     backgroundElement: '#FFFDFA',
     backgroundSelected: '#EDE8DF',
     text: '#191713',
-    textSecondary: '#5B564C',
-    textTertiary: '#918B7E',
+    /*
+     * iOS's own secondary and tertiary label colours rather than browns mixed
+     * to match the paper.
+     *
+     * They are neutral on purpose, and read very slightly cool against warm
+     * paper, which is exactly how a native app looks: Apple tints the surface
+     * and leaves the greys alone. Mixing a warm grey to harmonise with the
+     * background is a decision Apple never makes, and making it everywhere is
+     * part of what read as invented.
+     *
+     * Written as rgba rather than PlatformColor, which would be the real
+     * semantic colour but resolves to nothing on web and cannot be given an
+     * alpha, and this app renders on web in its own tests.
+     */
+    textSecondary: 'rgba(60, 60, 67, 0.6)',
+    textTertiary: 'rgba(60, 60, 67, 0.35)',
     border: '#E2DCD0',
     accent: '#1D4B39',
     accentContrast: '#FFFDFA',
@@ -30,8 +44,9 @@ export const Colors = {
     backgroundElement: '#1E1811',
     backgroundSelected: '#332A1E',
     text: '#F3EFE7',
-    textSecondary: '#A79E8F',
-    textTertiary: '#7A7264',
+    /** The dark-mode pair of the same two, again Apple's own. */
+    textSecondary: 'rgba(235, 235, 245, 0.6)',
+    textTertiary: 'rgba(235, 235, 245, 0.35)',
     border: '#2E261C',
     accent: '#8ED6B2',
     accentContrast: '#0E241B',

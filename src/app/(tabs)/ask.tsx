@@ -208,7 +208,7 @@ export default function AskScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={[styles.flex, { paddingBottom: lift }]}>
           <View style={styles.header}>
-            <ThemedText type="display">Expyr AI</ThemedText>
+            <ThemedText type="largeTitle">Expyr AI</ThemedText>
             {scoped ? (
               <Pressable
                 onPress={() => router.setParams({ id: '' })}
@@ -221,7 +221,7 @@ export default function AskScreen() {
                       { borderColor: theme.border, backgroundColor: theme.backgroundSelected },
                       pressed && styles.dim,
                     ]}>
-                    <ThemedText type="small" numberOfLines={1} style={styles.scopeLabel}>
+                    <ThemedText type="footnote" numberOfLines={1} style={styles.scopeLabel}>
                       {scoped.title}
                     </ThemedText>
                     <MaterialCommunityIcons name="close" size={14} color={theme.textTertiary} />
@@ -230,7 +230,7 @@ export default function AskScreen() {
               </Pressable>
             ) : (
               !nothingRead && (
-                <ThemedText type="label" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   {/*
                     * "0 of 6 read" was a status report on the app's own
                     * plumbing. What a person wants to know is what they can ask
@@ -281,7 +281,7 @@ export default function AskScreen() {
                   * simply not added anything, and is wrong twice over: dates can
                   * be answered from what Expyr already knows, with nothing read.
                   */}
-                <ThemedText type="headline" style={styles.centered}>
+                <ThemedText type="largeTitle" style={styles.centered}>
                   Nothing to ask about yet
                 </ThemedText>
                 <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
@@ -297,7 +297,7 @@ export default function AskScreen() {
                         { backgroundColor: theme.accent },
                         pressed && styles.dim,
                       ]}>
-                      <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                      <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                         Add a document
                       </ThemedText>
                     </View>
@@ -311,7 +311,7 @@ export default function AskScreen() {
                     ? `Ask ${scoped.title} anything.`
                     : 'Ask your own paperwork anything.'}
                 </ThemedText>
-                <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
+                <ThemedText type="footnote" themeColor="textTertiary" style={styles.centered}>
                   Every answer quotes the clause it came from.
                 </ThemedText>
               </View>
@@ -335,11 +335,11 @@ export default function AskScreen() {
                    */}
                   {turn.answer.answered && turn.answer.quote ? (
                     <View style={[styles.quote, { borderLeftColor: theme.accent }]}>
-                      <ThemedText type="small" themeColor="textSecondary" style={styles.quoteText}>
+                      <ThemedText type="footnote" themeColor="textSecondary" style={styles.quoteText}>
                         {turn.answer.quote}
                       </ThemedText>
                       {turn.answer.where ? (
-                        <ThemedText type="label" themeColor="textTertiary">
+                        <ThemedText type="footnote" themeColor="textTertiary">
                           {turn.answer.where}
                         </ThemedText>
                       ) : null}
@@ -353,7 +353,7 @@ export default function AskScreen() {
                         size={14}
                         color={theme.textTertiary}
                       />
-                      <ThemedText type="small" themeColor="textTertiary">
+                      <ThemedText type="footnote" themeColor="textTertiary">
                         {turn.answer.source}
                       </ThemedText>
                     </View>
@@ -366,7 +366,7 @@ export default function AskScreen() {
                         size={15}
                         color={theme.textTertiary}
                       />
-                      <ThemedText type="small" themeColor="textTertiary" style={styles.flex}>
+                      <ThemedText type="footnote" themeColor="textTertiary" style={styles.flex}>
                         {scoped
                           ? 'Not covered by this document.'
                           : 'Not covered by anything Expyr has read.'}{' '}
@@ -396,7 +396,7 @@ export default function AskScreen() {
 
             {error && (
               <View style={styles.reply}>
-                <ThemedText type="small" style={{ color: theme.urgentStrong }}>
+                <ThemedText type="footnote" style={{ color: theme.urgentStrong }}>
                   {error}
                 </ThemedText>
               </View>
@@ -404,7 +404,7 @@ export default function AskScreen() {
 
             {broke && (
               <View style={styles.reply}>
-                <ThemedText type="small" themeColor="textSecondary">
+                <ThemedText type="footnote" themeColor="textSecondary">
                   A question costs {CREDITS_PER_QUESTION} credits and you have{' '}
                   {formatCredits(settings.credits.balance)}.
                 </ThemedText>
@@ -422,7 +422,7 @@ export default function AskScreen() {
                         { backgroundColor: theme.accent },
                         pressed && styles.dim,
                       ]}>
-                      <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                      <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                         Top up
                       </ThemedText>
                     </View>
@@ -454,7 +454,7 @@ export default function AskScreen() {
                             { borderColor: theme.border },
                             pressed && styles.dim,
                           ]}>
-                          <ThemedText type="small" themeColor="textSecondary">
+                          <ThemedText type="footnote" themeColor="textSecondary">
                             {starter}
                           </ThemedText>
                         </View>

@@ -50,10 +50,10 @@ export function TimelineRow({
       {({ pressed }) => (
         <View style={[styles.row, pressed && styles.dim]}>
           <View style={styles.dateColumn}>
-            <ThemedText type="numeral" style={{ color }}>
+            <ThemedText type="figure" style={{ color }}>
               {date.getDate()}
             </ThemedText>
-            <ThemedText type="label" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               {WEEKDAYS[date.getDay()]}
             </ThemedText>
           </View>
@@ -63,7 +63,7 @@ export function TimelineRow({
           </View>
 
           <View style={styles.rowBody}>
-            <ThemedText type="title" numberOfLines={1}>
+            <ThemedText type="headline" numberOfLines={1}>
               {doc.title}
             </ThemedText>
             {/*
@@ -73,7 +73,7 @@ export function TimelineRow({
              * ago because it was written as a filler for rows with nothing else
              * to say.
              */}
-            <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
+            <ThemedText type="footnote" themeColor="textTertiary" numberOfLines={1}>
               {[
                 /*
                  * First, and only when it is close. The big date on the left
@@ -123,7 +123,7 @@ export function TimelineSectionHeader({ title }: { title: string }) {
   return (
     <View style={styles.monthHeader}>
       <ThemedText
-        type="label"
+        type="footnote"
         themeColor={overdue ? undefined : 'textTertiary'}
         style={overdue ? { color: theme.urgentStrong } : undefined}>
         {title}

@@ -90,7 +90,7 @@ export function CountrySelect({
             ]}>
             {value && <ThemedText style={styles.flag}>{flagFor(value)}</ThemedText>}
             <ThemedText
-              type="fieldValue"
+              type="body"
               themeColor={value ? 'text' : 'textTertiary'}
               style={styles.flex}>
               {value ? countryLabel(value) : 'Choose your country'}
@@ -109,11 +109,11 @@ export function CountrySelect({
 
           <View style={[styles.sheet, { backgroundColor: theme.background }]}>
             <View style={[styles.head, { borderBottomColor: theme.border }]}>
-              <ThemedText type="label" themeColor="textTertiary" style={styles.flex}>
+              <ThemedText type="footnote" themeColor="textTertiary" style={styles.flex}>
                 Country
               </ThemedText>
               <Pressable onPress={close} hitSlop={12} accessibilityRole="button">
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                   Done
                 </ThemedText>
               </Pressable>
@@ -165,7 +165,7 @@ export function CountrySelect({
               }
               renderSectionHeader={({ section }) => (
                 <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
-                  <ThemedText type="label" themeColor="textTertiary">
+                  <ThemedText type="footnote" themeColor="textTertiary">
                     {section.title}
                   </ThemedText>
                 </View>
@@ -185,7 +185,7 @@ export function CountrySelect({
                           pressed && styles.dim,
                         ]}>
                         <ThemedText style={styles.flag}>{flagFor(item.value)}</ThemedText>
-                        <ThemedText type={on ? 'bodyMedium' : 'body'} style={styles.flex}>
+                        <ThemedText type={on ? 'headline' : 'body'} style={styles.flex}>
                           {item.label}
                         </ThemedText>
                         {on && (

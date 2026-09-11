@@ -66,7 +66,7 @@ export default function DataScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.note, { borderColor: theme.border }]}>
           <MaterialCommunityIcons name="cellphone-check" size={20} color={theme.textSecondary} />
-          <ThemedText type="small" themeColor="textSecondary" style={styles.flex}>
+          <ThemedText type="footnote" themeColor="textSecondary" style={styles.flex}>
             Your items and photos live in Expyr&apos;s private storage on this iPhone, and they
             travel with your iPhone backup. Restore a new phone from iCloud and they come back.
             None of it is kept on a server.
@@ -132,8 +132,8 @@ function DataRow({
         color={destructive ? theme.urgentStrong : theme.textSecondary}
       />
       <View style={styles.rowBody}>
-        <ThemedText type="bodyMedium">{title}</ThemedText>
-        <ThemedText type="small" themeColor="textTertiary">
+        <ThemedText type="headline">{title}</ThemedText>
+        <ThemedText type="footnote" themeColor="textTertiary">
           {subtitle}
         </ThemedText>
       </View>
@@ -148,7 +148,7 @@ function DataRow({
               pressed && styles.dim,
             ]}>
             <ThemedText
-              type="smallBold"
+              type="footnoteStrong"
               style={{ color: destructive ? tint : theme.accentContrast }}>
               {label}
             </ThemedText>

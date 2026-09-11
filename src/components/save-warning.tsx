@@ -47,7 +47,7 @@ export function SaveWarning() {
             size={18}
             color={theme.urgentStrong}
           />
-          <ThemedText type="smallBold" style={{ color: theme.urgentStrong }}>
+          <ThemedText type="footnoteStrong" style={{ color: theme.urgentStrong }}>
             Not saved
           </ThemedText>
         </View>
@@ -70,7 +70,7 @@ export function SaveWarning() {
             disabled={retrying}
             accessibilityRole="button">
             <View style={[styles.button, { backgroundColor: theme.accent }]}>
-              <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+              <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                 {retrying ? 'Trying…' : 'Try again'}
               </ThemedText>
             </View>
@@ -83,7 +83,7 @@ export function SaveWarning() {
             }}
             accessibilityRole="button">
             <View style={styles.button}>
-              <ThemedText type="smallBold" themeColor="textSecondary">
+              <ThemedText type="footnoteStrong" themeColor="textSecondary">
                 Not now
               </ThemedText>
             </View>

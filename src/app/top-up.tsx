@@ -134,10 +134,10 @@ export default function TopUpScreen() {
             * beneath: ten credits a page, three hundred credits, thirty pages.
             */}
           <View>
-            <ThemedText type="label" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               Credits
             </ThemedText>
-            <ThemedText type="display" style={styles.balance}>
+            <ThemedText type="largeTitle" style={styles.balance}>
               {balance.toLocaleString('en-US')}
             </ThemedText>
           </View>
@@ -148,10 +148,10 @@ export default function TopUpScreen() {
                 Read a page
               </ThemedText>
               <View style={styles.rateValue}>
-                <ThemedText type="numeral" themeColor="textSecondary">
+                <ThemedText type="figure" themeColor="textSecondary">
                   {CREDITS_PER_PAGE}
                 </ThemedText>
-                <ThemedText type="small" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   credits
                 </ThemedText>
               </View>
@@ -161,10 +161,10 @@ export default function TopUpScreen() {
                 Ask a question
               </ThemedText>
               <View style={styles.rateValue}>
-                <ThemedText type="numeral" themeColor="textSecondary">
+                <ThemedText type="figure" themeColor="textSecondary">
                   {CREDITS_PER_QUESTION}
                 </ThemedText>
-                <ThemedText type="small" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   credits
                 </ThemedText>
               </View>
@@ -200,14 +200,14 @@ export default function TopUpScreen() {
                         color={picked ? theme.accent : theme.textTertiary}
                       />
                       <View style={styles.flex}>
-                        <ThemedText type="bodyMedium">
+                        <ThemedText type="headline">
                           {pack.credits.toLocaleString('en-US')} credits
                         </ThemedText>
-                        <ThemedText type="small" themeColor="textTertiary">
+                        <ThemedText type="footnote" themeColor="textTertiary">
                           {pagesIn(pack).toLocaleString('en-US')} pages
                         </ThemedText>
                       </View>
-                      <ThemedText type="numeral">{priceFor(pack)}</ThemedText>
+                      <ThemedText type="figure">{priceFor(pack)}</ThemedText>
                     </View>
                   )}
                 </Pressable>
@@ -224,7 +224,7 @@ export default function TopUpScreen() {
                     { backgroundColor: theme.accent },
                     (pressed || busy) && styles.dim,
                   ]}>
-                  <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                  <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                     {busy ? 'One moment' : `Buy for ${priceFor(chosen)}`}
                   </ThemedText>
                 </View>
@@ -241,7 +241,7 @@ export default function TopUpScreen() {
               <Pressable onPress={protectCredits} disabled={busy} accessibilityRole="button">
                 {({ pressed }) => (
                   <ThemedText
-                    type="small"
+                    type="footnote"
                     themeColor="textSecondary"
                     style={[styles.legal, pressed && styles.dim]}>
                     Keep these credits if you change phone
@@ -251,13 +251,13 @@ export default function TopUpScreen() {
             )}
 
             {settings.account !== null && (
-              <ThemedText type="small" themeColor="textTertiary" style={styles.legal}>
+              <ThemedText type="footnote" themeColor="textTertiary" style={styles.legal}>
                 These credits follow your Apple Account to a new phone.
               </ThemedText>
             )}
 
             {/* Guideline 3.1.2 wants the terms where the purchase is made. */}
-            <ThemedText type="small" themeColor="textTertiary" style={styles.legal}>
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.legal}>
               One off purchase, charged to your Apple Account. Nothing renews. Credits do not
               expire.
             </ThemedText>

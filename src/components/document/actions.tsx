@@ -25,7 +25,7 @@ export function PrimaryAction({
       {({ pressed }) => (
         <View style={[styles.primary, { backgroundColor: theme.accent }, pressed && styles.dim]}>
           <MaterialCommunityIcons name={icon as never} size={17} color={theme.accentContrast} />
-          <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+          <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
             {label}
           </ThemedText>
         </View>
@@ -50,7 +50,7 @@ export function SecondaryAction({
       {({ pressed }) => (
         <View style={[styles.secondary, pressed && styles.dim]}>
           <MaterialCommunityIcons name={icon as never} size={17} color={theme.textSecondary} />
-          <ThemedText type="smallBold" themeColor="textSecondary">
+          <ThemedText type="footnoteStrong" themeColor="textSecondary">
             {label}
           </ThemedText>
         </View>

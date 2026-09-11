@@ -21,7 +21,7 @@ export default function LocationScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ThemedText type="label" themeColor="textTertiary">
+        <ThemedText type="footnote" themeColor="textTertiary">
           Country
         </ThemedText>
         <CountrySelect
@@ -34,7 +34,7 @@ export default function LocationScreen() {
 
         {usesEmirates(settings.country) && (
           <>
-            <ThemedText type="label" themeColor="textTertiary" style={styles.heading}>
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.heading}>
               Emirate
             </ThemedText>
             <View style={styles.chipRow}>
@@ -53,7 +53,7 @@ export default function LocationScreen() {
           </>
         )}
 
-        <ThemedText type="small" themeColor="textTertiary" style={styles.note}>
+        <ThemedText type="footnote" themeColor="textTertiary" style={styles.note}>
           {usesEmirates(settings.country)
             ? settings.emirate
               ? 'Renewal steps and portals follow your emirate. Vehicles and licences are run locally, not federally.'
@@ -81,7 +81,7 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
             },
             pressed && styles.dim,
           ]}>
-          <ThemedText type="smallBold" style={on ? { color: theme.accentContrast } : undefined}>
+          <ThemedText type="footnoteStrong" style={on ? { color: theme.accentContrast } : undefined}>
             {label}
           </ThemedText>
         </View>

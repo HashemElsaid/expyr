@@ -223,7 +223,7 @@ export default function HomeScreen() {
           ListHeaderComponent={
             <View>
               <View style={styles.masthead}>
-                <ThemedText type="label" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   {mastheadDate()}
                 </ThemedText>
                 {/*
@@ -236,7 +236,7 @@ export default function HomeScreen() {
                  * masthead states, the way "All quiet" and "Two expired" do.
                  */}
                 {documents.length > 0 && (
-                  <ThemedText type="verdict" style={styles.verdict}>
+                  <ThemedText type="largeTitle" style={styles.verdict}>
                     {allClear
                       ? 'All quiet.'
                       : expired.length > 0
@@ -291,7 +291,7 @@ export default function HomeScreen() {
                         size={18}
                         color={theme.textTertiary}
                       />
-                      <ThemedText type="small" style={styles.flex}>
+                      <ThemedText type="footnote" style={styles.flex}>
                         Nothing due for months. The ones that catch people out come round every
                         year: {missingAnnual.slice(0, 3).join(', ')}.
                       </ThemedText>
@@ -360,7 +360,7 @@ export default function HomeScreen() {
                       size={18}
                       color={theme.urgentSoft}
                     />
-                    <ThemedText type="small" style={styles.flex}>
+                    <ThemedText type="footnote" style={styles.flex}>
                       Reminders are off. Tap to turn them on.
                     </ThemedText>
                   </View>
@@ -405,7 +405,7 @@ export default function HomeScreen() {
                   accessibilityRole="button">
                   {({ pressed }) => (
                     <ThemedText
-                      type="small"
+                      type="footnote"
                       themeColor="textTertiary"
                       style={[styles.noResults, pressed && styles.dim]}>
                       {elsewhere === 1 ? 'One match' : `${elsewhere} matches`} under{' '}
@@ -414,7 +414,7 @@ export default function HomeScreen() {
                   )}
                 </Pressable>
               ) : (
-                <ThemedText type="small" themeColor="textTertiary" style={styles.noResults}>
+                <ThemedText type="footnote" themeColor="textTertiary" style={styles.noResults}>
                   Nothing matches “{query.trim()}”.
                 </ThemedText>
               )
@@ -428,7 +428,7 @@ export default function HomeScreen() {
                     accessibilityRole="button"
                     onPress={() => router.push('/archive')}
                     style={styles.archiveLink}>
-                    <ThemedText type="small" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       {archived.length} archived
                     </ThemedText>
                     <MaterialCommunityIcons
@@ -439,7 +439,7 @@ export default function HomeScreen() {
                   </Pressable>
                 )}
                 {/* Answers the question a sign-in screen usually answers. */}
-                <ThemedText type="small" themeColor="textTertiary" style={styles.assurance}>
+                <ThemedText type="footnote" themeColor="textTertiary" style={styles.assurance}>
                   Saved on this iPhone · included in your backup
                 </ThemedText>
               </View>
@@ -455,7 +455,7 @@ function EmptyState({ onAdd, onBrowse }: { onAdd: () => void; onBrowse: () => vo
   const theme = useTheme();
   return (
     <View style={styles.empty}>
-      <ThemedText type="verdict">Nothing yet.</ThemedText>
+      <ThemedText type="largeTitle">Nothing yet.</ThemedText>
       {/*
         * Two halves, because the app has two and only one of them was ever
         * mentioned. "Photograph a visa, a licence, a tenancy contract" told a
@@ -470,7 +470,7 @@ function EmptyState({ onAdd, onBrowse }: { onAdd: () => void; onBrowse: () => vo
       <Pressable onPress={onAdd} accessibilityRole="button">
         {({ pressed }) => (
           <View style={[styles.cta, { backgroundColor: theme.accent }, pressed && styles.dim]}>
-            <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+            <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
               Add your first item
             </ThemedText>
           </View>
@@ -483,7 +483,7 @@ function EmptyState({ onAdd, onBrowse }: { onAdd: () => void; onBrowse: () => vo
         */}
       <Pressable onPress={onBrowse} accessibilityRole="button">
         {({ pressed }) => (
-          <ThemedText type="small" themeColor="textTertiary" style={pressed && styles.dim}>
+          <ThemedText type="footnote" themeColor="textTertiary" style={pressed && styles.dim}>
             See everything you can track
           </ThemedText>
         )}

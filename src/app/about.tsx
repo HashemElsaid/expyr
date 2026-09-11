@@ -23,8 +23,8 @@ export default function AboutScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <ThemedText type="headline">Expyr</ThemedText>
-          <ThemedText type="small" themeColor="textTertiary">
+          <ThemedText type="largeTitle">Expyr</ThemedText>
+          <ThemedText type="footnote" themeColor="textTertiary">
             Version {Constants.expoConfig?.version ?? '1.0.0'}
           </ThemedText>
         </View>
@@ -33,10 +33,10 @@ export default function AboutScreen() {
           <View style={styles.row}>
             <MaterialCommunityIcons name="history" size={20} color={theme.textSecondary} />
             <View style={styles.rowBody}>
-              <ThemedText type="bodyMedium">
+              <ThemedText type="headline">
                 {renewalsRecorded} renewal{renewalsRecorded === 1 ? '' : 's'} behind you
               </ThemedText>
-              <ThemedText type="small" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 Expyr remembers each time you have renewed something.
               </ThemedText>
             </View>
@@ -78,8 +78,8 @@ function LinkRow({
         <View style={[styles.row, pressed && styles.dim]}>
           <MaterialCommunityIcons name={icon as never} size={20} color={theme.textSecondary} />
           <View style={styles.rowBody}>
-            <ThemedText type="bodyMedium">{title}</ThemedText>
-            <ThemedText type="small" themeColor="textTertiary">
+            <ThemedText type="headline">{title}</ThemedText>
+            <ThemedText type="footnote" themeColor="textTertiary">
               {subtitle}
             </ThemedText>
           </View>

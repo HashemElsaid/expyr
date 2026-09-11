@@ -86,7 +86,7 @@ export function LedgerRow({
                 · {shortDate(doc.expiryDate)}
               </ThemedText>
             </ThemedText>
-            <ThemedText type="smallBold" style={{ color }}>
+            <ThemedText type="footnoteStrong" style={{ color }}>
               {countdownShort(days)}
             </ThemedText>
           </View>
@@ -100,18 +100,18 @@ export function LedgerRow({
       {({ pressed }) => (
         <View style={[styles.row, { borderBottomColor: theme.border }, pressed && styles.dim]}>
           <View style={styles.titleLine}>
-            <ThemedText type="ledgerTitle" style={styles.flex} numberOfLines={2}>
+            <ThemedText type="headline" style={styles.flex} numberOfLines={2}>
               {doc.title}
             </ThemedText>
-            <ThemedText type="ledgerFigure" style={{ color }}>
+            <ThemedText type="figure" style={{ color }}>
               {countdownShort(days)}
             </ThemedText>
           </View>
-          <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
+          <ThemedText type="footnote" themeColor="textTertiary" numberOfLines={1}>
             {meta}
           </ThemedText>
           {blocked && (
-            <ThemedText type="small" style={{ color: theme.urgentSoft }} numberOfLines={1}>
+            <ThemedText type="footnote" style={{ color: theme.urgentSoft }} numberOfLines={1}>
               Something else must be renewed first
             </ThemedText>
           )}

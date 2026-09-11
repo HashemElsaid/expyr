@@ -290,7 +290,7 @@ export default function HouseholdScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <ThemedText type="display">Household</ThemedText>
+          <ThemedText type="largeTitle">Household</ThemedText>
           <ThemedText type="body" themeColor="textSecondary">
             {people.length} {people.length === 1 ? 'person' : 'people'}, {documents.length}{' '}
             {documents.length === 1 ? 'item' : 'items'}.
@@ -348,7 +348,7 @@ export default function HouseholdScreen() {
                   size={24}
                   color={theme.textTertiary}
                 />
-                <ThemedText type="small" themeColor="textSecondary" style={styles.centred}>
+                <ThemedText type="footnote" themeColor="textSecondary" style={styles.centred}>
                   Add someone
                 </ThemedText>
               </View>
@@ -426,7 +426,7 @@ function PersonCard({
   const open = (
     <>
       <ThemedText
-        type="small"
+        type="footnote"
         themeColor={person.urgent > 0 ? 'urgentStrong' : 'textTertiary'}
         numberOfLines={1}
         style={styles.keep}>
@@ -440,7 +440,7 @@ function PersonCard({
             size={13}
             color={worst.severity === 'blocked' ? theme.urgentSoft : theme.textTertiary}
           />
-          <ThemedText type="small" themeColor="textTertiary" numberOfLines={2} style={styles.flex}>
+          <ThemedText type="footnote" themeColor="textTertiary" numberOfLines={2} style={styles.flex}>
             {worst.brief}
           </ThemedText>
         </View>
@@ -452,11 +452,11 @@ function PersonCard({
             const days = daysUntil(doc.expiryDate);
             return (
               <View key={doc.id} style={styles.item}>
-                <ThemedText type="small" numberOfLines={1} style={styles.flex}>
+                <ThemedText type="footnote" numberOfLines={1} style={styles.flex}>
                   {doc.title}
                 </ThemedText>
                 <ThemedText
-                  type="small"
+                  type="footnote"
                   themeColor={days <= 30 ? 'urgentStrong' : 'textTertiary'}>
                   {countdownShort(days)}
                 </ThemedText>
@@ -465,7 +465,7 @@ function PersonCard({
           })}
 
           {rest > 0 && (
-            <ThemedText type="small" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               +{rest} more
             </ThemedText>
           )}
@@ -487,7 +487,7 @@ function PersonCard({
           accessibilityLabel={`Open ${person.label}`}
           style={styles.flex}>
           {({ pressed }) => (
-            <ThemedText type="title" numberOfLines={1} style={pressed ? styles.dim : undefined}>
+            <ThemedText type="headline" numberOfLines={1} style={pressed ? styles.dim : undefined}>
               {person.label}
             </ThemedText>
           )}

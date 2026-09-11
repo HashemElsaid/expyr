@@ -19,7 +19,7 @@ import { useTheme } from '@/hooks/use-theme';
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <View style={styles.field}>
-      <ThemedText type="label" themeColor="textTertiary">
+      <ThemedText type="footnote" themeColor="textTertiary">
         {label}
       </ThemedText>
       {children}
@@ -67,7 +67,7 @@ export function Chip({
           },
         ]}>
         <ThemedText
-          type="smallBold"
+          type="footnoteStrong"
           numberOfLines={1}
           style={active ? { color: theme.accentContrast } : undefined}>
           {label}
@@ -82,7 +82,7 @@ export function Note({ text }: { text: string }) {
   const theme = useTheme();
   return (
     <View style={[styles.note, { backgroundColor: theme.backgroundSelected }]}>
-      <ThemedText type="small">{text}</ThemedText>
+      <ThemedText type="footnote">{text}</ThemedText>
     </View>
   );
 }
@@ -94,7 +94,7 @@ export function ErrorNote({ message }: { message: string }) {
     <View
       style={[styles.note, { backgroundColor: theme.backgroundSelected }]}
       accessibilityLiveRegion="polite">
-      <ThemedText type="small" style={{ color: theme.urgentStrong }}>
+      <ThemedText type="footnote" style={{ color: theme.urgentStrong }}>
         {message}
       </ThemedText>
     </View>
@@ -124,7 +124,7 @@ export function PrimaryButton({
             { backgroundColor: theme.accent },
             (pressed || disabled) && styles.dim,
           ]}>
-          <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+          <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
             {label}
           </ThemedText>
         </View>
@@ -150,7 +150,7 @@ export function SecondaryButton({
           {icon && (
             <MaterialCommunityIcons name={icon as never} size={17} color={theme.textSecondary} />
           )}
-          <ThemedText type="smallBold">{label}</ThemedText>
+          <ThemedText type="footnoteStrong">{label}</ThemedText>
         </View>
       )}
     </Pressable>

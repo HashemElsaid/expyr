@@ -63,7 +63,7 @@ export function LockGate({ children }: { children: ReactNode }) {
     <ThemedView style={styles.container}>
       <View style={styles.inner}>
         <MaterialCommunityIcons name="lock-outline" size={40} color={theme.textTertiary} />
-        <ThemedText type="headline" style={styles.centered}>
+        <ThemedText type="largeTitle" style={styles.centered}>
           Expyr is locked
         </ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
@@ -77,7 +77,7 @@ export function LockGate({ children }: { children: ReactNode }) {
                 { backgroundColor: theme.accent },
                 (pressed || prompting) && styles.dim,
               ]}>
-              <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+              <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                 {prompting ? 'Waiting…' : `Unlock with ${label}`}
               </ThemedText>
             </View>

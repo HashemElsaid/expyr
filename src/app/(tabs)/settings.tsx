@@ -170,7 +170,7 @@ export default function SettingsScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <ThemedText type="display">Settings</ThemedText>
+            <ThemedText type="largeTitle">Settings</ThemedText>
           </View>
 
           <Section title="Plan">
@@ -295,7 +295,7 @@ export default function SettingsScreen() {
                         },
                       ]}>
                       <ThemedText
-                        type="smallBold"
+                        type="footnoteStrong"
                         style={on ? { color: theme.accentContrast } : undefined}>
                         {option.label}
                       </ThemedText>
@@ -310,10 +310,10 @@ export default function SettingsScreen() {
             <View style={styles.row}>
               <MaterialCommunityIcons name="lock-outline" size={20} color={theme.textSecondary} />
               <View style={styles.rowBody}>
-                <ThemedText type="bodyMedium">Require {biometrics.label}</ThemedText>
+                <ThemedText type="headline">Require {biometrics.label}</ThemedText>
                 {/* Only worth explaining when the switch will not move. */}
                 {!biometrics.available && (
-                  <ThemedText type="small" themeColor="textTertiary">
+                  <ThemedText type="footnote" themeColor="textTertiary">
                     Set up Face ID, Touch ID or a passcode on this phone to use this.
                   </ThemedText>
                 )}
@@ -399,7 +399,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <ThemedText type="label" themeColor="textTertiary">
+        <ThemedText type="footnote" themeColor="textTertiary">
           {title}
         </ThemedText>
         <View style={[styles.rule, { backgroundColor: theme.border }]} />
@@ -417,7 +417,7 @@ function LinkRow({ icon, title, onPress }: { icon: string; title: string; onPres
       {({ pressed }) => (
         <View style={[styles.row, pressed && styles.pressed]}>
           <MaterialCommunityIcons name={icon as never} size={20} color={theme.textSecondary} />
-          <ThemedText type="bodyMedium" style={styles.flexRow}>
+          <ThemedText type="headline" style={styles.flexRow}>
             {title}
           </ThemedText>
           <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textTertiary} />
@@ -451,9 +451,9 @@ function Row({
         color={destructive ? theme.urgentStrong : theme.textSecondary}
       />
       <View style={styles.rowBody}>
-        <ThemedText type="bodyMedium">{title}</ThemedText>
+        <ThemedText type="headline">{title}</ThemedText>
         {subtitle !== undefined && (
-          <ThemedText type="small" themeColor="textTertiary">
+          <ThemedText type="footnote" themeColor="textTertiary">
             {subtitle}
           </ThemedText>
         )}
@@ -470,7 +470,7 @@ function Row({
                 pressed && styles.pressed,
               ]}>
               <ThemedText
-                type="smallBold"
+                type="footnoteStrong"
                 style={{ color: destructive ? actionColor : theme.accentContrast }}>
                 {action.label}
               </ThemedText>

@@ -67,7 +67,7 @@ export function DataRow({
           styles.row,
           bordered && { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth },
         ]}>
-        <ThemedText type="small" themeColor="textTertiary" style={styles.label}>
+        <ThemedText type="footnote" themeColor="textTertiary" style={styles.label}>
           {copied ? 'Copied' : label}
         </ThemedText>
         <ThemedText type="body" style={styles.value}>

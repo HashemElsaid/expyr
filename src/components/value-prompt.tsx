@@ -59,9 +59,9 @@ export function ValuePrompt({
             { backgroundColor: theme.backgroundElement, borderColor: theme.border },
           ]}
           onPress={() => {}}>
-          <ThemedText type="bodyMedium">{title}</ThemedText>
+          <ThemedText type="headline">{title}</ThemedText>
           {hint && (
-            <ThemedText type="small" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               {hint}
             </ThemedText>
           )}

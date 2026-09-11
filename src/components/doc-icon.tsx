@@ -1,7 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
+import { Symbol } from '@/components/symbol';
 import { Radius } from '@/constants/theme';
 import { iconFor } from '@/data/document-icons';
 import { useTheme } from '@/hooks/use-theme';
@@ -45,6 +45,12 @@ export function DocIcon({ typeId, iconDomain, size = 46, tint }: Props) {
     );
   }
 
+  /*
+   * A filled tile rather than a hairline box. Apple puts a symbol on a solid
+   * rounded square in a list row and never outlines it, and fifteen outlined
+   * boxes down a list draw fifteen rectangles the eye has to read past to
+   * reach the words.
+   */
   return (
     <View
       style={[
@@ -53,12 +59,11 @@ export function DocIcon({ typeId, iconDomain, size = 46, tint }: Props) {
           width: size,
           height: size,
           borderRadius: Radius.small,
-          borderColor: theme.border,
+          backgroundColor: theme.backgroundSelected,
         },
       ]}>
-      <MaterialCommunityIcons
-        // The glyph names are validated against the shipped glyphmap.
-        name={iconFor(typeId) as never}
+      <Symbol
+        name={iconFor(typeId)}
         size={Math.round(size * 0.5)}
         color={tint ?? theme.textSecondary}
       />
@@ -68,9 +73,5 @@ export function DocIcon({ typeId, iconDomain, size = 46, tint }: Props) {
 
 const styles = StyleSheet.create({
   image: {},
-  tile: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-  },
+  tile: { alignItems: 'center', justifyContent: 'center' },
 });

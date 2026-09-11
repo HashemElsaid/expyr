@@ -303,7 +303,7 @@ export default function DocumentDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { borderBottomColor: theme.border }]}>
-          <ThemedText type="display" style={[styles.verdict, { color }]}>
+          <ThemedText type="largeTitle" style={[styles.verdict, { color }]}>
             {verdictPhrase(days)}
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary">
@@ -358,7 +358,7 @@ export default function DocumentDetailScreen() {
               </View>
 
               <View style={styles.runwayScale}>
-                <ThemedText type="label" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   {spanLabel(runway)}
                 </ThemedText>
                 {/*
@@ -367,7 +367,7 @@ export default function DocumentDetailScreen() {
                   * full. A chart caption that echoes the paragraph over it is
                   * the second time somebody reads the same thing.
                   */}
-                <ThemedText type="label" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   {doc.renewsEvery ? 'Renews' : 'Expires'}
                 </ThemedText>
               </View>
@@ -380,7 +380,7 @@ export default function DocumentDetailScreen() {
            * is to see the dates it will happen on.
            */}
           {reminders.length === 0 ? (
-            <ThemedText type="label" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               No reminders set
             </ThemedText>
           ) : (
@@ -388,13 +388,13 @@ export default function DocumentDetailScreen() {
               {reminders.map((r) => (
                 <ThemedText
                   key={r.lead}
-                  type="label"
+                  type="footnote"
                   themeColor={r.past ? 'textTertiary' : 'textSecondary'}
                   style={r.past && styles.sent}>
                   {dayMonth(r.date)}
                 </ThemedText>
               ))}
-              <ThemedText type="label" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 {fired.length === reminders.length
                   ? '· all sent'
                   : fired.length
@@ -433,7 +433,7 @@ export default function DocumentDetailScreen() {
                 }
               </Pressable>
             ))}
-            <ThemedText type="small" themeColor="textTertiary" style={styles.flex}>
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.flex}>
               Kept on this phone · tap to open
             </ThemedText>
           </View>
@@ -469,7 +469,7 @@ export default function DocumentDetailScreen() {
         {scanned.length > 0 && (
           <View>
             <View style={styles.sectionHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 On the document
               </ThemedText>
               <View style={[styles.rule, { backgroundColor: theme.border }]} />
@@ -490,7 +490,7 @@ export default function DocumentDetailScreen() {
                 />
               ))}
             </View>
-            <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.disclaimer}>
               Read off the document, so check anything you are about to rely on. Tap a line to
               correct it, or clear it to remove it.
             </ThemedText>
@@ -501,11 +501,11 @@ export default function DocumentDetailScreen() {
           <View style={[styles.blocker, { borderColor: theme.urgentSoft }]}>
             <MaterialCommunityIcons name="alert-outline" size={18} color={theme.urgentSoft} />
             <View style={styles.flex}>
-              <ThemedText type="bodyMedium" style={{ color: theme.urgentSoft }}>
+              <ThemedText type="headline" style={{ color: theme.urgentSoft }}>
                 Do this first
               </ThemedText>
               {blockers.map(({ rule, blocking }) => (
-                <ThemedText key={rule.requires} type="small" themeColor="textSecondary">
+                <ThemedText key={rule.requires} type="footnote" themeColor="textSecondary">
                   {rule.warning} Yours expires {shortDate(blocking.expiryDate)}.
                 </ThemedText>
               ))}
@@ -516,7 +516,7 @@ export default function DocumentDetailScreen() {
         {/* The penalty is the reason to act today, so it never hides. */}
         {guided && type.guide.lateFee !== '' && (
           <View style={styles.lateRow}>
-            <ThemedText type="label" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               {running === null ? 'If you leave it' : 'What it has cost so far'}
             </ThemedText>
             {/*
@@ -527,7 +527,7 @@ export default function DocumentDetailScreen() {
              * can be checked rather than believed.
              */}
             {running !== null && (
-              <ThemedText type="numeral" style={{ color: theme.urgentStrong }}>
+              <ThemedText type="figure" style={{ color: theme.urgentStrong }}>
                 {running.currency} {running.owed.toLocaleString()}
                 {running.capped ? ' (the cap)' : ''}
               </ThemedText>
@@ -572,7 +572,7 @@ export default function DocumentDetailScreen() {
                 ]}>
                 <MaterialCommunityIcons name="text-search" size={20} color={theme.accent} />
                 <View style={styles.flex}>
-                  <ThemedText type="bodyMedium">
+                  <ThemedText type="headline">
                     {stage === 'counting'
                       ? 'Checking the document…'
                       : stage === 'transcribing'
@@ -585,7 +585,7 @@ export default function DocumentDetailScreen() {
                             ? 'Summarise this document'
                             : 'Read this document'}
                   </ThemedText>
-                  <ThemedText type="small" themeColor="textTertiary">
+                  <ThemedText type="footnote" themeColor="textTertiary">
                     {stage === 'counting'
                       ? 'Counting the pages.'
                       : /*
@@ -629,7 +629,7 @@ export default function DocumentDetailScreen() {
         {brief && (
           <View style={styles.brief}>
             <View style={styles.sectionHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 What this says
               </ThemedText>
               <View style={[styles.rule, { backgroundColor: theme.border }]} />
@@ -647,10 +647,10 @@ export default function DocumentDetailScreen() {
                   color={theme.urgentSoft}
                   style={styles.watchIcon}
                 />
-                <ThemedText type="small" style={styles.flex}>
+                <ThemedText type="footnote" style={styles.flex}>
                   {item.detail}
                   {item.where ? (
-                    <ThemedText type="small" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       {'  '}
                       {item.where}
                     </ThemedText>
@@ -663,7 +663,7 @@ export default function DocumentDetailScreen() {
               <Pressable
                 onPress={() => setPointsOpen((open) => !open)}
                 accessibilityRole="button">
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                   {pointsOpen
                     ? 'Hide the detail'
                     : `Everything else it says (${brief.points.length})`}
@@ -674,12 +674,12 @@ export default function DocumentDetailScreen() {
             {pointsOpen &&
               brief.points.map((point) => (
                 <View key={point.label} style={styles.pointRow}>
-                  <ThemedText type="smallBold">{point.label}</ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
+                  <ThemedText type="footnoteStrong">{point.label}</ThemedText>
+                  <ThemedText type="footnote" themeColor="textSecondary">
                     {point.detail}
                   </ThemedText>
                   {point.where ? (
-                    <ThemedText type="small" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       {point.where}
                     </ThemedText>
                   ) : null}
@@ -700,7 +700,7 @@ export default function DocumentDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel={guideOpen ? 'Hide renewal guidance' : 'Show renewal guidance'}>
             <View style={styles.sectionHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 {/*
                   * A subscription is not renewed, it renews itself. What
                   * somebody opening this wants is the way out of it, and the
@@ -744,7 +744,7 @@ export default function DocumentDetailScreen() {
                   * draw the guidance without it.
                   */}
                 <ThemedText
-                  type="small"
+                  type="footnote"
                   themeColor={renewal.guidance.standing === 'thin' ? 'urgentSoft' : 'textTertiary'}>
                   {provenanceNote(renewal.guidance)}
                 </ThemedText>
@@ -758,7 +758,7 @@ export default function DocumentDetailScreen() {
                 {notes.length > 0 && (
                   <View style={styles.notes}>
                     {notes.map((note) => (
-                      <ThemedText key={note} type="small" themeColor="textTertiary">
+                      <ThemedText key={note} type="footnote" themeColor="textTertiary">
                         {note}
                       </ThemedText>
                     ))}
@@ -769,7 +769,7 @@ export default function DocumentDetailScreen() {
                   {renewal.guidance.steps.map((step, i) => (
                     <View key={step} style={styles.stepRow}>
                       <ThemedText
-                        type="ledgerFigure"
+                        type="figure"
                         themeColor="textTertiary"
                         style={styles.stepNumber}>
                         {i + 1}
@@ -783,7 +783,7 @@ export default function DocumentDetailScreen() {
 
                 {renewal.guidance.needed.length > 0 && (
                   <View style={styles.notes}>
-                    <ThemedText type="label" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       What to bring
                     </ThemedText>
                     {renewal.guidance.needed.map((item) => (
@@ -811,7 +811,7 @@ export default function DocumentDetailScreen() {
                   */}
                 {renewal.guidance.sources.length > 0 && (
                   <View style={styles.notes}>
-                    <ThemedText type="label" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       Where this came from
                     </ThemedText>
                     {renewal.guidance.sources.map((source) => (
@@ -820,7 +820,7 @@ export default function DocumentDetailScreen() {
                         onPress={() => openSource(source.url)}
                         accessibilityRole="link"
                         accessibilityLabel={`Open ${source.title}`}>
-                        <ThemedText type="small" style={{ color: theme.accent }}>
+                        <ThemedText type="footnote" style={{ color: theme.accent }}>
                           {source.title}
                           {source.official ? ' · official' : ''}
                         </ThemedText>
@@ -829,7 +829,7 @@ export default function DocumentDetailScreen() {
                   </View>
                 )}
 
-                <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
+                <ThemedText type="footnote" themeColor="textTertiary" style={styles.disclaimer}>
                   {renewal.guidance.provenance === 'generated'
                     ? `Looked up on ${shortDate(renewal.guidance.checkedOn)}${
                         renewal.refreshing ? ' · checking for anything newer' : ''

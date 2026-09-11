@@ -639,7 +639,7 @@ export default function AddDocumentScreen() {
           * somebody who has more than that. The situation goes in the
           * headline and the number goes in the sentence that explains it.
           */}
-        <ThemedText type="verdict">The free plan is full.</ThemedText>
+        <ThemedText type="largeTitle">The free plan is full.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
           It holds {FREE_ITEM_LIMIT} items. Unlock Expyr to track everything you own, and everyone
           in the house.
@@ -648,7 +648,7 @@ export default function AddDocumentScreen() {
           <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />
         </View>
         <Pressable onPress={() => router.back()} style={styles.link}>
-          <ThemedText type="small" themeColor="textTertiary">
+          <ThemedText type="footnote" themeColor="textTertiary">
             Not now
           </ThemedText>
         </Pressable>
@@ -674,7 +674,7 @@ export default function AddDocumentScreen() {
     const article = articleFor(named);
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText type="verdict" style={styles.centeredText}>
+        <ThemedText type="largeTitle" style={styles.centeredText}>
           This looks like {article} {named}.
         </ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
@@ -692,7 +692,7 @@ export default function AddDocumentScreen() {
           />
         </View>
         <Pressable onPress={() => setStep('type')} style={styles.link}>
-          <ThemedText type="small" themeColor="textTertiary">
+          <ThemedText type="footnote" themeColor="textTertiary">
             No, it is something else
           </ThemedText>
         </Pressable>
@@ -703,19 +703,19 @@ export default function AddDocumentScreen() {
   if (step === 'scansSpent') {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText type="verdict">Free scans are spent.</ThemedText>
+        <ThemedText type="largeTitle">Free scans are spent.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
           Reading a date off a photo costs us something every time, so the free plan includes{' '}
           {FREE_SCAN_LIMIT} of them. Unlock Expyr to scan without counting.
         </ThemedText>
-        <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
+        <ThemedText type="footnote" themeColor="textTertiary" style={styles.centeredText}>
           You can still add anything you like by typing the date, and that stays free.
         </ThemedText>
         <View style={styles.wallAction}>
           <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />
         </View>
         <Pressable onPress={() => setStep('type')} style={styles.link}>
-          <ThemedText type="small" themeColor="textTertiary">
+          <ThemedText type="footnote" themeColor="textTertiary">
             Enter it myself
           </ThemedText>
         </Pressable>
@@ -736,7 +736,7 @@ export default function AddDocumentScreen() {
          * so once it runs long the wait gets explained rather than hidden.
          */}
         {slowScan && (
-          <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
+          <ThemedText type="footnote" themeColor="textTertiary" style={styles.centeredText}>
             Still working.
           </ThemedText>
         )}
@@ -751,7 +751,7 @@ export default function AddDocumentScreen() {
           <View style={styles.chooseIcon}>
             <MaterialCommunityIcons name="line-scan" size={44} color={theme.textTertiary} />
           </View>
-          <ThemedText type="headline" style={styles.centeredText}>
+          <ThemedText type="largeTitle" style={styles.centeredText}>
             Show it to Expyr
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
@@ -785,7 +785,7 @@ export default function AddDocumentScreen() {
             accessibilityState={{ expanded: moreOpen }}
             style={styles.link}>
             <View style={styles.moreRow}>
-              <ThemedText type="small" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 {moreOpen ? 'Fewer ways' : 'Other ways to add'}
               </ThemedText>
               <MaterialCommunityIcons
@@ -826,7 +826,7 @@ export default function AddDocumentScreen() {
                 onPress={() => router.replace('/subscriptions')}
               />
               <Pressable onPress={() => setStep('type')} style={styles.link}>
-                <ThemedText type="small" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   Enter it myself
                 </ThemedText>
               </Pressable>
@@ -835,7 +835,7 @@ export default function AddDocumentScreen() {
 
           {/* Only worth mentioning once the end is actually in sight. */}
           {!settings.premium && scansLeft <= 3 && (
-            <ThemedText type="small" themeColor="textTertiary" style={styles.centeredText}>
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.centeredText}>
               {scansLeft === 0
                 ? 'No free scans left. Typing a date in is still free.'
                 : `${scansLeft} free ${scansLeft === 1 ? 'scan' : 'scans'} left.`}
@@ -861,7 +861,7 @@ export default function AddDocumentScreen() {
       <ThemedView style={styles.container}>
         <ScrollView contentContainerStyle={styles.typeGridContent}>
           {error && <ErrorNote message={error} />}
-          <ThemedText type="headline">
+          <ThemedText type="largeTitle">
             Found {countWord(review.length).toLowerCase()} things.
           </ThemedText>
           <ThemedText type="body" themeColor="textSecondary" style={styles.reviewIntro}>
@@ -905,7 +905,7 @@ export default function AddDocumentScreen() {
                     }}
                     accessibilityRole="button"
                     accessibilityLabel={`Rename ${row.title}`}>
-                    <ThemedText type="bodyMedium">{row.title}</ThemedText>
+                    <ThemedText type="headline">{row.title}</ThemedText>
                   </Pressable>
 
                   <Pressable
@@ -916,7 +916,7 @@ export default function AddDocumentScreen() {
                     }}
                     accessibilityRole="button"
                     accessibilityLabel={`Change the category of ${row.title}`}>
-                    <ThemedText type="small" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       {labelFor(type, settings.country)}
                       {row.item.expiryDate ? ` · ${longDate(row.item.expiryDate)}` : ''}
                     </ThemedText>
@@ -970,7 +970,7 @@ export default function AddDocumentScreen() {
       <ThemedView style={styles.container}>
         <ScrollView contentContainerStyle={styles.typeGridContent}>
           {error && <ErrorNote message={error} />}
-          <ThemedText type="label" themeColor="textTertiary" style={styles.sectionLabel}>
+          <ThemedText type="footnote" themeColor="textTertiary" style={styles.sectionLabel}>
             What are you tracking?
           </ThemedText>
           <View style={styles.typeList}>
@@ -983,7 +983,7 @@ export default function AddDocumentScreen() {
                       { borderBottomColor: theme.border },
                       pressed && styles.dim,
                     ]}>
-                    <ThemedText type="ledgerTitle" style={styles.flex}>
+                    <ThemedText type="headline" style={styles.flex}>
                       {labelFor(t, settings.country)}
                     </ThemedText>
                     <MaterialCommunityIcons
@@ -1028,11 +1028,11 @@ export default function AddDocumentScreen() {
         <Field label="Category">
           <Pressable onPress={() => !editing && setStep('type')} disabled={!!editing}>
             <View style={[styles.ruledRow, { borderBottomColor: theme.border }]}>
-              <ThemedText type="fieldValue" style={styles.flex}>
+              <ThemedText type="body" style={styles.flex}>
                 {labelFor(type!, settings.country)}
               </ThemedText>
               {!editing && (
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                   Change
                 </ThemedText>
               )}
@@ -1047,7 +1047,7 @@ export default function AddDocumentScreen() {
               * same type as one they did, is indistinguishable from an answer.
               */}
             <ThemedText
-              type="fieldValue"
+              type="body"
               themeColor={dateChosen ? 'text' : 'textTertiary'}
               style={styles.flex}>
               {dateChosen ? longDate(toISODate(expiry)) : 'Not set yet'}
@@ -1221,7 +1221,7 @@ export default function AddDocumentScreen() {
               </View>
             </Pressable>
           </View>
-          <ThemedText type="small" themeColor="textTertiary">
+          <ThemedText type="footnote" themeColor="textTertiary">
             {files.length === 0 ? 'Nothing attached yet.' : 'Kept on this phone only.'}
           </ThemedText>
         </Field>
@@ -1245,7 +1245,7 @@ export default function AddDocumentScreen() {
               />
             ))}
           </View>
-          <ThemedText type="small" themeColor="textTertiary">
+          <ThemedText type="footnote" themeColor="textTertiary">
             {nudgeSummary}
           </ThemedText>
         </Field>
@@ -1267,7 +1267,7 @@ export default function AddDocumentScreen() {
           </Field>
         ) : (
           <Pressable onPress={() => setShowNotes(true)}>
-            <ThemedText type="small" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               + Add a note
             </ThemedText>
           </Pressable>

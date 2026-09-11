@@ -253,6 +253,29 @@ item on the list and the one with the largest downside attached.
 
 ---
 
+### The cold cache, observed 11 September
+
+The first outside user scanned a driving licence and imported three
+subscriptions. The Anthropic balance moved from $4.88 to $4.71: seventeen cents
+for two scans that cost about a cent between them.
+
+The rest was research. `server/guidance.ts` runs Sonnet with web search the
+first time anyone opens a document type in a region, or a particular
+subscription service, then caches the answer on disk for every later user.
+She was the first person in her region to open a driving licence and the
+first to open those services, so she paid roughly $0.07 for the guide and
+about $0.05 per service, once, for everybody who comes after.
+
+**So the $0.08 per install above assumes a warm cache.** Expect the first few
+hundred installs to run above it while the cache fills, then below it. The
+same actions get cheaper as they repeat, which is the shape to watch for in the
+Usage chart: Sonnet and web-search lines falling as a share of the total while
+Haiku holds steady.
+
+The long tail is subscriptions. Netflix is looked up once for the world; a
+local gym is looked up once for its handful of members. `EXPYR_GUIDANCE_DAILY_NEW`
+caps new lookups at 40 a day, which bounds the worst day at about $2.80.
+
 ## Three scenarios
 
 Assuming 2% of installs buy Pro, 1% buy a credit pack, and the per-install

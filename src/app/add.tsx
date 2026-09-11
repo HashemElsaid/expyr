@@ -17,7 +17,7 @@ import {
 import { Chip, ErrorNote, Field, Note, PrimaryButton, SecondaryButton } from '@/components/form';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { DOCUMENT_TYPES, getDocumentType, labelFor, numberFieldFor } from '@/data/document-types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { defaultExpiry, startingExpiry } from '@/domain/expiry';
@@ -628,7 +628,7 @@ export default function AddDocumentScreen() {
             onChangeText={setTitle}
             placeholder={labelFor(type!, settings.country)}
             placeholderTextColor={theme.textTertiary}
-            style={[styles.serifInput, { color: theme.text, borderBottomColor: theme.textTertiary }]}
+            style={[styles.titleInput, { color: theme.text, borderBottomColor: theme.textTertiary }]}
           />
         </Field>
 
@@ -921,9 +921,15 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  serifInput: {
-    fontFamily: 'InstrumentSerif',
+  /*
+    * The document's own name, set large on a ruled line. Semibold rather than
+    * bold: it is a field somebody is typing into, and the heaviest weight in
+    * the app on an empty input reads as a warning.
+    */
+  titleInput: {
+    ...Fonts.strong,
     fontSize: 26,
+    letterSpacing: -0.3,
     lineHeight: 32,
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -936,13 +942,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   ruledInput: {
-    fontFamily: 'DMSans',
+    ...Fonts.body,
     fontSize: 17,
     lineHeight: 24,
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  webDate: { fontFamily: 'DMSans', fontSize: 13, paddingTop: 6 },
+  webDate: { ...Fonts.body, fontSize: 13, paddingTop: 6 },
   notes: { minHeight: 60, textAlignVertical: 'top' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   /*

@@ -33,7 +33,7 @@ export default function TabsLayout() {
           borderTopWidth: StyleSheet.hairlineWidth,
         },
         tabBarLabelStyle: {
-          fontFamily: Fonts.bodyMedium,
+          ...Fonts.bodyMedium,
           fontSize: 11,
           letterSpacing: 0.3,
         },

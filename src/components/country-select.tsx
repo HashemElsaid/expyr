@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: Fonts.body,
+    ...Fonts.body,
     fontSize: 15,
     lineHeight: 20,
     paddingVertical: 2,

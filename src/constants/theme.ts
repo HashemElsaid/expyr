@@ -1,3 +1,5 @@
+import type { TextStyle } from 'react-native';
+
 /**
  * Expyr's visual language: warm paper rather than clinical white, ink rather
  * than pure black, and colour reserved for genuine urgency. Everything that is
@@ -40,14 +42,44 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-/** Font families, keyed to the files loaded in the root layout. */
+/**
+ * Type, which is the phone's own font and nothing else.
+ *
+ * It used to be Instrument Serif over DM Sans, two faces downloaded and
+ * registered at launch. The first person to read the timeline who had not
+ * built it said it looked machine-made and named the pairing as the reason,
+ * which is the one piece of evidence worth more than a preference: a serif
+ * headline over a geometric sans is what a template looks like, and every
+ * app on the phone that a person trusts with a passport is set in San
+ * Francisco.
+ *
+ * So these carry weight rather than a family name. Leaving `fontFamily`
+ * unset is deliberate: iOS then resolves the system font itself, which means
+ * the right optical size for the point size, real semibold and bold cuts
+ * rather than a synthesised slant, and whatever Apple changes next. Naming a
+ * family would opt out of all three.
+ *
+ * Spread them, do not assign them: `...Fonts.body`, not
+ * `fontFamily: Fonts.body`.
+ */
 export const Fonts = {
-  /** Editorial serif — headlines and big numbers only. */
-  display: 'InstrumentSerif',
-  body: 'DMSans',
-  bodyMedium: 'DMSansMedium',
-  bodyBold: 'DMSansBold',
-} as const;
+  /** Body text and anything long enough to read. */
+  body: { fontWeight: '400' },
+  /** A shade heavier: buttons, section labels, a row's name. */
+  bodyMedium: { fontWeight: '500' },
+  /**
+   * Titles and figures. Semibold rather than bold because these sit in lists,
+   * several to a screen, and 700 at 22 points turns a ledger into shouting.
+   */
+  strong: { fontWeight: '600' },
+  /**
+   * The large statements: the app's own name, a screen's opening line, the
+   * masthead's verdict. Apple sets its large titles in bold with the tracking
+   * pulled slightly tight, and the tracking lives with each size rather than
+   * here, because how tight depends on how big.
+   */
+  display: { fontWeight: '700' },
+} as const satisfies Record<string, TextStyle>;
 
 export const Spacing = {
   half: 2,

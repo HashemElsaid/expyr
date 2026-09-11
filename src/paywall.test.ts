@@ -18,6 +18,13 @@ import { describe, expect, it } from 'vitest';
  * Read as text because the alternative is rendering the whole app. A guard
  * this blunt cannot prove the rule holds; it can only fail loudly when the
  * likeliest way of breaking it is attempted.
+ *
+ * It lives here, beside `copy.test.ts`, and not next to the screen it is
+ * about. Everything under `src/app` is a route: expo-router builds the router
+ * from that directory, so Metro bundles every file in it into the app. This
+ * file was written there, which put `node:fs` in the phone's bundle and met
+ * the next person to open it with a red screen. `bundle.test.ts` is the guard
+ * against doing it again.
  */
 describe('the paywall never opens on launch', () => {
   const ON_LAUNCH = ['src/app/_layout.tsx', 'src/app/onboarding.tsx'];

@@ -407,6 +407,22 @@ They are on Hashem's phone and stay out of the repo.
     The test is the one he gave: if it still looks generated, it is not
     done, and removing an element beats restyling it.
 
+    **Progress, 11 September evening.** Foundation (Apple type scale, no
+    tracking, unit with the number, iOS greys) in b1c2818; Timeline in
+    a384b65 and 0f73e67: Large Title, red Overdue header, category symbol
+    tiles in Apple's system colours fixed per category with red reserved for
+    the overdue state, four summary cards (Overdue, Next 30 days, All,
+    Household) that filter the list, inset grouped card; iOS system
+    backgrounds in both modes with mint as tint only. The Expo Go toast was
+    expo-iap resolving its native module lazily behind a Proxy, so the
+    import guard never fired; fixed in a93a640 by asking at initConnection,
+    and purchases are now known to be untestable in Expo Go by design.
+    Decisions: "Next 30 days" not "This month"; empty state keeps one button;
+    the collapsing Large Title is **deferred past 1.0.1**, because a real one
+    needs a native stack inside each tab and a JavaScript imitation is the
+    kind of near-miss that reads as fake. Open: whether the forest-green
+    accent is too dark for tinted row actions; Hashem judges on Settings.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

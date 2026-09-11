@@ -307,9 +307,11 @@ cards in one frame returning two items, both day-first dates read day-first.
 Still needing a phone: the review list, the "is this a passport" question,
 and the MRZ path on a real passport.
 
-Before and after, run the three actual images through: the passport that
-became a visa, the subscriptions screenshot, and the misspelled passport.
-They are on Hashem's phone and stay out of the repo.
+**Verified on the real images by Hashem, 11 September evening**: the
+passport now reads as a passport, the misspelled name is right and editable,
+the subscriptions screenshot is redirected on the wrong path and fully
+imported on the right one, two cards in one photo make a review list, and a
+day-first date reads day-first. Part A of `business/TEST-PASS.md`, all six.
 
 15. **One rule for titles.** Decided with Hashem 11 September, after the
     scan wrote "Residence Visa for AEHED SAID SHERIF". The title says what

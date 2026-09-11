@@ -11,6 +11,8 @@ Everything that fails goes in the log. Nothing gets reported one at a time.
 
 ## Part A. The scan, live now
 
+**Passed, all six, Hashem, 11 September evening**, on the real images.
+
 These hit the server that every App Store user hits, so a pass here is a pass
 for them too.
 

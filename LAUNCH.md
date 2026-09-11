@@ -267,8 +267,12 @@ already done.
 
 14. **A clear passport, a misspelled name, and no way to fix it.** Two
     faults. The name should come from the MRZ on passports and Emirates IDs,
-    which is check-digit protected and spelled exactly as the printed name;
-    read both, prefer the MRZ, and flag when they disagree. And every
+    read alongside the printed name, preferred, and flagged when they
+    disagree. Correction from the coding session: the MRZ name itself carries
+    no check digit under ICAO 9303; the document number, birth date, expiry
+    and a composite do. Those still make the zone trustworthy as a whole,
+    since a read that gets four check digits right did not invent the name
+    beside them, and one failed digit drops the zone entirely. And every
     extracted field must be editable somewhere. `add.tsx` around line 102
     keeps them read-only on purpose, to keep the form short, which is right,
     but the document's own screen then has to allow tap-to-edit on each
@@ -276,9 +280,31 @@ already done.
     scan needs the same. A name nobody can correct is worse than no name,
     because it goes into a government form.
 
+**All three on main, 11 September** (a4f862d, 134de9d, c051c0e; 421 app
+tests and 193 service tests). What shipped against the brief: Sonnet 5 on
+`/extract`, a separate type confidence so a perfect date and an invented
+category no longer average to "high", the one-question confirm below high, a
+scan-written title dropped when its category was wrong, "other" exempt from
+the question. For 13, the service first says whether the picture is a
+document, documents or a subscriptions list, and a list is handed to the
+existing importer with the original image rather than the document prompt
+learning a second copy of that job; several documents get the review list,
+dates corrected on the item's own page rather than inline. For 14, the MRZ
+expiry is check-digit protected and unambiguous, which also settles the
+category; guarded to passports and Emirates IDs; every scanned field is
+tappable on the document screen. Household members needed nothing, since no
+scan creates a person and renaming already rewrites their documents.
+
+**Not yet pushed or deployed.** The service change reaches 1.0 users the
+moment it is on origin: scans go from $0.003 to $0.015 and a subscriptions
+screenshot on the document path stops returning a wrong item and starts
+pointing at the importer. Both are improvements, and 1.0's field layout is
+tested unchanged, but it is a live change on a shipped app and the account
+holder decides when.
+
 Before and after, run the three actual images through: the passport that
 became a visa, the subscriptions screenshot, and the misspelled passport.
-Keep them out of the repo.
+They are on Hashem's phone and stay out of the repo.
 
 ### Not code, but goes on the same version
 

@@ -337,6 +337,20 @@ They are on Hashem's phone and stay out of the repo.
     prefill was offered and declined, because the category name is a correct
     title under this rule for most items.
 
+16. **A test file inside the routes folder broke Expo Go**, found by Hashem
+    11 September on the first design pass: expo-router bundles every file
+    under `src/app` as a screen, so `paywall.test.ts` went into the app and
+    its Node import failed on the phone. Every test passed while the app was
+    broken, because vitest does not care where a file lives. Fixed on main as
+    5657e49: the file moved to `src/paywall.test.ts`, and `src/bundle.test.ts`
+    now fails on any test file under `src/app` and on any Node import from
+    there. Verified by `npx expo export --platform ios` producing one clean
+    bundle. **Run that export once before every build**; about ninety
+    seconds, and it catches this whole class before a build is spent on it.
+    Also on main as 51365a7: `/health` reports the running commit, so a
+    deploy is proven by comparing it with `origin/main` rather than by the
+    service merely answering.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

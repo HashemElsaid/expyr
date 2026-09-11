@@ -105,7 +105,7 @@ This is where the product is best and the competition is thinnest.
 
 ### The renewal guides, published as web pages
 
-**Drafted 9 September, awaiting verification.** Five pages at `docs/guides/`:
+**Drafted 9 September, verified 11 September.** Five pages at `docs/guides/`:
 Emirates ID, residence visa, Mulkiya, driving licence and Ejari, linked from
 the landing page and from each other.
 
@@ -116,10 +116,20 @@ the responsible authority and telling the reader to confirm there, and closes
 by saying plainly that it is a summary for planning, not official instruction,
 and not affiliated with any government body.
 
-**They must be checked before they go live.** The figures come from
-`document-types.ts`, which is the app's own data and has never been audited for
-a public page that ranks in search. A wrong fee on a page Google surfaces
-damages more than it earns.
+**Checked 11 September against several current sources per guide, and
+corrected.** The figures had come from `document-types.ts`, the app's own data,
+never before audited for a public page. Four things were wrong: the driving
+licence eye test was listed at about AED 50 and costs AED 140 to 180; the
+Mulkiya guide said driving in the grace period was an offence, when it is
+permitted with valid insurance, and gave a flat fine where the real late fee is
+AED 10 a month capped at AED 500; the Ejari fee quoted a stale AED 120 floor
+where online registration is AED 178; and the visa guide had a vague range
+where GDRFA publishes about AED 560 for a standard renewal. Also added: the
+unified AED 50 overstay fine since February 2026, the 30-to-180-day grace
+period by visa type, the 30-day shelf life of a medical result, and the RERA
+increase bands. Sources were secondary but numerous and consistent; the
+official page stays linked at the top of every guide, and `document-types.ts`
+is now a 1.0.1 item so the app says the same thing the web pages do.
 
 **Why this is the best channel available.** Somebody landing on "how to renew
 your Emirates ID" while panicking about one is the highest-intent visitor this

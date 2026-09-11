@@ -95,7 +95,15 @@ no pricing changes, no model changes.
    shared token, or a daily line in the logs. No per-person tracking, no new
    SDK, nothing the privacy labels would have to mention.
 
-8. **Bump the version to 1.0.1** so App Store Connect accepts the build
+8. **Bring `document-types.ts` into line with the verified guides.** The
+   driving-licence eye test is listed at about AED 50 and costs AED 140 to 180;
+   the Mulkiya late fee is AED 10 a month capped at AED 500, not a flat ~AED
+   500, and driving in the 30-day grace period is allowed with valid insurance;
+   Ejari online registration is AED 178, not 120; the visa fee is about AED 560
+   for a standard renewal, not 300 to 1,200; the overstay fine is a unified AED
+   50 a day since February 2026. Same numbers in-app and on the web pages.
+
+9. **Bump the version to 1.0.1** so App Store Connect accepts the build
    against a new version record.
 
 Open and non-blocking, from earlier sections: the dark-mode shadow glow in

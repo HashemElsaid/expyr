@@ -79,6 +79,35 @@ type Reviewed = {
 
 const LEAD_DAY_OPTIONS = [1, 3, 7, 14, 30, 60, 90, 180];
 
+/**
+ * What was being entered when the sheet last closed.
+ *
+ * Item 20 asks that a draft survive an accidental close and that reopening
+ * offer to continue, in the same session. In the same session is the whole of
+ * why this is a variable and not storage: these hold file URIs in the cache
+ * directory, which iOS is free to clear, so a draft restored tomorrow could
+ * offer a photograph that no longer exists. A draft restored ten seconds later
+ * cannot.
+ *
+ * Module scope rather than a store, because nothing else in the app has any
+ * business reading a half-finished form.
+ */
+type KeptDraft = {
+  typeId: DocumentTypeId;
+  title: string;
+  expiryDate: string;
+  dateChosen: boolean;
+  documentNumber: string;
+  notes: string;
+  owner: string;
+  leadDays: number[];
+  files: Attachment[];
+  fields: ExtractedField[];
+  scanned: string | null;
+};
+
+let keptDraft: KeptDraft | null = null;
+
 export default function AddDocumentScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -266,6 +295,103 @@ export default function AddDocumentScreen() {
       { text: 'Discard', style: 'destructive', onPress: () => router.back() },
     ]);
   }
+
+  /**
+   * Holds the draft against an accidental close, and lets it go on a save.
+   *
+   * Written on every change rather than on the way out, because the way out
+   * includes the app being switched away from, which is not a moment this
+   * screen is told about.
+   */
+  useEffect(() => {
+    if (editing) return;
+    keptDraft = dirty
+      ? {
+          typeId: typeId ?? 'other',
+          title,
+          expiryDate: toISODate(expiry),
+          dateChosen,
+          documentNumber,
+          notes,
+          owner,
+          leadDays,
+          files,
+          fields,
+          scanned,
+        }
+      : null;
+  }, [
+    editing,
+    dirty,
+    typeId,
+    title,
+    expiry,
+    dateChosen,
+    documentNumber,
+    notes,
+    owner,
+    leadDays,
+    files,
+    fields,
+    scanned,
+  ]);
+
+  /**
+   * Offers to continue, once, a moment after the sheet has settled.
+   *
+   * Delayed for the same reason the lock offer is: an alert presented while
+   * iOS is still animating a sheet into place is an alert that may never
+   * draw, and the app that was left behind it cannot be touched. That cost a
+   * day's debugging the first time.
+   *
+   * Only on a fresh add. Editing an existing document has its own record to
+   * fill the form from, and asking there would offer somebody else's draft.
+   */
+  const offered = useRef(false);
+  useEffect(() => {
+    if (editing || offered.current || keptDraft === null || params.start === 'type') return;
+    offered.current = true;
+    const draft = keptDraft;
+
+    const timer = setTimeout(() => {
+      Alert.alert(
+        'Continue where you left off?',
+        draft.title.trim() ? `You were adding ${draft.title.trim()}.` : 'You had started adding something.',
+        [
+          {
+            text: 'Start fresh',
+            style: 'cancel',
+            onPress: () => {
+              keptDraft = null;
+            },
+          },
+          {
+            text: 'Continue',
+            onPress: () => {
+              setTypeId(draft.typeId);
+              setTitle(draft.title);
+              const when = new Date(`${draft.expiryDate}T00:00:00`);
+              if (!Number.isNaN(when.getTime())) setExpiry(when);
+              setDateChosen(draft.dateChosen);
+              setDocumentNumber(draft.documentNumber);
+              setNotes(draft.notes);
+              setOwner(draft.owner);
+              setLeadDays(draft.leadDays);
+              setFiles(draft.files);
+              setFields(draft.fields);
+              setScanned(draft.scanned);
+              setTrail(['choose']);
+              setStep('form');
+            },
+          },
+        ]
+      );
+    }, 700);
+
+    return () => clearTimeout(timer);
+    // Asked once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     navigation.setOptions({
@@ -472,6 +598,7 @@ export default function AddDocumentScreen() {
         // Each thing found in the picture keeps its own share of the words.
         if (row.item.text?.trim()) storeReading(made.id, row.item.text);
       }
+      keptDraft = null;
       successFeedback();
 
       if (blocked > 0) {
@@ -745,6 +872,8 @@ export default function AddDocumentScreen() {
      */
     if (scanned) storeReading(created.id, scanned);
 
+    // Saved, so there is nothing left to offer to continue.
+    keptDraft = null;
     successFeedback();
 
     /*
@@ -1291,7 +1420,24 @@ export default function AddDocumentScreen() {
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel="Remove this attachment"
-                  onPress={() => setFiles((c) => c.filter((f) => f.key !== file.key))}
+                  /*
+                   * Asks first. One tap used to take the photograph somebody
+                   * had just taken of their passport, with nothing to undo it
+                   * and the camera the only way back. Item 20's rule is that a
+                   * deletion is reversible or confirmed, never instant, and a
+                   * confirmation is the honest one here: there is nowhere to
+                   * put an undo on a form.
+                   */
+                  onPress={() =>
+                    Alert.alert('Remove this?', 'The photo goes, the entry stays.', [
+                      { text: 'Keep', style: 'cancel' },
+                      {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () => setFiles((c) => c.filter((f) => f.key !== file.key)),
+                      },
+                    ])
+                  }
                   style={styles.removeBadge}>
                   <Icon name="xmark.circle.fill" size={20} color={theme.textSecondary} />
                 </Pressable>

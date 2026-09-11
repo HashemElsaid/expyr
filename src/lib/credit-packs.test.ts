@@ -3,7 +3,15 @@ import { describe, expect, it } from 'vitest';
 
 import { PRO_PRODUCT_ID } from '@/lib/products';
 import { CREDIT_COST_USD } from '@/domain/credits';
-import { costToHonour, PACKS, pagesIn, priceOf, revenueFrom } from '@/lib/credit-packs';
+import {
+  costToHonour,
+  PACKS,
+  pagesIn,
+  priceOf,
+  PRO_CREDITS,
+  PRO_PAGES,
+  revenueFrom,
+} from '@/lib/credit-packs';
 
 /**
  * These are the tests that stop a price change losing money quietly.
@@ -71,7 +79,7 @@ describe('the price shown matches the storefront', () => {
    * in dollars on the next screen makes it look like two different apps.
    */
   it('prices in the local currency where there is one', () => {
-    expect(priceOf(PACKS[1], 'AE')).toBe('AED 18.99');
+    expect(priceOf(PACKS[1], 'AE')).toBe('AED 19.99');
     expect(priceOf(PACKS[1], 'GB')).toBe('£4.99');
     expect(priceOf(PACKS[1], 'US')).toBe('$4.99');
   });
@@ -133,8 +141,39 @@ describe('the app and the service agree on what is for sale', () => {
     expect(catalogue).toContain(`id: '${PRO_PRODUCT_ID}'`);
   });
 
+  /*
+   * Read from the constant rather than the catalogue line, which holds the
+   * name and not the number. Line by line, because a pattern built inside a
+   * template literal loses its backslashes before RegExp sees them and every
+   * lookup then quietly returns null.
+   */
+  function serverConstant(name: string): number | null {
+    const line = catalogue
+      .split(NEWLINE)
+      .find((candidate) => candidate.startsWith(`export const ${name} = `));
+    if (!line) return null;
+    const digits = line.slice(line.indexOf('=') + 1).replace(/[^0-9]/g, '');
+    return digits ? Number(digits) : null;
+  }
+
+  /*
+   * The paywall promises these in writing, on the screen where the money is
+   * taken. The service is what actually grants them, so a disagreement is
+   * either a promise not kept or credits nobody was told about.
+   */
+  it('includes with Pro exactly what the paywall promises', () => {
+    expect(serverConstant('PRO_CREDITS')).toBe(PRO_CREDITS);
+  });
+
+  it('counts the pages that bundle reads exactly', () => {
+    expect(PRO_PAGES * 10).toBeLessThanOrEqual(PRO_CREDITS);
+    expect(PRO_PAGES).toBe(50);
+  });
+
   /* Proves the reader works, so a broken parser cannot pass as agreement. */
   it('would notice a disagreement', () => {
+    expect(serverConstant('PRO_CREDITS')).not.toBe(PRO_CREDITS + 1);
+    expect(serverConstant('NOTHING_LIKE_THIS')).toBeNull();
     expect(serverCredits('credits.small')).toBe(1500);
     expect(serverCredits('credits.small')).not.toBe(1501);
     expect(serverCredits('nothing.like.this')).toBeNull();

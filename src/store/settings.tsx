@@ -94,6 +94,14 @@ export type Settings = {
    */
   ownName: string;
   /**
+   * Whether the rating prompt has been used up.
+   *
+   * One per install, spent at the moment a renewal is recorded. Its own flag
+   * rather than a count of anything, because the only question is whether the
+   * sheet has been shown, and set only once iOS confirms it showed it.
+   */
+  ratingAsked: boolean;
+  /**
    * The account credits belong to, once somebody has signed in with Apple.
    *
    * An opaque key derived from Apple's subject identifier, prefixed `apple_`.
@@ -122,6 +130,7 @@ const DEFAULTS: Settings = {
   lockOffered: false,
   people: [],
   ownName: '',
+  ratingAsked: false,
   account: null,
 };
 
@@ -273,11 +282,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             typeof parsed.ownName === 'string' && parsed.ownName
               ? parsed.ownName
               : nameFromDevice(Constants.deviceName),
+          ratingAsked: parsed.ratingAsked ?? DEFAULTS.ratingAsked,
           /*
            * Named explicitly, like everything above it. This object is rebuilt
            * field by field, so anything not listed here is silently dropped at
            * the next launch, and an account dropped is credits stranded on the
            * service under a key the phone can no longer name.
+           *
+           * Leaving one out is a type error, since this object has to satisfy
+           * Settings in full. What nothing checks is a field listed here and
+           * read wrongly, so each one names its own fallback rather than
+           * borrowing a neighbour's.
            */
           account: typeof parsed.account === 'string' ? parsed.account : null,
         });

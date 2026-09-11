@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
+import { isSubscription } from '@/domain/documents';
 import { saysItsOwnType } from '@/domain/timeline';
 import { urgencyColor } from '@/hooks/use-urgency';
 import { guessDomain } from '@/lib/brand-icons';
@@ -98,12 +99,7 @@ export function TimelineRow({
 
           <DocIcon
             typeId={doc.typeId}
-            iconDomain={
-              doc.iconDomain ??
-              (doc.renewsEvery || doc.typeId === 'membership'
-                ? guessDomain(doc.title)
-                : undefined)
-            }
+            iconDomain={doc.iconDomain ?? (isSubscription(doc) ? guessDomain(doc.title) : undefined)}
             size={38}
           />
         </View>

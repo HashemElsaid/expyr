@@ -17,6 +17,7 @@ export const DOCUMENT_ICONS: Record<DocumentTypeId, string> = {
   'professional-license': 'certificate-outline',
   'labor-card': 'badge-account-outline',
   membership: 'ticket-outline',
+  bill: 'receipt-text-outline',
   warranty: 'wrench-outline',
   other: 'file-document-outline',
 };

@@ -52,6 +52,10 @@ no pricing changes, no model changes.
 
 ### For the coding session
 
+**1 to 5 and 7 are on main**, done 10 September. The items are left below as
+the record of why, with what actually shipped noted against each. Only 6 is
+outstanding, because it needs a phone.
+
 1. **Bundle 500 credits with Expyr Pro.** Today `premium: true` lifts the item
    and scan ceilings and does nothing else; the 300 welcome credits go to every
    install regardless. So a Pro buyer who has used them has paid AED 149 and
@@ -63,25 +67,55 @@ no pricing changes, no model changes.
    grants for one purchase, which is $3 worst case; accept that rather than
    build cross-device dedup for it.
 
+   *Shipped.* `PRO_CREDITS` in `server/products.ts` is the authority and the
+   phone mirrors it in `credit-packs.ts`, with the agreement test reading one
+   from the other. Granted through the same `redeem()` the packs use, so the
+   transaction id already dedups it. A store that cannot hold credits does not
+   block the purchase: Apple replays a non-consumable on every launch for
+   ever, so the next sweep grants them. The paywall says what is included in
+   the footnote and in the Guideline 3.1.2 block.
+
 2. **A Bill category** in `src/data/document-types.ts`. The listing says
    `Documents, bills & renewals`; today bills are reachable only through Other
    plus recurrence. A first-class type with a generic label and a sensible
    default lead time. No UAE guidance needed.
 
+   *Shipped.* `bill`, lead days [7, 1], `receipt-text-outline`, listed after
+   Subscription. Deliberately not added to the `isSubscription` category
+   fallback: that fallback is for records written before the app asked about
+   recurrence, and treating the category as proof would make a one-off invoice
+   roll itself forward for ever.
+
 3. **The AED credit pack fallbacks** in `credit-packs.ts`: 12.99, 19.99 and
    39.99, read off real sandbox purchases. StoreKit shows the real prices, so
    this is the fallback being wrong rather than a live bug.
+
+   *Shipped.* The table now also says which rows were read off a real purchase
+   and which are still guesses.
 
 4. **A rating prompt.** There is none in the app. Use `expo-store-review`, and
    fire it in one place only: **after "I have renewed this"**, when the app has
    just visibly kept its promise. Never on launch, never on a count of opens.
    The first twenty reviews weigh more in search ranking than any twenty after.
 
+   *Shipped.* `src/lib/rating.ts`, fired from `add.tsx` only when a renewal
+   actually moved the date, so correcting a typo does not count. Once per
+   install, and the flag is spent only when iOS confirms it showed the sheet:
+   `isAvailableAsync` is false in TestFlight, so a build there would otherwise
+   burn the one chance on a prompt nobody saw. Which also means it cannot be
+   seen before the App Store build.
+
 5. **Verify subscription import against the free ceiling.** `add.tsx:66` gates
    on `documents.length >= FREE_ITEM_LIMIT` before adding. What happens when
    someone with two items imports six subscriptions? It should import what
    fits and show the paywall for the rest, not fail, and not silently drop the
    last four. This is the single most common first action a new user takes.
+
+   *It was broken.* `subscriptions.tsx` wrote every ticked subscription with
+   no reference to the ceiling at all, so two items plus six imported tracked
+   eight. Fixed with `roomFor` and `splitImport` in `src/domain/capacity.ts`:
+   what fits is added, and the rest is named in an alert offering Pro rather
+   than dropped.
 
 6. **Verify Restore Purchases end to end** on a real device: buy, delete the
    app, reinstall, restore, confirm Pro returns. It was never separately

@@ -11,6 +11,7 @@ export type DocumentTypeId =
   | 'professional-license'
   | 'labor-card'
   | 'membership'
+  | 'bill'
   | 'warranty'
   | 'other';
 

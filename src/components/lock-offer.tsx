@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { InteractionManager, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
+import { wantsLockOffer } from '@/domain/lock-offer';
 import { useTheme } from '@/hooks/use-theme';
 import { authenticate, checkBiometricSupport } from '@/lib/biometrics';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
@@ -22,7 +23,36 @@ import { useSettings } from '@/store/settings';
  * Not on by default, deliberately. Forcing biometrics on somebody who wanted to
  * track their Mulkiya is its own kind of rude, and a lock nobody chose is a
  * lock they turn off the second it interrupts them.
+ *
+ * It waits for the interface to be still before it presents, and that is not a
+ * nicety. This froze the app for every first-time user, and it took a force
+ * quit to get out of.
+ *
+ * The moment this wants to show is the moment the first document with a photo
+ * is saved. Adding is a screen iOS presents as a modal, and saving the first
+ * item replaces it with the document screen, so iOS is asked to dismiss one
+ * presentation and make another in the same frame as this Modal appears. It
+ * loses: the sheet never draws, and the presentation that swallowed the touches
+ * no longer has a view to draw them on. The app is alive and cannot be touched.
+ *
+ * Which is also why it was only ever the first document. Replacing the add
+ * screen happens only when the list was empty, and this can only first turn
+ * true on the save that puts a photograph in the app, which for a new user is
+ * the same save.
  */
+/**
+ * How long to wait for the screen to stop moving.
+ *
+ * Long enough to be clear of one screen dismissing and another arriving, which
+ * on iOS is two transitions of about a third of a second each, and short enough
+ * that the sheet still reads as an answer to what the person just did.
+ *
+ * The timer is the load-bearing part. runAfterInteractions is there because it
+ * costs nothing, but a native stack transition is not a JS interaction, so it
+ * can and does fire straight into the middle of one.
+ */
+const SETTLE_MS = 900;
+
 export function LockOffer() {
   const theme = useTheme();
   const { settings, loaded, update } = useSettings();
@@ -40,14 +70,34 @@ export function LockOffer() {
    */
   const holdsSomethingPrivate = documents.some((doc) => doc.files.length > 0);
 
-  const show =
-    loaded &&
+  const wanted =
     Platform.OS !== 'web' &&
-    settings.onboarded &&
-    !settings.lockOffered &&
-    !settings.lockEnabled &&
-    biometrics.available &&
-    holdsSomethingPrivate;
+    wantsLockOffer({
+      loaded,
+      onboarded: settings.onboarded,
+      alreadyOffered: settings.lockOffered,
+      lockEnabled: settings.lockEnabled,
+      biometricsAvailable: biometrics.available,
+      holdsSomethingPrivate,
+    });
+
+  const [settled, setSettled] = useState(false);
+
+  useEffect(() => {
+    if (!wanted) return;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const task = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => setSettled(true), SETTLE_MS);
+    });
+
+    return () => {
+      task.cancel();
+      if (timer) clearTimeout(timer);
+    };
+  }, [wanted]);
+
+  const show = wanted && settled;
 
   async function turnOn() {
     tapFeedback();

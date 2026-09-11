@@ -82,7 +82,11 @@ export function migrateDocument(raw: unknown): TrackedDocument | null {
  * card that simply expires is not.
  *
  * The category is a fallback for records written before the app asked how
- * often a thing recurs, so those do not silently land on the wrong side.
+ * often a thing recurs, so those do not silently land on the wrong side. Bills
+ * are deliberately not in it, even though a bill is the plainest example of a
+ * thing that charges you: the category arrived after the recurrence question
+ * did, so every bill is written with an answer to it. Treating the category as
+ * proof would make a one-off invoice roll itself forward for ever.
  */
 export function isSubscription(doc: Pick<TrackedDocument, 'renewsEvery' | 'typeId'>): boolean {
   return Boolean(doc.renewsEvery) || doc.typeId === 'membership';

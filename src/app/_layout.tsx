@@ -248,7 +248,9 @@ function AppShell() {
             credits = topUp(
               credits,
               item.credits,
-              `${item.credits.toLocaleString('en-US')} credits`,
+              // Pro carries credits of its own, and the statement should say
+              // which purchase a line came from rather than only how much.
+              `${item.credits.toLocaleString('en-US')} credits${item.pro ? ' with Expyr Pro' : ''}`,
               new Date(),
               item.transactionId
             );

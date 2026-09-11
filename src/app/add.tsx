@@ -26,6 +26,7 @@ import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from 
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { newAttachmentKey } from '@/lib/files';
 import { REMINDER_TIME } from '@/lib/notifications';
+import { askForReview } from '@/lib/rating';
 import { leadLabel } from '@/lib/reminder-plan';
 import { attachFile, pickDocument, pickImage, scanFile, type ScanResult } from '@/lib/scan';
 import { useDocuments } from '@/store/documents';
@@ -358,6 +359,22 @@ export default function AddDocumentScreen() {
       });
       successFeedback();
       router.back();
+
+      /*
+       * The one place Expyr asks to be rated.
+       *
+       * Not on launch and not on an open count: here, where a document that
+       * would have lapsed did not, because the app said so in time. Only when
+       * the date actually moved, so correcting a typo is not treated as a
+       * renewal, and only once per install. The flag is set only if iOS says
+       * it really showed the sheet, since it refuses in TestFlight and says
+       * nothing about having refused.
+       */
+      if (movedOn && !settings.ratingAsked) {
+        void askForReview().then((asked) => {
+          if (asked) update({ ratingAsked: true });
+        });
+      }
       return;
     }
 

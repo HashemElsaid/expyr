@@ -12,10 +12,26 @@
  */
 
 export type Grant =
-  /** The one off purchase. Takes the ceilings off; nothing is added to a balance. */
-  | { kind: 'pro' }
+  /** The one off purchase. Takes the ceilings off, and comes with credits. */
+  | { kind: 'pro'; credits: number }
   /** A credit pack. */
   | { kind: 'credits'; credits: number };
+
+/**
+ * What Expyr Pro includes, beyond taking the ceilings off.
+ *
+ * Pro used to grant nothing at all: it lifted the item and scan limits and
+ * left Expyr AI to the welcome credits, the same three hundred every install
+ * gets. So the most expensive thing in the app made no difference to the one
+ * feature that costs us money per use, and somebody who had just paid for
+ * everything found the good part still metered.
+ *
+ * Fifty pages. It is worth about fifty cents to honour, against a purchase
+ * that clears twenty-eight dollars at Apple's worst rate, and it is granted
+ * once against Apple's transaction identifier so a restore or a reinstall
+ * replays it without paying twice.
+ */
+export const PRO_CREDITS = 500;
 
 /**
  * Consumables can be bought again; the non-consumable cannot. Apple needs to be
@@ -37,7 +53,7 @@ export type Product = {
  * drifts.
  */
 export const PRODUCTS: readonly Product[] = [
-  { id: 'pro.lifetime', kind: 'nonConsumable', grant: { kind: 'pro' } },
+  { id: 'pro.lifetime', kind: 'nonConsumable', grant: { kind: 'pro', credits: PRO_CREDITS } },
   { id: 'credits.small', kind: 'consumable', grant: { kind: 'credits', credits: 1_500 } },
   { id: 'credits.medium', kind: 'consumable', grant: { kind: 'credits', credits: 3_000 } },
   { id: 'credits.large', kind: 'consumable', grant: { kind: 'credits', credits: 6_500 } },
@@ -56,8 +72,7 @@ export function grantFor(productId: string): Grant | null {
   return PRODUCTS.find((product) => product.id === productId)?.grant ?? null;
 }
 
-/** How many credits a product is worth, or zero if it is not a credit pack. */
+/** How many credits a product is worth, or zero if we have never heard of it. */
 export function creditsFor(productId: string): number {
-  const grant = grantFor(productId);
-  return grant?.kind === 'credits' ? grant.credits : 0;
+  return grantFor(productId)?.credits ?? 0;
 }

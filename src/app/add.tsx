@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import { ErrorNote, Note, PrimaryButton } from '@/components/form';
-import { Icon } from '@/components/icon';
+import { Icon, type SFSymbol } from '@/components/icon';
 import { ListInput, ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -106,6 +106,24 @@ export default function AddDocumentScreen() {
   const [step, setStep] = useState<Step>(
     editing ? 'form' : params.start === 'type' ? 'type' : 'choose'
   );
+  /**
+   * The steps behind this one, so there is a way back that keeps what has been
+   * done.
+   *
+   * These steps are state in one screen rather than routes in a stack, so
+   * there was no Back: the only way out of the entry form was the X, which
+   * threw away the scan and the form and started the flow again. Somebody who
+   * photographed the wrong side of a card had to redo all of it.
+   *
+   * A trail rather than a table of which step precedes which, because several
+   * of them have more than one predecessor: the category picker is reached
+   * from the way-in step, from the form's Category row, and from the
+   * confirmation question, and each has to return where it came from.
+   *
+   * Going back never clears anything. Every field lives in this component, so
+   * a step is only ever which part of it is on screen.
+   */
+  const [trail, setTrail] = useState<Step[]>([]);
   const [typeId, setTypeId] = useState<DocumentTypeId | null>(editing?.typeId ?? null);
   const [title, setTitle] = useState(editing?.title ?? '');
   /**
@@ -160,9 +178,96 @@ export default function AddDocumentScreen() {
   const [saving, setSaving] = useState(false);
   const [showAndroidPicker, setShowAndroidPicker] = useState(false);
 
+  /**
+   * Forward, remembering where from.
+   *
+   * Not every change of step is a move forward, and the difference decides
+   * where Back lands. Answering "this looks like a passport" swaps the
+   * question for the form, so it uses setStep and leaves the trail alone:
+   * Back from the form then returns to the way in, which is what somebody
+   * retaking a photo wants, rather than asking them the question again.
+   */
+  function go(next: Step) {
+    setTrail((behind) => [...behind, step]);
+    setStep(next);
+  }
+
+  /** Back, to wherever this step was reached from. */
+  function back() {
+    setTrail((behind) => {
+      const previous = behind[behind.length - 1];
+      if (previous !== undefined) setStep(previous);
+      return behind.slice(0, -1);
+    });
+  }
+
+  /**
+   * Whether there is anything here worth not throwing away.
+   *
+   * Decides two things: whether closing asks first, and whether the sheet can
+   * be swiped away at all. A blank form should never interrupt somebody who
+   * has changed their mind about starting.
+   */
+  const dirty =
+    !editing &&
+    (title.trim() !== '' ||
+      files.length > 0 ||
+      dateChosen ||
+      notes.trim() !== '' ||
+      documentNumber.trim() !== '' ||
+      review !== null);
+
+  /**
+   * Closing the whole sheet, which is what the X and the swipe do.
+   *
+   * One native alert when there is something to lose, and nothing at all when
+   * there is not.
+   */
+  function close() {
+    if (!dirty) {
+      router.back();
+      return;
+    }
+    Alert.alert('Discard this?', 'What you have entered will not be saved.', [
+      { text: 'Keep Editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+    ]);
+  }
+
   useEffect(() => {
-    navigation.setOptions({ title: renewing ? 'Renewed' : editing ? 'Edit' : 'New entry' });
-  }, [navigation, editing, renewing]);
+    navigation.setOptions({
+      title: renewing ? 'Renewed' : editing ? 'Edit' : 'New entry',
+      /*
+       * Back where there is somewhere to go back to, and the X beside it so
+       * there is always a way out as well as a way back. Set from here rather
+       * than in the route's options because only this screen knows how deep
+       * into the flow somebody is.
+       */
+      headerLeft: () =>
+        trail.length > 0 ? (
+          <HeaderAction symbol="chevron.left" label="Back" onPress={back} />
+        ) : (
+          <HeaderAction symbol="xmark" label="Cancel" onPress={close} />
+        ),
+      headerRight: () =>
+        trail.length > 0 ? (
+          <HeaderAction symbol="xmark" label="Cancel" onPress={close} />
+        ) : undefined,
+      /*
+       * The sheet cannot be swiped away while there is something in it.
+       *
+       * This is UIKit's own behaviour: isModalInPresentation exists so a sheet
+       * with unsaved work refuses the gesture and makes the person use the
+       * button, which can ask. Without it the swipe discards silently, and
+       * expo-router does not export the hook that would let the gesture be
+       * intercepted instead.
+       */
+      gestureEnabled: !dirty,
+    });
+    // Rebuilt whenever the depth or the dirtiness changes, which is what the
+    // two controls are about.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, editing, renewing, trail.length, dirty]);
 
   // Long enough that a normal read never trips it.
   useEffect(() => {
@@ -278,16 +383,16 @@ export default function AddDocumentScreen() {
        */
       if (result.typeId === 'other') {
         setGuessed(null);
-        setStep('type');
+        go('type');
         return;
       }
       setGuessed(scannedType);
-      setStep('confirmType');
+      go('confirmType');
       return;
     }
 
     setGuessed(null);
-    setStep('form');
+    go('form');
   }
 
   /**
@@ -367,7 +472,7 @@ export default function AddDocumentScreen() {
   async function runScan(source: 'camera' | 'library' | 'files') {
     setError(null);
     if (outOfScans) {
-      setStep('scansSpent');
+      go('scansSpent');
       return;
     }
     try {
@@ -402,7 +507,7 @@ export default function AddDocumentScreen() {
       // Only a scan that actually read something counts against the allowance.
       if (!result.found && many.length === 0) {
         setError(result.note || 'No date found in that file.');
-        setStep('type');
+        go('type');
         return;
       }
       if (!settings.premium) update({ scansUsed: settings.scansUsed + 1 });
@@ -421,7 +526,7 @@ export default function AddDocumentScreen() {
           }))
         );
         setFiles([{ uri: scannedUri, type: picked.type, key: newAttachmentKey() }]);
-        setStep('review');
+        go('review');
         return;
       }
 
@@ -475,7 +580,13 @@ export default function AddDocumentScreen() {
     if (!t.numberField) setDocumentNumber('');
     if (leadDays.length === 0 || !editing) setLeadDays(t.defaultLeadDays);
     setScanNote(null);
-    setStep('form');
+    /*
+     * Return rather than advance when the picker was opened from the form,
+     * which is the Category row. Opened from the way-in step it is the first
+     * choice made and the form comes next.
+     */
+    if (trail[trail.length - 1] === 'form') back();
+    else go('form');
   }
 
   function toggleLeadDay(day: number) {
@@ -667,7 +778,7 @@ export default function AddDocumentScreen() {
             }}
           />
         </View>
-        <Pressable onPress={() => setStep('type')} style={styles.link}>
+        <Pressable onPress={() => go('type')} style={styles.link}>
           <ThemedText type="footnote" themeColor="textTertiary">
             No, it is something else
           </ThemedText>
@@ -781,7 +892,7 @@ export default function AddDocumentScreen() {
               symbol="keyboard"
               tint="gray"
               title="Enter it myself"
-              onPress={() => setStep('type')}
+              onPress={() => go('type')}
             />
           </ListSection>
         </ScrollView>
@@ -919,7 +1030,7 @@ export default function AddDocumentScreen() {
         </ScrollView>
 
         <View style={styles.foot}>
-          <PrimaryButton label="Done" onPress={() => setStep('form')} />
+          <PrimaryButton label="Done" onPress={back} />
         </View>
       </ThemedView>
     );
@@ -927,7 +1038,12 @@ export default function AddDocumentScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        /* So the field being typed into is never behind the keyboard. */
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="interactive">
         {renewing && (
           <Note text="Date moved forward by the usual period. Check it against the new document." />
         )}
@@ -968,7 +1084,7 @@ export default function AddDocumentScreen() {
             tint="gray"
             title="Category"
             value={labelFor(type!, settings.country)}
-            onPress={() => setStep('type')}
+            onPress={() => go('type')}
           />
         </ListSection>
 
@@ -1038,7 +1154,7 @@ export default function AddDocumentScreen() {
                 ? 'Never'
                 : `${leadDays.length} ${leadDays.length === 1 ? 'reminder' : 'reminders'}`
             }
-            onPress={() => setStep('remind')}
+            onPress={() => go('remind')}
           />
         </ListSection>
 
@@ -1244,3 +1360,35 @@ const styles = StyleSheet.create({
   },
   removeBadge: { position: 'absolute', top: -6, right: -6 },
 });
+
+/**
+ * A button in the navigation bar: the symbol alone, tinted, with a real label
+ * for anybody who cannot see it.
+ *
+ * Its own component because this screen now puts two of them up, Back and
+ * Cancel, and which side each sits on changes with how deep into the flow
+ * somebody is.
+ */
+function HeaderAction({
+  symbol,
+  label,
+  onPress,
+}: {
+  symbol: SFSymbol;
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable onPress={onPress} hitSlop={16} accessibilityRole="button" accessibilityLabel={label}>
+      {({ pressed }) => (
+        <Icon
+          name={symbol}
+          size={symbol === 'xmark' ? 20 : 22}
+          weight="semibold"
+          color={pressed ? theme.textSecondary : theme.accent}
+        />
+      )}
+    </Pressable>
+  );
+}

@@ -108,6 +108,7 @@ export function ListRow({
   value,
   control,
   onPress,
+  onLongPress,
   chevron = true,
   selected,
   destructive,
@@ -125,6 +126,13 @@ export function ListRow({
   control?: ReactNode;
   /** Given where the row does something, or goes somewhere. */
   onPress?: () => void;
+  /**
+   * The context menu, which on iOS is a long press.
+   *
+   * Used where a row has more to offer than the screen it opens, and where a
+   * second control on the right would be one thing too many.
+   */
+  onLongPress?: () => void;
   /**
    * Given, true or false, where the row is one of several options.
    *
@@ -194,7 +202,7 @@ export function ListRow({
   if (!onPress) return body;
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button">
+    <Pressable onPress={onPress} onLongPress={onLongPress} accessibilityRole="button">
       {({ pressed }) => (
         <View style={pressed ? { backgroundColor: theme.backgroundSelected } : undefined}>
           {body}

@@ -1,17 +1,16 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Icon } from '@/components/icon';
 import { ActionMenu, type MenuAction } from '@/components/document/actions';
+import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ValuePrompt } from '@/components/value-prompt';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { findGaps } from '@/data/gaps';
 import { buildHousehold, MINE, personSummary, type Person } from '@/domain/household';
-import { useTheme } from '@/hooks/use-theme';
-import { countdownShort, daysUntil } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
@@ -67,45 +66,10 @@ function personHref(person: Person) {
  * page exists to answer: who needs me. The tile is a doorway rather than a
  * summary now; the detail is one tap away on the person's own page.
  */
-const COLUMNS = 2;
-const PAGE_PADDING = 20;
-const GAP = 12;
-
-/** A tile this narrow shows the next few; the rest are behind the tap. */
-const ITEMS_SHOWN = 3;
-
-/**
- * Every tile the same height, whatever is in it.
- *
- * Sized to the fullest a tile can get — a name, a status, two lines of gap, and
- * three items with a "+N more" under them — because the alternative is a grid
- * whose rows step up and down with whoever happens to own the most documents.
- * A person with two items is not a smaller person, and a tile that shrinks to
- * fit them reads as though something is missing from it.
- *
- * The content is bounded by the two constants above and the line limits on the
- * text, so nothing can grow past this; overflow is hidden as a backstop rather
- * than as a plan.
- *
- * Measured rather than guessed, and the first guess was wrong by fourteen
- * points — which did not clip anything, it silently squeezed "3 need you" to
- * nothing while the item rows underneath kept their space. A card that quietly
- * drops the one line saying somebody needs you is worse than one that is too
- * tall, so the pieces below declare which of them may give way.
- */
-const CARD_HEIGHT = 214;
-
 export default function HouseholdScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const { documents, updateDocument, removeDocument } = useDocuments();
   const { settings, update } = useSettings();
-  const { width } = useWindowDimensions();
-
-  /** Two to a row, whatever the phone is. */
-  const cardWidth = Math.floor(
-    (width - PAGE_PADDING * 2 - GAP * (COLUMNS - 1)) / COLUMNS
-  );
 
   const [renaming, setRenaming] = useState<Person | null>(null);
   const [adding, setAdding] = useState(false);
@@ -289,71 +253,85 @@ export default function HouseholdScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <ThemedText type="largeTitle">Household</ThemedText>
-          <ThemedText type="body" themeColor="textSecondary">
-            {people.length} {people.length === 1 ? 'person' : 'people'}, {documents.length}{' '}
-            {documents.length === 1 ? 'item' : 'items'}.
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+          <ThemedText type="largeTitle" style={styles.header}>
+            Household
           </ThemedText>
-        </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.grid}>
-          {people.map((person) => (
-            <PersonCard
-              key={person.label}
-              person={person}
-              gaps={gapsFor(person)}
-              width={cardWidth}
-              onOpenPerson={() => {
+          {/*
+            * A list, where this was a two-column grid of tiles.
+            *
+            * Each tile carried a name, a summary, the worst gap and up to
+            * three of that person's items, which is a lot of typesetting to
+            * say what a row says in one line, and none of it was the shape
+            * anything else in the app had taken.
+            *
+            * The per-person menu is a long press now, which is the gesture
+            * iOS uses for a context menu, and every action in it is also on
+            * the person's own page one tap away. A trailing ellipsis beside a
+            * chevron would be two things on the right of a row, which is the
+            * rule this app just adopted.
+            */}
+          <ListSection
+            footer={`${people.length} ${people.length === 1 ? 'person' : 'people'}, ${documents.length} ${
+              documents.length === 1 ? 'item' : 'items'
+            }`}>
+            {people.map((person) => {
+              const worst = gapsFor(person)[0];
+              return (
+                <ListRow
+                  key={person.label}
+                  symbol={person.unnamed ? 'person.crop.circle.badge.questionmark' : 'person.fill'}
+                  tint={person.urgent > 0 ? 'red' : 'blue'}
+                  title={person.label}
+                  /*
+                   * What needs doing, or what is missing, or nothing. The
+                   * summary already says "2 due soon"; a gap is worth more
+                   * than a count, so it wins when there is one.
+                   */
+                  subtitle={worst ? worst.brief : personSummary(person)}
+                  value={
+                    person.items.length > 0
+                      ? `${person.items.length}`
+                      : undefined
+                  }
+                  onPress={() => {
+                    tapFeedback();
+                    /*
+                     * An unnamed own-row with nothing under it opens the one
+                     * thing worth doing to it. Its timeline is empty by
+                     * definition, so sending somebody there answers a question
+                     * they did not ask.
+                     */
+                    if (person.unnamed && person.empty) {
+                      setDraft(settings.ownName);
+                      setRenaming(person);
+                      return;
+                    }
+                    router.push(personHref(person));
+                  }}
+                  onLongPress={() => {
+                    tapFeedback();
+                    setMenu({ person, top: 120, right: Spacing.three });
+                  }}
+                />
+              );
+            })}
+          </ListSection>
+
+          <ListSection>
+            <ListRow
+              symbol="person.badge.plus"
+              tint="green"
+              title="Add someone"
+              chevron={false}
+              onPress={() => {
                 tapFeedback();
-                /*
-                 * An unnamed own-card with nothing under it opens the one
-                 * thing worth doing to it. Its timeline is empty by
-                 * definition, so sending somebody there answers a question
-                 * they did not ask and hides the one the card just put to
-                 * them.
-                 */
-                if (person.unnamed && person.empty) {
-                  setDraft(settings.ownName);
-                  setRenaming(person);
-                  return;
-                }
-                router.push(personHref(person));
-              }}
-              onMenu={(at) => {
-                tapFeedback();
-                setMenu({ person, ...at });
+                setDraft('');
+                setAdding(true);
               }}
             />
-          ))}
-
-          <Pressable
-            onPress={() => {
-              tapFeedback();
-              setDraft('');
-              setAdding(true);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Add a family member">
-            {({ pressed }) => (
-              <View
-                style={[
-                  styles.card,
-                  styles.addCard,
-                  { width: cardWidth, borderColor: theme.border },
-                  pressed && styles.dim,
-                ]}>
-                <Icon
-                  name="person.badge.plus"
-                  size={24}
-                  color={theme.textTertiary}
-                />
-                <ThemedText type="footnote" themeColor="textSecondary" style={styles.centred}>
-                  Add someone
-                </ThemedText>
-              </View>
-            )}
-          </Pressable>
+          </ListSection>
         </ScrollView>
       </SafeAreaView>
 
@@ -387,194 +365,15 @@ export default function HouseholdScreen() {
   );
 }
 
-function PersonCard({
-  person,
-  gaps,
-  width,
-  onOpenPerson,
-  onMenu,
-}: {
-  person: Person;
-  gaps: ReturnType<typeof findGaps>;
-  width: number;
-  onOpenPerson: () => void;
-  onMenu: (at: { top: number; right: number }) => void;
-}) {
-  const theme = useTheme();
-  const { width: screenWidth } = useWindowDimensions();
-  const menuButton = useRef<View>(null);
-
-  const shown = person.items.slice(0, ITEMS_SHOWN);
-  const rest = person.items.length - shown.length;
-
-  /*
-   * The most serious one, and only as far as a tile this wide can carry it.
-   * Every gap in full is on the person's own page, which is one tap away — a
-   * tile that tried to print three sentences about missing paperwork would be
-   * mostly paperwork.
-   */
-  const worst = gaps[0];
-
-  /*
-   * The tile is not one big button with a smaller button inside it.
-   *
-   * That is what it was, and a nested pressable is invalid on the web and
-   * ambiguous everywhere else — the browser said so out loud. Two siblings
-   * instead: the ⋯ opens the menu, and everything else opens the person. Both
-   * regions do the same thing, so it still behaves like one tile.
-   */
-  const open = (
-    <>
-      <ThemedText
-        type="footnote"
-        themeColor={person.urgent > 0 ? 'urgentStrong' : 'textTertiary'}
-        numberOfLines={1}
-        style={styles.keep}>
-        {personSummary(person)}
-      </ThemedText>
-
-      {worst && (
-        <View style={[styles.gap, styles.keep]}>
-          <Icon
-            name={worst.severity === 'blocked' ? 'exclamationmark.triangle.fill' : 'square.and.arrow.up'}
-            size={13}
-            color={worst.severity === 'blocked' ? theme.urgentSoft : theme.textTertiary}
-          />
-          <ThemedText type="footnote" themeColor="textTertiary" numberOfLines={2} style={styles.flex}>
-            {worst.brief}
-          </ThemedText>
-        </View>
-      )}
-
-      {shown.length > 0 && (
-        <View style={[styles.items, { borderTopColor: theme.border }]}>
-          {shown.map((doc) => {
-            const days = daysUntil(doc.expiryDate);
-            return (
-              <View key={doc.id} style={styles.item}>
-                <ThemedText type="footnote" numberOfLines={1} style={styles.flex}>
-                  {doc.title}
-                </ThemedText>
-                <ThemedText
-                  type="footnote"
-                  themeColor={days <= 30 ? 'urgentStrong' : 'textTertiary'}>
-                  {countdownShort(days)}
-                </ThemedText>
-              </View>
-            );
-          })}
-
-          {rest > 0 && (
-            <ThemedText type="footnote" themeColor="textTertiary">
-              +{rest} more
-            </ThemedText>
-          )}
-        </View>
-      )}
-    </>
-  );
-
-  return (
-    <View
-      style={[
-        styles.card,
-        { width, borderColor: theme.border, backgroundColor: theme.backgroundElement },
-      ]}>
-      <View style={styles.nameRow}>
-        <Pressable
-          onPress={onOpenPerson}
-          accessibilityRole="button"
-          accessibilityLabel={`Open ${person.label}`}
-          style={styles.flex}>
-          {({ pressed }) => (
-            <ThemedText type="headline" numberOfLines={1} style={pressed ? styles.dim : undefined}>
-              {person.label}
-            </ThemedText>
-          )}
-        </Pressable>
-
-        {/*
-         * Everything you can do *to* a person; the rest of the tile is the way
-         * *to* them. A sibling of the tap target, never inside it.
-         */}
-        <Pressable
-          ref={menuButton}
-          onPress={() => {
-            /*
-             * Measured when pressed, not on layout — the grid reflows as people
-             * are added, and where this was when the screen drew is not where
-             * the finger just touched.
-             */
-            menuButton.current?.measureInWindow((x, y, w) => {
-              onMenu({ top: y + w, right: Math.max(8, screenWidth - (x + w)) });
-            });
-          }}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel={`More for ${person.label}`}>
-          <Icon name="ellipsis" size={18} color={theme.textTertiary} />
-        </Pressable>
-      </View>
-
-      <Pressable
-        onPress={onOpenPerson}
-        accessibilityRole="button"
-        accessibilityLabel={`Open ${person.label}`}
-        style={styles.flex}>
-        {({ pressed }) => (
-          <View style={[styles.body, pressed && styles.dim]}>{open}</View>
-        )}
-      </Pressable>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
-  flex: { flex: 1 },
-  dim: { opacity: 0.6 },
-  centred: { textAlign: 'center' },
-  header: { paddingHorizontal: PAGE_PADDING, paddingTop: 8, paddingBottom: 18, gap: 6 },
-
-  /*
-   * Wrapping rows rather than one long line. Aligned to the top so a person
-   * with less to keep track of is a shorter tile beside a taller one, not a
-   * mostly-empty box stretched to match.
-   */
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
-    paddingHorizontal: PAGE_PADDING,
-    gap: GAP,
-    paddingBottom: 96,
+  content: {
+    paddingHorizontal: Spacing.three,
+    paddingBottom: 72,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
-  card: {
-    height: CARD_HEIGHT,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
-    padding: 14,
-    gap: 4,
-    overflow: 'hidden',
-  },
-  addCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderStyle: 'dashed',
-  },
-
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  body: { flex: 1, gap: 4 },
-  /*
-   * Never squeezed. Whether somebody needs you, and why, is the whole reason
-   * this tile is on the page; the list of items underneath is the part that can
-   * afford to lose a row.
-   */
-  keep: { flexShrink: 0 },
-  gap: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
-
-  items: { paddingTop: 8, marginTop: 2, gap: 6, borderTopWidth: StyleSheet.hairlineWidth },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  header: { paddingTop: Spacing.three },
 });

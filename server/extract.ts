@@ -20,8 +20,21 @@ function getClient(): Anthropic {
   return cachedClient;
 }
 
-/** Override with EXPYR_MODEL to trade cost for accuracy (e.g. claude-opus-5). */
-const MODEL = process.env.EXPYR_MODEL ?? 'claude-haiku-4-5';
+/**
+ * Sonnet 5, because the product is "it read the document right".
+ *
+ * This ran on Haiku 4.5 until three people in one afternoon scanned a
+ * passport and got back an Emirates ID once and a residence visa twice. One
+ * entry read "Residence Visa for AEHED SAID SHERIF", which is the wrong
+ * category, the wrong guidance, the wrong lead time and a misspelled name in
+ * one row. The prompt was part of it and is fixed below; the model was the
+ * other part.
+ *
+ * About $0.015 a scan against $0.003. Ten free scans is $0.15 an install at
+ * worst, against a one-off purchase clearing AED 120. Costed in
+ * `business/MONEY.md`. Override with EXPYR_MODEL to trade it back.
+ */
+const MODEL = process.env.EXPYR_MODEL ?? 'claude-sonnet-5';
 
 /**
  * `output_config.effort` is rejected outright by the older small models, so it
@@ -68,7 +81,20 @@ export const ExtractionSchema = z.object({
   title: z.string(),
   expiryDate: z.string(),
   documentNumber: z.string(),
+  /** How sure it is of the date. */
   confidence: z.enum(['high', 'medium', 'low']),
+  /**
+   * How sure it is of the category, which is a different question.
+   *
+   * Its own field rather than a share of `confidence`, because the two were
+   * wrong in opposite directions on the scan that started this: the date was
+   * read perfectly off a passport and the category was a residence visa. One
+   * number covering both would have read "high" and interrupted nobody.
+   *
+   * A wrong category is wrong renewal guidance, a wrong lead time and a wrong
+   * title, so anything short of high is worth one question before the form.
+   */
+  typeConfidence: z.enum(['high', 'medium', 'low']),
   note: z.string(),
   /**
    * Everything else the document says. The app was built around one date, which
@@ -100,6 +126,37 @@ The user has photographed or uploaded one item. It is usually one of:
 
 Return exactly one item: the single most important date on it.
 
+WHAT THE OBJECT IS, BEFORE WHAT IT SAYS
+
+Decide the category from the physical object in the picture, then read the
+dates off it. Doing it the other way round is what makes a passport come back
+as a residence visa: a passport data page names a nationality, and a residence
+sticker or a visa page is often on the same spread, printed in bigger words
+than the booklet it is stuck into.
+
+The tells, which are about the object rather than the vocabulary:
+
+- A PASSPORT is the data page of a booklet. Two machine-readable lines at the
+  bottom, 44 characters each, the first beginning with P followed by <. It is
+  still a passport when it names a nationality, when a visa or residence permit
+  is on the facing page, and when that visa is the part in focus. Two MRZ lines
+  beginning P< settle it.
+- An EMIRATES ID is a plastic card headed UNITED ARAB EMIRATES and IDENTITY
+  CARD, carrying a 15 digit number beginning 784, and on the back three
+  machine-readable lines of 30 characters beginning with I followed by <. A
+  card, never a page of a booklet.
+- A RESIDENCE VISA is a passport page or an e-visa printout carrying a UID, a
+  file number, a sponsor or employer, and the word RESIDENCE. It is the
+  permission rather than the booklet: the printout has no MRZ of its own, and
+  its fields say who is sponsoring whom.
+- A DRIVING LICENCE is a card with a licence number, a traffic code or place of
+  issue, and vehicle classes. No MRZ.
+- A MULKIYA is a card or printout naming a plate number, a chassis or VIN, a
+  make and model, and an owner.
+
+When two of these are in one picture, the item is the one the photograph is of.
+A passport data page photographed with a visa beside it is a passport.
+
 Rules:
 - expiryDate is the date the item EXPIRES or falls DUE, formatted YYYY-MM-DD. Never return an issue date, a date of birth, or a manufacture date. When several dates appear, choose the one that answers "when does this stop being valid, or when is this due".
 - Dates in the Gulf are usually written day-first. Read 03/09/2027 as 3 September 2027, not 9 March.
@@ -109,6 +166,7 @@ Rules:
 - title is a short human name the user will recognise in a list, such as "Emirates ID", "Toyota Corolla registration", or "Marina Heights tenancy". Include a distinguishing detail when the photo shows one. Never put the date in the title.
 - documentNumber only when an official number is clearly legible AND the category is one that actually carries a number. Otherwise return an empty string. Never guess digits that are blurred or cropped.
 - confidence is "high" only when you read the date clearly and are certain it is the expiry or due date.
+- typeConfidence is about the category alone and says nothing about the date. "high" when the tells above settle what the object is. "medium" or "low" when you are working from the words rather than the object: a title you are inferring from, two documents on one page, a crop that cuts off the machine-readable lines, a photograph too poor to tell a card from a page. The app asks the user a single question when this is not high, so saying low costs one tap and saves a wrong category. Guessing high costs somebody the wrong renewal guidance for a year.
 - note is one short plain-language sentence telling the user which date you used. No jargon.
 - Always return the date even when it has already passed. Expyr deliberately tracks expired items so the user can renew or discard them, so a past date is a correct answer with found set to true. Never reject an item for being out of date.
 - Set found to false only when no expiry or due date is legible anywhere in the image. In that case set expiryDate to an empty string and use note to say what you saw instead.
@@ -194,6 +252,7 @@ export async function extractFromImage(opts: {
       expiryDate: '',
       documentNumber: '',
       confidence: 'low',
+      typeConfidence: 'low',
       note: "This image couldn't be processed. Try entering the details by hand.",
       fields: [],
     };

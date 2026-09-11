@@ -31,6 +31,13 @@ export type ScanResult = {
   expiryDate: string;
   documentNumber: string;
   confidence: 'high' | 'medium' | 'low';
+  /**
+   * How sure the service was of the category, which is a different question
+   * from the date and was wrong in the opposite direction on the scans that
+   * put it here. Optional, because a service that has not been deployed yet
+   * does not send it, and `needsTypeConfirmation` reads absent as sure.
+   */
+  typeConfidence?: 'high' | 'medium' | 'low';
   note: string;
   /**
    * Everything else the document said about itself. Absent from a service that

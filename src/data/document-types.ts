@@ -465,6 +465,21 @@ export function numberFieldFor(
 }
 
 /**
+ * "a" or "an" for a label, so a sentence can be built around one.
+ *
+ * Only one label in the catalogue starts with a vowel, and it is the one the
+ * scan gets wrong most often, so the rule matters: "This looks like an
+ * Emirates ID" against "a passport". Reads the first letter of the label as it
+ * will be shown, which is why it takes the label rather than the type.
+ */
+export function articleFor(label: string): 'a' | 'an' {
+  // Tested for emptiness first: every string contains the empty string, so a
+  // blank label came back as "an" until a test asked it what it thought.
+  const first = label.trim().charAt(0).toLowerCase();
+  return first !== '' && 'aeiou'.includes(first) ? 'an' : 'a';
+}
+
+/**
  * A document type's name, ready to sit inside a sentence.
  *
  * Lowercased only when the whole label is ordinary words: "Passport" becomes

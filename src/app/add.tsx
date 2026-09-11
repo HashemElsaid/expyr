@@ -18,9 +18,17 @@ import { Chip, ErrorNote, Field, Note, PrimaryButton, SecondaryButton } from '@/
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
-import { DOCUMENT_TYPES, getDocumentType, labelFor, numberFieldFor } from '@/data/document-types';
+import {
+  articleFor,
+  DOCUMENT_TYPES,
+  getDocumentType,
+  inSentence,
+  labelFor,
+  numberFieldFor,
+} from '@/data/document-types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { defaultExpiry, startingExpiry } from '@/domain/expiry';
+import { needsTypeConfirmation, titleAfterCorrection } from '@/domain/scan-review';
 import { useTheme } from '@/hooks/use-theme';
 import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from '@/lib/dates';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
@@ -33,7 +41,7 @@ import { useDocuments } from '@/store/documents';
 import { FREE_ITEM_LIMIT, FREE_SCAN_LIMIT, useSettings } from '@/store/settings';
 import { Attachment, DocumentType, DocumentTypeId, ExtractedField, TrackedDocument } from '@/types';
 
-type Step = 'choose' | 'type' | 'form' | 'scansSpent';
+type Step = 'choose' | 'type' | 'confirmType' | 'form' | 'scansSpent';
 
 const LEAD_DAY_OPTIONS = [1, 3, 7, 14, 30, 60, 90, 180];
 
@@ -105,6 +113,14 @@ export default function AddDocumentScreen() {
    * screen, where there is room to read it.
    */
   const [fields, setFields] = useState<ExtractedField[]>(editing?.fields ?? []);
+  /**
+   * The category the scan guessed, kept only while it is being questioned.
+   *
+   * Needed for two things the confirmation step cannot do without: naming it
+   * in the question, and deciding whether the title the scan wrote is a title
+   * that names the thing it got wrong.
+   */
+  const [guessed, setGuessed] = useState<DocumentType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showAndroidPicker, setShowAndroidPicker] = useState(false);
@@ -211,6 +227,34 @@ export default function AddDocumentScreen() {
     setScanNote(
       result.confidence === 'high' ? result.note : `${result.note} Check the date before saving.`
     );
+
+    /*
+     * One question, before the form, when the service was not sure what the
+     * object was. A wrong category is the wrong renewal guidance, the wrong
+     * lead times and a wrong title, and it stays wrong for as long as the
+     * document is tracked, so it is the one thing here worth interrupting for.
+     *
+     * Everything read off the document is already in state behind this, so
+     * answering either way costs a single tap and loses nothing.
+     */
+    if (needsTypeConfirmation(result.typeConfidence)) {
+      /*
+       * "Other" is not a guess, it is the absence of one, so there is nothing
+       * to confirm and "this looks like an other" is not a sentence. The
+       * category list is the useful answer instead, with everything read off
+       * the document already waiting behind it.
+       */
+      if (result.typeId === 'other') {
+        setGuessed(null);
+        setStep('type');
+        return;
+      }
+      setGuessed(scannedType);
+      setStep('confirmType');
+      return;
+    }
+
+    setGuessed(null);
     setStep('form');
   }
 
@@ -266,7 +310,19 @@ export default function AddDocumentScreen() {
         (c) => c.label === title.trim() || c.genericLabel === title.trim()
       );
     setTypeId(t.id);
-    if (isAutoTitle) setTitle(labelFor(t, settings.country));
+    /*
+     * Correcting a scan is a different case from choosing a category by hand.
+     * The scan writes its own title, so it is not "one of ours" and would
+     * survive the correction: the entry that started this read "Residence Visa
+     * for AEHED SAID SHERIF" on a passport, and the wrong words would have
+     * stayed in the one place the person reads every time.
+     */
+    if (guessed) {
+      setTitle(
+        titleAfterCorrection(title, labelFor(guessed, settings.country), labelFor(t, settings.country))
+      );
+      setGuessed(null);
+    } else if (isAutoTitle) setTitle(labelFor(t, settings.country));
     if (!t.numberField) setDocumentNumber('');
     if (leadDays.length === 0 || !editing) setLeadDays(t.defaultLeadDays);
     setScanNote(null);
@@ -431,6 +487,46 @@ export default function AddDocumentScreen() {
    * Running out of scans must never look like a broken app. The way in is still
    * open — it just costs you typing the date instead of photographing it.
    */
+  /*
+   * One question, and only when the service hedged on the category.
+   *
+   * It names its guess rather than asking an open question, because "what is
+   * this?" in front of somebody who has just photographed the thing is the app
+   * admitting it did not look. A yes is one tap and everything read off the
+   * document is already behind this screen; a no goes to the same category list
+   * the manual path uses, which is the picker being one tap away.
+   */
+  if (step === 'confirmType' && guessed) {
+    const named = inSentence(labelFor(guessed, settings.country));
+    const article = articleFor(named);
+    return (
+      <ThemedView style={[styles.container, styles.centered]}>
+        <ThemedText type="verdict" style={styles.centeredText}>
+          This looks like {article} {named}.
+        </ThemedText>
+        <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
+          Is that right? The category decides how Expyr reminds you and what it tells you about
+          renewing this, so it is worth a second.
+        </ThemedText>
+        <View style={styles.wallAction}>
+          <PrimaryButton
+            label={`Yes, it is ${article} ${named}`}
+            onPress={() => {
+              tapFeedback();
+              setGuessed(null);
+              setStep('form');
+            }}
+          />
+        </View>
+        <Pressable onPress={() => setStep('type')} style={styles.link}>
+          <ThemedText type="small" themeColor="textTertiary">
+            No, it is something else
+          </ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
+
   if (step === 'scansSpent') {
     return (
       <ThemedView style={[styles.container, styles.centered]}>

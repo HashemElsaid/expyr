@@ -493,6 +493,29 @@ They are on Hashem's phone and stay out of the repo.
     Delivered with the screen restructure, since every screen is being
     touched anyway; the add flow first because it is where he hit it.
 
+21. **Tappable must look tappable.** Hashem, 11 September, on the restyled
+    Top Up: the balance row, the two cost rows and the three pack rows are
+    the same shape, so a first-time user cannot tell what is a choice and
+    what is information. Rule for every screen: **a row is one of four
+    things, and each looks like only itself.**
+    - Navigates: chevron on the right, black title.
+    - Acts: title in the tint colour, nothing on the right.
+    - Chooses: a selection mark, and every option in one group under a
+      header that says what to choose ("Choose a pack"), the selected one
+      with a tinted checkmark, the others with an empty circle in the
+      leading position so the group reads as a set of options before
+      anything is selected.
+    - Informs: never in the same group as choices, and never a card above
+      the choices where it is read first. Facts go in a footnote under the
+      group that needs them, or as a grey value on a row that is plainly a
+      status.
+    Top Up specifically: one group of three packs with the selection marks,
+    header "Choose a pack", the balance and the costs as the footnote under
+    it ("You have 0 credits. 10 credits reads a page, 20 answers a
+    question."), the button naming the selected pack. Then the same
+    audit on every other screen: Settings (which is right), the paywall's
+    plan row, the reminder picker, category picker, Whose is it, appearance.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

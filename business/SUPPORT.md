@@ -133,8 +133,12 @@ journalist.** Promo codes for in-app purchases were retired by Apple on 26
 March 2026; the Promo Codes page now only issues codes for the app itself,
 which is free anyway. Offer codes replaced them and live on the product: In-App
 Purchases, Expyr Pro, scroll to Offer Codes, Create Offer. Eligibility "never
-purchased", every territory, **Free Offer**, then a **custom code** with a
-small redemption limit rather than a one-time-use batch, which starts at 500.
+purchased", every territory, **Free Offer**, then a **custom code** rather
+than a one-time-use batch. The smallest redemption limit Apple allows on a
+custom code is 500, so the safeguard is to **deactivate the code once the
+person has redeemed it**, from the offer's page, and make a fresh one for the
+next person. A leaked code costs lost sales, never money out, since the 1.0.1
+credit grant is at most $0.50 a head.
 The person opens the redemption link, which is
 `https://apps.apple.com/redeem?ctx=offercodes&id=6809437011&code=THECODE`,
 confirms in the App Store, then opens Expyr and taps Restore Purchases if Pro

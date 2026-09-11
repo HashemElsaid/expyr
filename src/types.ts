@@ -32,6 +32,19 @@ export type RenewalGuide = {
 };
 
 export type DocumentType = {
+  /**
+   * What a good title for this category looks like, shown as the placeholder
+   * on the form. One rule, everywhere: the title says what the thing is, in
+   * the words a person would use, with one detail to tell two of the same kind
+   * apart. Whose it is lives in its own field and is shown beside the title, so
+   * a name in a title is the same fact twice.
+   *
+   * Optional. Where the category's own name is already the whole answer, the
+   * label is the placeholder and there is nothing to write here.
+   */
+  titleExample?: string;
+  /** The same, for somebody the local wording would mean nothing to. */
+  genericTitleExample?: string;
   id: DocumentTypeId;
   label: string;
   /**

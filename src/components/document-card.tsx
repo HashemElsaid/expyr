@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing } from '@/constants/theme';
 import { getDocumentType, labelFor } from '@/data/document-types';
 import { isSubscription } from '@/domain/documents';
+import { isMine } from '@/domain/household';
 import { saysItsOwnType } from '@/domain/timeline';
 import { guessDomain } from '@/lib/brand-icons';
 import { useTheme } from '@/hooks/use-theme';
@@ -39,7 +40,10 @@ export function DocumentCard({ doc, onPress }: { doc: TrackedDocument; onPress: 
     ? `${days < 0 ? 'Expired' : 'Expires'} ${formatDate(doc.expiryDate)}`
     : formatDate(doc.expiryDate);
 
-  const meta = [doc.owner, when].filter(Boolean).join(' · ');
+  // Whose it is, and nothing at all when it is yours.
+  const meta = [isMine(doc.owner, settings.ownName) ? null : doc.owner, when]
+    .filter(Boolean)
+    .join(' · ');
   const secondary = saysItsOwnType(doc.title, label) ? meta : `${label} · ${meta}`;
 
   return (

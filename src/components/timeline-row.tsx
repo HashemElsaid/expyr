@@ -6,6 +6,7 @@ import { Spacing } from '@/constants/theme';
 import { labelForId } from '@/data/document-types';
 import { useTheme } from '@/hooks/use-theme';
 import { isSubscription } from '@/domain/documents';
+import { isMine } from '@/domain/household';
 import { saysItsOwnType } from '@/domain/timeline';
 import { urgencyColor } from '@/hooks/use-urgency';
 import { guessDomain } from '@/lib/brand-icons';
@@ -81,7 +82,13 @@ export function TimelineRow({
                  * being truncated away on every row.
                  */
                 days <= 30 ? countdownLabel(days, Boolean(doc.renewsEvery)) : null,
-                showOwner ? doc.owner : null,
+                /*
+                 * Whose it is, which is the other half of a title that no
+                 * longer carries a name. Nothing for your own, including a
+                 * document you filed under your own name, which the household
+                 * page has always counted as yours.
+                 */
+                showOwner && !isMine(doc.owner, settings.ownName) ? doc.owner : null,
                 /*
                  * A subscription's plan and price beat repeating its type, and
                  * how often it charges beats it too. Seven subscriptions all

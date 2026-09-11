@@ -94,6 +94,14 @@ export type Settings = {
    */
   ownName: string;
   /**
+   * Whether opening a document reads it.
+   *
+   * On by default, because the alternative was a button nobody found. Here for
+   * the person who would rather decide each time, and only meaningful with
+   * Pro, since reading is what Pro buys.
+   */
+  autoRead: boolean;
+  /**
    * Whether the rating prompt has been used up.
    *
    * One per install, spent at the moment a renewal is recorded. Its own flag
@@ -130,22 +138,29 @@ const DEFAULTS: Settings = {
   lockOffered: false,
   people: [],
   ownName: '',
+  autoRead: true,
   ratingAsked: false,
   account: null,
 };
 
 /**
- * How many items a free account can track.
+ * How much a free account holds, counted separately for the two kinds.
  *
- * Ten was a plan nobody ever hit. One person's own papers — Emirates ID,
- * passport, driving licence, Mulkiya, insurance — come to about five, so the
- * ceiling sat above the whole audience and the tracker was, in effect, free
- * forever. Five is the same set: enough to put yourself in, see the countdowns
- * and get a reminder, and the wall arrives at the sixth — a partner's ID, a
- * second car, a child's passport, the tenancy. That is a household, and a
- * household is what this is worth paying for.
+ * One ceiling of five was one ceiling too few. Documents and subscriptions are
+ * different products to the person holding them: three documents is enough to
+ * see a passport, an ID and an insurance policy counted down, which is the
+ * whole demonstration, and two subscriptions is enough to see the import work
+ * without handing over the feature that the import exists to sell.
+ *
+ * Two constants rather than one so each is enforced where its own kind is
+ * added: the add screen for documents, the screenshot import for
+ * subscriptions.
+ *
+ * Anybody already over either line from an earlier version keeps everything
+ * they have. The limits stop an addition; they never take anything away.
  */
-export const FREE_ITEM_LIMIT = 5;
+export const FREE_DOCUMENT_LIMIT = 3;
+export const FREE_SUBSCRIPTION_LIMIT = 2;
 
 /**
  * Free scans, for the lifetime of the install. Two per free item, which covers
@@ -169,17 +184,24 @@ export const FREE_SCAN_LIMIT = 10;
 export const FREE_READ_LIMIT = 2;
 
 /**
- * What a new install starts with: thirty pages, which is a couple of contracts.
+ * What a new install starts with, which is nothing.
  *
- * The free tier used to allow two readings and count them. Counting documents
- * and counting credits are the same idea with different arithmetic, and two
- * systems gating one feature is how a person ends up refused for a reason
- * neither of them shows. So the allowance became an opening balance.
+ * It was thirty pages' worth, on the argument that somebody has to see what
+ * the thing does before paying for it. What actually happened is that the
+ * expensive feature was given away to everybody and bought by very few, and
+ * the reading it paid for is the one part of this app with a real cost per
+ * use at Anthropic.
  *
- * Generous on purpose. Somebody has to be able to see what the thing does
- * before deciding whether it is worth paying for.
+ * Expyr AI is a Pro feature now. The scan still reads every document for a
+ * free user and the text is still kept, so the day Pro is bought every
+ * document they already hold is ready to be asked about, rather than needing
+ * to be photographed again.
+ *
+ * Zero rather than deleting the concept: balances already granted stay in the
+ * ledger and become spendable the day Pro is bought, and the constant is one
+ * line to change back.
  */
-export const WELCOME_CREDITS = priceOfPages(30);
+export const WELCOME_CREDITS = 0;
 
 /**
  * Reads a stored ledger, or opens one.
@@ -282,6 +304,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             typeof parsed.ownName === 'string' && parsed.ownName
               ? parsed.ownName
               : nameFromDevice(Constants.deviceName),
+          autoRead: parsed.autoRead ?? DEFAULTS.autoRead,
           ratingAsked: parsed.ratingAsked ?? DEFAULTS.ratingAsked,
           /*
            * Named explicitly, like everything above it. This object is rebuilt

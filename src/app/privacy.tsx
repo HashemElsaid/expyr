@@ -68,7 +68,7 @@ export default function PrivacyScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ThemedText type="headline">Your documents are yours</ThemedText>
+        <ThemedText type="largeTitle">Your documents are yours</ThemedText>
         <ThemedText type="body" themeColor="textSecondary">
           Expyr asks you to photograph identity documents, so it owes you a plain answer about
           what happens to them.
@@ -77,7 +77,7 @@ export default function PrivacyScreen() {
         {SECTIONS.map((section) => (
           <View key={section.title} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 {section.title}
               </ThemedText>
               <View style={[styles.rule, { backgroundColor: theme.border }]} />

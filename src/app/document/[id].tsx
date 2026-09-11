@@ -1,10 +1,11 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { ActionMenu, MenuButton, PrimaryAction, SecondaryAction, type MenuAction } from '@/components/document/actions';
 import { DataRow } from '@/components/document/data-row';
+import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ValuePrompt } from '@/components/value-prompt';
@@ -125,28 +126,34 @@ export default function DocumentDetailScreen() {
   const menuActions: MenuAction[] = doc
     ? [
         // Sending a copy of a passport or licence is a routine errand here.
+        /*
+         * Annotated, because an array literal inside a ternary is not
+         * contextually typed by the annotation on menuActions: `icon` widens
+         * to string and stops being checked against the symbol catalogue,
+         * which is the one thing that check exists for.
+         */
         ...(doc.files[0]
-          ? [
+          ? ([
               {
                 label: 'Share a copy',
-                icon: 'tray-arrow-up',
+                icon: 'square.and.arrow.up',
                 run: () => openAttachment(doc.files[0].uri, doc.files[0].type),
               },
-            ]
+            ] satisfies MenuAction[])
           : []),
         {
           label: 'Edit details',
-          icon: 'pencil-outline',
+          icon: 'pencil',
           run: () => router.push(`/add?id=${doc.id}`),
         },
         {
           label: doc.archivedAt ? 'Move back to my items' : 'Archive',
-          icon: doc.archivedAt ? 'tray-full' : 'archive-outline',
+          icon: doc.archivedAt ? 'tray.full' : 'archivebox',
           run: toggleArchive,
         },
         {
           label: 'Delete permanently',
-          icon: 'delete-outline',
+          icon: 'trash',
           run: confirmDelete,
           destructive: true,
         },
@@ -217,7 +224,6 @@ export default function DocumentDetailScreen() {
   const runway = buildRunway(days, doc.leadDays, period);
   const blockers = guided ? findBlockers(doc, documents) : [];
   const notes = guided ? notesFor(doc.typeId) : [];
-  const fired = reminders.filter((r) => r.past);
 
   function markRenewed() {
     tapFeedback();
@@ -303,12 +309,15 @@ export default function DocumentDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { borderBottomColor: theme.border }]}>
-          <ThemedText type="display" style={[styles.verdict, { color }]}>
+          <ThemedText type="largeTitle" style={[styles.verdict, { color }]}>
             {verdictPhrase(days)}
           </ThemedText>
+          {/*
+            * A fragment, no full stop. It did not expire in the future, and a
+            * subscription never expires: it charges you.
+            */}
           <ThemedText type="body" themeColor="textSecondary">
-            {/* It did not expire in the future, and a subscription never expires. */}
-            {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}.
+            {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}
           </ThemedText>
 
           {runway && (
@@ -358,7 +367,7 @@ export default function DocumentDetailScreen() {
               </View>
 
               <View style={styles.runwayScale}>
-                <ThemedText type="label" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   {spanLabel(runway)}
                 </ThemedText>
                 {/*
@@ -367,7 +376,7 @@ export default function DocumentDetailScreen() {
                   * full. A chart caption that echoes the paragraph over it is
                   * the second time somebody reads the same thing.
                   */}
-                <ThemedText type="label" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   {doc.renewsEvery ? 'Renews' : 'Expires'}
                 </ThemedText>
               </View>
@@ -379,31 +388,32 @@ export default function DocumentDetailScreen() {
            * app is "you will be told in time", and the only way to believe that
            * is to see the dates it will happen on.
            */}
-          {reminders.length === 0 ? (
-            <ThemedText type="label" themeColor="textTertiary">
-              No reminders set
-            </ThemedText>
-          ) : (
-            <View style={styles.reminderRow}>
-              {reminders.map((r) => (
-                <ThemedText
-                  key={r.lead}
-                  type="label"
-                  themeColor={r.past ? 'textTertiary' : 'textSecondary'}
-                  style={r.past && styles.sent}>
-                  {dayMonth(r.date)}
-                </ThemedText>
-              ))}
-              <ThemedText type="label" themeColor="textTertiary">
-                {fired.length === reminders.length
-                  ? '· all sent'
-                  : fired.length
-                    ? `· ${fired.length} sent`
-                    : '· none sent yet'}
-              </ThemedText>
-            </View>
-          )}
         </View>
+
+        {/*
+          * Every warning date, one per row, because the whole promise of the
+          * app is "you will be told in time" and the only way to believe that
+          * is to see the dates it will happen on.
+          *
+          * They were a line of dates joined by middots, ending in "· all
+          * sent", with the sent ones struck through. A row each says the same
+          * thing, and says which ones have already gone without a strike.
+          */}
+        <ListSection title="Reminders">
+          {reminders.length === 0 ? (
+            <ListRow symbol="bell.slash" tint="gray" title="No reminders set" />
+          ) : (
+            reminders.map((r) => (
+              <ListRow
+                key={r.lead}
+                symbol="bell.fill"
+                tint={r.past ? 'gray' : 'red'}
+                title={dayMonth(r.date)}
+                value={r.past ? 'Sent' : undefined}
+              />
+            ))
+          )}
+        </ListSection>
 
         {doc.files.length > 0 && (
           <View style={[styles.fileRow, { borderBottomColor: theme.border }]}>
@@ -417,8 +427,8 @@ export default function DocumentDetailScreen() {
                   file.type === 'pdf' ? (
                     <View
                       style={[styles.thumb, { borderColor: theme.border }, pressed && styles.dim]}>
-                      <MaterialCommunityIcons
-                        name="file-pdf-box"
+                      <Icon
+                        name="doc.fill"
                         size={20}
                         color={theme.textSecondary}
                       />
@@ -433,14 +443,14 @@ export default function DocumentDetailScreen() {
                 }
               </Pressable>
             ))}
-            <ThemedText type="small" themeColor="textTertiary" style={styles.flex}>
-              Kept on this phone · tap to open
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.flex}>
+              Tap to open. Kept on this phone
             </ThemedText>
           </View>
         )}
 
         {(doc.documentNumber || doc.notes) && (
-          <View style={styles.plainRows}>
+          <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
             {doc.documentNumber && (
               <DataRow
                 label={numberFieldFor(type, settings.country)?.label ?? 'Number'}
@@ -454,7 +464,7 @@ export default function DocumentDetailScreen() {
                 copyable
               />
             )}
-            {doc.notes && <DataRow label="Notes" value={doc.notes} />}
+            {doc.notes && <DataRow label="Notes" value={doc.notes} bordered={Boolean(doc.documentNumber)} />}
           </View>
         )}
 
@@ -467,14 +477,11 @@ export default function DocumentDetailScreen() {
           * — they exist to be pasted into somebody else's form.
           */}
         {scanned.length > 0 && (
-          <View>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
-                On the document
-              </ThemedText>
-              <View style={[styles.rule, { backgroundColor: theme.border }]} />
-            </View>
-            <View style={styles.plainRows}>
+          <View style={styles.section}>
+            <ThemedText type="sectionHeader" themeColor="textSecondary" style={styles.sectionHeader}>
+              On the document
+            </ThemedText>
+            <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
               {scanned.map((entry, index) => (
                 <DataRow
                   key={`${entry.label}-${entry.value}`}
@@ -490,7 +497,7 @@ export default function DocumentDetailScreen() {
                 />
               ))}
             </View>
-            <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.disclaimer}>
               Read off the document, so check anything you are about to rely on. Tap a line to
               correct it, or clear it to remove it.
             </ThemedText>
@@ -498,14 +505,14 @@ export default function DocumentDetailScreen() {
         )}
 
         {blockers.length > 0 && (
-          <View style={[styles.blocker, { borderColor: theme.urgentSoft }]}>
-            <MaterialCommunityIcons name="alert-outline" size={18} color={theme.urgentSoft} />
+          <View style={[styles.blocker, { backgroundColor: theme.backgroundElement }]}>
+            <Icon name="exclamationmark.triangle.fill" size={18} color={theme.urgentSoft} />
             <View style={styles.flex}>
-              <ThemedText type="bodyMedium" style={{ color: theme.urgentSoft }}>
+              <ThemedText type="headline" style={{ color: theme.urgentSoft }}>
                 Do this first
               </ThemedText>
               {blockers.map(({ rule, blocking }) => (
-                <ThemedText key={rule.requires} type="small" themeColor="textSecondary">
+                <ThemedText key={rule.requires} type="footnote" themeColor="textSecondary">
                   {rule.warning} Yours expires {shortDate(blocking.expiryDate)}.
                 </ThemedText>
               ))}
@@ -516,7 +523,7 @@ export default function DocumentDetailScreen() {
         {/* The penalty is the reason to act today, so it never hides. */}
         {guided && type.guide.lateFee !== '' && (
           <View style={styles.lateRow}>
-            <ThemedText type="label" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               {running === null ? 'If you leave it' : 'What it has cost so far'}
             </ThemedText>
             {/*
@@ -527,7 +534,7 @@ export default function DocumentDetailScreen() {
              * can be checked rather than believed.
              */}
             {running !== null && (
-              <ThemedText type="numeral" style={{ color: theme.urgentStrong }}>
+              <ThemedText type="figure" style={{ color: theme.urgentStrong }}>
                 {running.currency} {running.owed.toLocaleString()}
                 {running.capped ? ' (the cap)' : ''}
               </ThemedText>
@@ -547,93 +554,107 @@ export default function DocumentDetailScreen() {
          * generic renewal guidance below it. Almost nobody reads what they sign.
          */}
         {/*
-         * The allowance is spent and this document has never been read. This is
-         * the moment the feature is worth paying for, so it says what it would
-         * do rather than hiding that anything exists.
-         */}
-        {doc.files.length > 0 && !brief && (
-          <Pressable
-            onPress={
+          * What can be asked of this document, and what to do if nothing can
+          * yet.
+          *
+          * This was a card offering to read the document, which is the step
+          * item 18 removed: the reading happens when the document is opened
+          * now, or has already happened off the scan. What is left is one row,
+          * and which row it is depends on the one thing a person needs to know.
+          *
+          * While it is working, it says so and how far along it is. Read, it
+          * offers the only thing worth offering, which is asking. Short of
+          * credits, it says so and goes to the top-up, because running out is
+          * a thing to fix rather than an error to sit under. Unread on a free
+          * account, it says what Pro would do, since the words are already
+          * kept and the day Pro is bought there is nothing to redo.
+          */}
+        {doc.files.length > 0 && (
+          <ListSection>
+            {stage !== null ? (
+              <ListRow
+                symbol="doc.text.magnifyingglass"
+                tint="blue"
+                title={
+                  stage === 'counting'
+                    ? 'Checking the document'
+                    : stage === 'transcribing'
+                      ? 'Reading it'
+                      : 'Working out what it says'
+                }
+                subtitle={
+                  stage === 'transcribing' && progress
+                    ? progress.total > progress.of
+                      ? `Page ${progress.page} of ${progress.of}, of ${progress.total}`
+                      : `Page ${progress.page} of ${progress.of}`
+                    : undefined
+                }
+              />
+            ) : shortOfCredits ? (
+              <ListRow
+                symbol="sparkles"
+                tint="purple"
+                title="Top up to ask about this"
+                subtitle={`Not read yet. ${shortOfCredits} pages to read`}
+                chevron={false}
+                onPress={() => router.push('/top-up')}
+              />
+            ) : readable ? (
+              <>
+                <ListRow
+                  symbol="sparkles"
+                  tint="purple"
+                  title="Ask Expyr AI about this"
+                  chevron={false}
+                  onPress={() => router.navigate(`/ask?id=${doc.id}`)}
+                />
+                {/*
+                  * Read, but the summary did not land. Asking already works
+                  * off the transcript, so this is an offer rather than a
+                  * repair, and it costs nothing: the charge is on reading and
+                  * asking, not on summarising.
+                  */}
+                {!brief && (
+                  <ListRow
+                    symbol="text.alignleft"
+                    tint="blue"
+                    title="Summarise this document"
+                    chevron={false}
+                    onPress={retrySummary}
+                  />
+                )}
+              </>
+            ) : !settings.premium ? (
+              <ListRow
+                symbol="sparkles"
+                tint="purple"
+                title="Ask Expyr AI about this"
+                subtitle="With Expyr Pro. This document is already read and waiting"
+                chevron={false}
+                onPress={() => router.push('/paywall')}
+              />
+            ) : (
               /*
-               * A refusal that leads somewhere. Running out mid-document is a
-               * thing to fix, not an error to sit under, so the card that says
-               * so is also the way to the top-up.
+               * Pro, nothing read, and nothing running: the automatic read
+               * declined at the price, or failed. The one case where reading
+               * is still a button, and it names what it will cost.
                */
-              shortOfCredits ? () => router.push('/top-up') : readable ? retrySummary : readNow
-            }
-            disabled={stage !== null}
-            accessibilityRole="button">
-            {({ pressed }) => (
-              <View
-                style={[
-                  styles.readPrompt,
-                  { borderColor: theme.border },
-                  (pressed || stage !== null) && styles.dim,
-                ]}>
-                <MaterialCommunityIcons name="text-search" size={20} color={theme.accent} />
-                <View style={styles.flex}>
-                  <ThemedText type="bodyMedium">
-                    {stage === 'counting'
-                      ? 'Checking the document…'
-                      : stage === 'transcribing'
-                        ? 'Reading it…'
-                        : stage === 'summarising'
-                        ? 'Working out what it says…'
-                        : shortOfCredits
-                          ? 'Not enough credits to read this'
-                          : readable
-                            ? 'Summarise this document'
-                            : 'Read this document'}
-                  </ThemedText>
-                  <ThemedText type="small" themeColor="textTertiary">
-                    {stage === 'counting'
-                      ? 'Counting the pages.'
-                      : /*
-                         * A moving count, and nothing else. Everything this
-                         * line used to add — how long it takes, that it only
-                         * happens once — was either guesswork or something the
-                         * count already says by moving.
-                         */
-                        stage === 'transcribing'
-                        ? progress
-                          ? progress.total > progress.of
-                            ? `Page ${progress.page} of ${progress.of}, of ${progress.total}`
-                            : `Page ${progress.page} of ${progress.of}`
-                          : ''
-                        : stage === 'summarising'
-                          ? 'Almost there.'
-                          : readable
-                            ? 'Read. The summary did not finish, but you can ask it questions.'
-                            : /* The one thing worth saying, because this one costs credits. */
-                              'Find out what you agreed to, then ask it anything.'}
-                  </ThemedText>
-                </View>
-              </View>
+              <ListRow
+                symbol="doc.text.magnifyingglass"
+                tint="blue"
+                title="Read this document"
+                chevron={false}
+                onPress={() => readNow()}
+              />
             )}
-          </Pressable>
-        )}
-
-        {/*
-         * Reading survived but summarising did not. The transcript is what
-         * answers questions, so the feature is usable and should say so rather
-         * than hiding behind a missing summary.
-         */}
-        {readable && !brief && stage === null && (
-          <SecondaryAction
-            icon="creation-outline"
-            label="Ask about this document"
-            onPress={() => router.navigate(`/ask?id=${doc.id}`)}
-          />
+          </ListSection>
         )}
 
         {brief && (
           <View style={styles.brief}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
-                What this says
-              </ThemedText>
-              <View style={[styles.rule, { backgroundColor: theme.border }]} />
-            </View>
+            <ThemedText type="sectionHeader" themeColor="textSecondary" style={styles.sectionHeader}>
+              What this says
+            </ThemedText>
 
             <ThemedText type="body" themeColor="textSecondary">
               {brief.summary}
@@ -641,16 +662,16 @@ export default function DocumentDetailScreen() {
 
             {brief.watchOut.map((item) => (
               <View key={item.quote} style={styles.watchRow}>
-                <MaterialCommunityIcons
-                  name="alert-outline"
+                <Icon
+                  name="exclamationmark.triangle.fill"
                   size={16}
                   color={theme.urgentSoft}
                   style={styles.watchIcon}
                 />
-                <ThemedText type="small" style={styles.flex}>
+                <ThemedText type="footnote" style={styles.flex}>
                   {item.detail}
                   {item.where ? (
-                    <ThemedText type="small" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       {'  '}
                       {item.where}
                     </ThemedText>
@@ -663,7 +684,7 @@ export default function DocumentDetailScreen() {
               <Pressable
                 onPress={() => setPointsOpen((open) => !open)}
                 accessibilityRole="button">
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                   {pointsOpen
                     ? 'Hide the detail'
                     : `Everything else it says (${brief.points.length})`}
@@ -674,12 +695,12 @@ export default function DocumentDetailScreen() {
             {pointsOpen &&
               brief.points.map((point) => (
                 <View key={point.label} style={styles.pointRow}>
-                  <ThemedText type="smallBold">{point.label}</ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
+                  <ThemedText type="footnoteStrong">{point.label}</ThemedText>
+                  <ThemedText type="footnote" themeColor="textSecondary">
                     {point.detail}
                   </ThemedText>
                   {point.where ? (
-                    <ThemedText type="small" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       {point.where}
                     </ThemedText>
                   ) : null}
@@ -687,7 +708,7 @@ export default function DocumentDetailScreen() {
               ))}
 
             <SecondaryAction
-              icon="creation-outline"
+              icon="sparkles"
               label="Ask about this document"
               onPress={() => router.navigate(`/ask?id=${doc.id}`)}
             />
@@ -699,8 +720,13 @@ export default function DocumentDetailScreen() {
             onPress={() => setGuideOpen((open) => !open)}
             accessibilityRole="button"
             accessibilityLabel={guideOpen ? 'Hide renewal guidance' : 'Show renewal guidance'}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
+            {/*
+              * A disclosure row rather than a header with a rule drawn across
+              * the line. The chevron sits against the words it opens, which is
+              * how iOS shows something that unfolds.
+              */}
+            <View style={styles.disclosure}>
+              <ThemedText type="headline" style={styles.flex}>
                 {/*
                   * A subscription is not renewed, it renews itself. What
                   * somebody opening this wants is the way out of it, and the
@@ -708,10 +734,10 @@ export default function DocumentDetailScreen() {
                   */}
                 {isSubscription(doc) ? 'How to cancel or change it' : 'How to renew'}
               </ThemedText>
-              <View style={[styles.rule, { backgroundColor: theme.border }]} />
-              <MaterialCommunityIcons
-                name={guideOpen ? 'chevron-up' : 'chevron-down'}
-                size={20}
+              <Icon
+                name={guideOpen ? 'chevron.up' : 'chevron.down'}
+                size={14}
+                weight="semibold"
                 color={theme.textTertiary}
               />
             </View>
@@ -731,7 +757,7 @@ export default function DocumentDetailScreen() {
                 <ThemedText type="body" themeColor="textSecondary">
                   {renewal.error}
                 </ThemedText>
-                <SecondaryAction icon="refresh" label="Try again" onPress={renewal.retry} />
+                <SecondaryAction icon="arrow.clockwise" label="Try again" onPress={renewal.retry} />
               </View>
             )}
 
@@ -744,7 +770,7 @@ export default function DocumentDetailScreen() {
                   * draw the guidance without it.
                   */}
                 <ThemedText
-                  type="small"
+                  type="footnote"
                   themeColor={renewal.guidance.standing === 'thin' ? 'urgentSoft' : 'textTertiary'}>
                   {provenanceNote(renewal.guidance)}
                 </ThemedText>
@@ -758,7 +784,7 @@ export default function DocumentDetailScreen() {
                 {notes.length > 0 && (
                   <View style={styles.notes}>
                     {notes.map((note) => (
-                      <ThemedText key={note} type="small" themeColor="textTertiary">
+                      <ThemedText key={note} type="footnote" themeColor="textTertiary">
                         {note}
                       </ThemedText>
                     ))}
@@ -769,7 +795,7 @@ export default function DocumentDetailScreen() {
                   {renewal.guidance.steps.map((step, i) => (
                     <View key={step} style={styles.stepRow}>
                       <ThemedText
-                        type="ledgerFigure"
+                        type="figure"
                         themeColor="textTertiary"
                         style={styles.stepNumber}>
                         {i + 1}
@@ -783,7 +809,7 @@ export default function DocumentDetailScreen() {
 
                 {renewal.guidance.needed.length > 0 && (
                   <View style={styles.notes}>
-                    <ThemedText type="label" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       What to bring
                     </ThemedText>
                     {renewal.guidance.needed.map((item) => (
@@ -811,7 +837,7 @@ export default function DocumentDetailScreen() {
                   */}
                 {renewal.guidance.sources.length > 0 && (
                   <View style={styles.notes}>
-                    <ThemedText type="label" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       Where this came from
                     </ThemedText>
                     {renewal.guidance.sources.map((source) => (
@@ -820,7 +846,7 @@ export default function DocumentDetailScreen() {
                         onPress={() => openSource(source.url)}
                         accessibilityRole="link"
                         accessibilityLabel={`Open ${source.title}`}>
-                        <ThemedText type="small" style={{ color: theme.accent }}>
+                        <ThemedText type="footnote" style={{ color: theme.accent }}>
                           {source.title}
                           {source.official ? ' · official' : ''}
                         </ThemedText>
@@ -829,7 +855,7 @@ export default function DocumentDetailScreen() {
                   </View>
                 )}
 
-                <ThemedText type="small" themeColor="textTertiary" style={styles.disclaimer}>
+                <ThemedText type="footnote" themeColor="textTertiary" style={styles.disclaimer}>
                   {renewal.guidance.provenance === 'generated'
                     ? `Looked up on ${shortDate(renewal.guidance.checkedOn)}${
                         renewal.refreshing ? ' · checking for anything newer' : ''
@@ -872,22 +898,22 @@ export default function DocumentDetailScreen() {
              * screen puts it back in one tap if they were wrong.
              */
             <PrimaryAction
-              icon="close-circle-outline"
+              icon="xmark.circle"
               label="I cancelled this"
               onPress={toggleArchive}
             />
           ) : portal ? (
             <>
-              <PrimaryAction icon="open-in-new" label={`Renew at ${portal.name}`} onPress={openPortal} />
+              <PrimaryAction icon="arrow.up.right.square" label={`Renew at ${portal.name}`} onPress={openPortal} />
               <SecondaryAction
-                icon="check-circle-outline"
+                icon="checkmark.circle"
                 label="I have renewed this"
                 onPress={markRenewed}
               />
             </>
           ) : (
             <PrimaryAction
-              icon="check-circle-outline"
+              icon="checkmark.circle"
               label={canRoll ? 'I have renewed this' : 'Update the date'}
               onPress={markRenewed}
             />
@@ -899,7 +925,7 @@ export default function DocumentDetailScreen() {
            */}
           {doc.files.length > 0 && (
             <SecondaryAction
-              icon="file-pdf-box"
+              icon="doc.fill"
               label={sending ? 'Preparing…' : 'Send a copy as PDF'}
               onPress={sendCopy}
             />
@@ -953,8 +979,9 @@ const styles = StyleSheet.create({
   watchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.two },
   watchIcon: { marginTop: 2 },
   pointRow: { gap: 2, paddingTop: Spacing.two },
-  reminderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' },
-  sent: { textDecorationLine: 'line-through' },
+  /** A grouped card, matching the lists everywhere else in the app. */
+  card: { borderRadius: Radius.medium, overflow: 'hidden' },
+  section: { paddingTop: Spacing.four },
   runway: { paddingTop: Spacing.one, gap: 2 },
   runwayTrack: { height: 26, marginHorizontal: 8 },
   runwayRail: { position: 'absolute', left: 0, right: 0, top: 10, height: 6, borderRadius: 3 },
@@ -986,20 +1013,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  plainRows: { paddingTop: Spacing.three, gap: Spacing.three },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingTop: Spacing.four,
-    paddingBottom: Spacing.two,
-  },
-  rule: { flex: 1, height: StyleSheet.hairlineWidth },
+  sectionHeader: { paddingBottom: 7, paddingHorizontal: Spacing.two },
+  disclosure: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, paddingVertical: Spacing.three },
+  /*
+   * A card rather than an outlined box. The outline was amber, which made a
+   * warning out of the border as well as the words inside it.
+   */
   blocker: {
     flexDirection: 'row',
     gap: Spacing.three,
     alignItems: 'flex-start',
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.medium,
     padding: Spacing.three,
     marginTop: Spacing.four,

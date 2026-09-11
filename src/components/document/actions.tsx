@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Icon, type SFSymbol } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, shadow } from '@/constants/theme';
 import { MENU_WIDTH, placeMenu } from '@/components/document/menu-placement';
@@ -15,7 +15,7 @@ export function PrimaryAction({
   label,
   onPress,
 }: {
-  icon: string;
+  icon: SFSymbol;
   label: string;
   onPress: () => void;
 }) {
@@ -24,8 +24,8 @@ export function PrimaryAction({
     <Pressable onPress={onPress} accessibilityRole="button">
       {({ pressed }) => (
         <View style={[styles.primary, { backgroundColor: theme.accent }, pressed && styles.dim]}>
-          <MaterialCommunityIcons name={icon as never} size={17} color={theme.accentContrast} />
-          <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+          <Icon name={icon} size={17} weight="semibold" color={theme.accentContrast} />
+          <ThemedText type="headline" style={{ color: theme.accentContrast }}>
             {label}
           </ThemedText>
         </View>
@@ -40,7 +40,7 @@ export function SecondaryAction({
   label,
   onPress,
 }: {
-  icon: string;
+  icon: SFSymbol;
   label: string;
   onPress: () => void;
 }) {
@@ -49,8 +49,9 @@ export function SecondaryAction({
     <Pressable onPress={onPress} accessibilityRole="button">
       {({ pressed }) => (
         <View style={[styles.secondary, pressed && styles.dim]}>
-          <MaterialCommunityIcons name={icon as never} size={17} color={theme.textSecondary} />
-          <ThemedText type="smallBold" themeColor="textSecondary">
+          <Icon name={icon} size={17} color={theme.accent} />
+          {/* Tinted, not grey. A secondary action is still an action. */}
+          <ThemedText type="body" style={{ color: theme.accent }}>
             {label}
           </ThemedText>
         </View>
@@ -61,7 +62,7 @@ export function SecondaryAction({
 
 export type MenuAction = {
   label: string;
-  icon: string;
+  icon: SFSymbol;
   run: () => void;
   destructive?: boolean;
 };
@@ -162,10 +163,10 @@ export function ActionMenu({
                     style={action.destructive ? { color: theme.urgentStrong } : undefined}>
                     {action.label}
                   </ThemedText>
-                  <MaterialCommunityIcons
-                    name={action.icon as never}
-                    size={18}
-                    color={action.destructive ? theme.urgentStrong : theme.textTertiary}
+                  <Icon
+                    name={action.icon}
+                    size={17}
+                    color={action.destructive ? theme.urgentStrong : theme.textSecondary}
                   />
                 </View>
               )}
@@ -190,7 +191,7 @@ export function MenuButton({ onPress }: { onPress: () => void }) {
       accessibilityRole="button"
       accessibilityLabel="More actions">
       <View style={styles.menuButton}>
-        <MaterialCommunityIcons name="dots-horizontal" size={22} color={theme.textSecondary} />
+        <Icon name="ellipsis" size={20} weight="semibold" color={theme.accent} />
       </View>
     </Pressable>
   );

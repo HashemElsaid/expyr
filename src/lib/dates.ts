@@ -87,11 +87,6 @@ export function monthName(isoDate: string): string {
   return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-GB', { month: 'long' });
 }
 
-/** "Saturday 30 August" — the ledger's masthead date. */
-export function mastheadDate(date = new Date()): string {
-  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
 export function shortDate(isoDate: string): string {
   return new Date(`${isoDate}T00:00:00`).toLocaleDateString('en-GB', {
     day: 'numeric',

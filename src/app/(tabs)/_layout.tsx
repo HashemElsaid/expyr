@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { TabButton } from '@/components/tab-button';
-import { Fonts, shadow } from '@/constants/theme';
+import { shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { tapFeedback } from '@/lib/haptics';
 
@@ -32,18 +32,18 @@ export default function TabsLayout() {
           borderTopColor: theme.border,
           borderTopWidth: StyleSheet.hairlineWidth,
         },
-        tabBarLabelStyle: {
-          ...Fonts.bodyMedium,
-          fontSize: 11,
-          letterSpacing: 0.3,
-        },
+        /*
+          * The tab bar's own size and weight, and no tracking. iOS sets a tab
+          * label at 10 points medium and adjusts nothing else about it.
+          */
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Timeline',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar-blank-outline" size={size} color={color} />
+            <Icon name="calendar" size={size} color={color} />
           ),
         }}
       />
@@ -52,7 +52,7 @@ export default function TabsLayout() {
         options={{
           title: 'Household',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-multiple-outline" size={size} color={color} />
+            <Icon name="person.2" size={size} color={color} />
           ),
         }}
       />
@@ -91,7 +91,7 @@ export default function TabsLayout() {
         options={{
           title: 'Expyr AI',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="creation-outline" size={size} color={color} />
+            <Icon name="sparkles" size={size} color={color} />
           ),
         }}
       />
@@ -100,7 +100,7 @@ export default function TabsLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
+            <Icon name="gearshape" size={size} color={color} />
           ),
         }}
       />
@@ -141,7 +141,7 @@ function CameraButton() {
                 />
               ))}
             </View>
-            <MaterialCommunityIcons name="camera" size={22} color={theme.accentContrast} />
+            <Icon name="camera" size={22} color={theme.accentContrast} />
           </View>
         )}
       </Pressable>

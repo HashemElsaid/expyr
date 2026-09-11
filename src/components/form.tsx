@@ -1,7 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { ReactNode } from 'react';
 import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
+import { Icon, type SFSymbol } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,7 +19,7 @@ import { useTheme } from '@/hooks/use-theme';
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <View style={styles.field}>
-      <ThemedText type="label" themeColor="textTertiary">
+      <ThemedText type="footnote" themeColor="textTertiary">
         {label}
       </ThemedText>
       {children}
@@ -67,7 +67,7 @@ export function Chip({
           },
         ]}>
         <ThemedText
-          type="smallBold"
+          type="footnoteStrong"
           numberOfLines={1}
           style={active ? { color: theme.accentContrast } : undefined}>
           {label}
@@ -82,7 +82,7 @@ export function Note({ text }: { text: string }) {
   const theme = useTheme();
   return (
     <View style={[styles.note, { backgroundColor: theme.backgroundSelected }]}>
-      <ThemedText type="small">{text}</ThemedText>
+      <ThemedText type="footnote">{text}</ThemedText>
     </View>
   );
 }
@@ -94,7 +94,7 @@ export function ErrorNote({ message }: { message: string }) {
     <View
       style={[styles.note, { backgroundColor: theme.backgroundSelected }]}
       accessibilityLiveRegion="polite">
-      <ThemedText type="small" style={{ color: theme.urgentStrong }}>
+      <ThemedText type="footnote" style={{ color: theme.urgentStrong }}>
         {message}
       </ThemedText>
     </View>
@@ -124,7 +124,9 @@ export function PrimaryButton({
             { backgroundColor: theme.accent },
             (pressed || disabled) && styles.dim,
           ]}>
-          <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+          {/* Body, semibold, which is the size iOS sets a button label. It
+              was Footnote: 13 point type on a 50 point button. */}
+          <ThemedText type="headline" style={{ color: theme.accentContrast }}>
             {label}
           </ThemedText>
         </View>
@@ -140,17 +142,17 @@ export function SecondaryButton({
 }: {
   label: string;
   onPress: () => void;
-  icon?: string;
+  icon?: SFSymbol;
 }) {
   const theme = useTheme();
   return (
     <Pressable onPress={onPress} accessibilityRole="button">
       {({ pressed }) => (
         <View style={[styles.secondary, { borderColor: theme.border }, pressed && styles.dim]}>
-          {icon && (
-            <MaterialCommunityIcons name={icon as never} size={17} color={theme.textSecondary} />
-          )}
-          <ThemedText type="smallBold">{label}</ThemedText>
+          {icon && <Icon name={icon} size={17} color={theme.accent} />}
+          <ThemedText type="body" style={{ color: theme.accent }}>
+            {label}
+          </ThemedText>
         </View>
       )}
     </Pressable>
@@ -173,14 +175,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   note: { borderRadius: 12, paddingHorizontal: Spacing.three, paddingVertical: 12 },
-  primary: { borderRadius: Radius.pill, paddingVertical: Spacing.three, alignItems: 'center' },
+  /*
+   * A rounded rectangle rather than a pill, which is the shape iOS gives a
+   * filled button, and tall enough to be one: 50 points against the 40 a pill
+   * of 13 point type came to.
+   */
+  primary: { borderRadius: Radius.medium, paddingVertical: 14, alignItems: 'center' },
+  /*
+   * Tinted text with no border at all, which is what a secondary action is on
+   * iOS. An outlined pill beside a filled pill reads as two buttons of equal
+   * weight, which is the opposite of what secondary means.
+   */
   secondary: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.two,
-    borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: Spacing.three,
   },
   dim: { opacity: 0.6 },

@@ -1,7 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { DocumentCard } from '@/components/document-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -54,8 +54,8 @@ export default function ArchiveScreen() {
                 style={styles.restore}>
                 {({ pressed }) => (
                   <View style={[styles.restoreRow, pressed && styles.dim]}>
-                    <MaterialCommunityIcons name="tray-full" size={15} color={theme.accent} />
-                    <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                    <Icon name="tray.full" size={15} color={theme.accent} />
+                    <ThemedText type="footnoteStrong" style={{ color: theme.accent }}>
                       Move back to my items
                     </ThemedText>
                   </View>

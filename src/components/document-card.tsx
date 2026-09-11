@@ -58,20 +58,20 @@ export function DocumentCard({ doc, onPress }: { doc: TrackedDocument; onPress: 
           />
 
           <View style={styles.info}>
-            <ThemedText type="title" numberOfLines={1}>
+            <ThemedText type="headline" numberOfLines={1}>
               {doc.title}
             </ThemedText>
-            <ThemedText type="small" themeColor="textTertiary" numberOfLines={1}>
+            <ThemedText type="footnote" themeColor="textTertiary" numberOfLines={1}>
               {secondary}
             </ThemedText>
           </View>
 
           {!retired && (
             <View style={styles.countdown}>
-              <ThemedText type="numeral" style={{ color }}>
+              <ThemedText type="figure" style={{ color }}>
                 {countdown.value}
               </ThemedText>
-              <ThemedText type="label" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 {countdown.unit}
               </ThemedText>
             </View>

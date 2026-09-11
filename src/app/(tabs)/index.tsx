@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -12,15 +12,12 @@ import { ensureBrandIcon, guessDomain } from '@/lib/brand-icons';
 import { Segmented } from '@/components/segmented';
 import { isSubscription } from '@/domain/documents';
 import { TimelineRow, TimelineSectionHeader } from '@/components/timeline-row';
+import { TimelineSummary, type Focus } from '@/components/timeline-summary';
+import { buildHousehold } from '@/domain/household';
 import { buildSections } from '@/domain/timeline';
 import { searchableText } from '@/domain/fields';
 import { useTheme } from '@/hooks/use-theme';
-import {
-  countdownShort,
-  countWord,
-  daysUntil,
-  mastheadDate,
-} from '@/lib/dates';
+import { daysUntil } from '@/lib/dates';
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
@@ -67,6 +64,14 @@ export default function HomeScreen() {
    * "four need you" over a list of one is the confusion a split invites.
    */
   const [side, setSide] = useState<Side>('documents');
+  /**
+   * Which of the summary cards is pressed, and so which slice is listed.
+   *
+   * A filter rather than a screen, because the whole list is three taps of
+   * scrolling long and pushing a filtered copy of it would put the same rows
+   * behind a back button for no reason.
+   */
+  const [focus, setFocus] = useState<Focus>('all');
   /** Bumped when an icon lands, so the rows redraw wearing it. */
   const [, setIconsFetched] = useState(0);
 
@@ -143,7 +148,33 @@ export default function HomeScreen() {
     [found, query, side]
   );
 
-  const sections = useMemo(() => buildSections(inView), [inView]);
+  /**
+   * How many people the household holds, for the fourth card.
+   *
+   * The same builder the Household page uses rather than a count of distinct
+   * owners, so the two screens cannot disagree about how many people there
+   * are. That page counts the phone's owner even with nothing filed, and a
+   * card saying three next to a page listing four would be the kind of small
+   * wrongness that makes somebody stop trusting the numbers.
+   */
+  const people = useMemo(
+    () => buildHousehold(documents, settings.people, settings.ownName).length,
+    [documents, settings.people, settings.ownName]
+  );
+
+  /** What the pressed card narrows the half you are reading down to. */
+  const shown = useMemo(() => {
+    if (focus === 'overdue') return inView.filter((doc) => daysUntil(doc.expiryDate) < 0);
+    if (focus === 'soon') {
+      return inView.filter((doc) => {
+        const days = daysUntil(doc.expiryDate);
+        return days >= 0 && days <= 30;
+      });
+    }
+    return inView;
+  }, [inView, focus]);
+
+  const sections = useMemo(() => buildSections(shown), [shown]);
 
   /*
    * The masthead counts the half you are reading, not the search results.
@@ -223,33 +254,40 @@ export default function HomeScreen() {
           ListHeaderComponent={
             <View>
               <View style={styles.masthead}>
-                <ThemedText type="label" themeColor="textTertiary">
-                  {mastheadDate()}
-                </ThemedText>
                 {/*
-                 * Expired is a different fact from due soon, and one figure
-                 * covering both flattens the one already costing money into
-                 * the three that are not.
-                 *
-                 * "Four need you" was the other half of this and read as a
-                 * plea with the request missing: need you to do what? A
-                 * masthead states, the way "All quiet" and "Two expired" do.
-                 */}
-                {documents.length > 0 && (
-                  <ThemedText type="verdict" style={styles.verdict}>
-                    {allClear
-                      ? 'All quiet.'
-                      : expired.length > 0
-                        ? `${countWord(expired.length)} expired.`
-                        : `${countWord(soon.length)} due soon.`}
-                  </ThemedText>
-                )}
-                {allClear && next && documents.length > 0 && (
-                  <ThemedText type="body" themeColor="textSecondary" style={styles.reassurance}>
-                    Next: {next.title}, {countdownShort(daysUntil(next.expiryDate))}.
-                  </ThemedText>
-                )}
+                  * The name of the screen, and that is all.
+                  *
+                  * This was a masthead: a tracked uppercase date, then a
+                  * verdict set as a sentence with a full stop, "One expired.",
+                  * then a line of reassurance under it. Three pieces of
+                  * invented furniture where iOS puts one Large Title, and the
+                  * first thing anybody saw on opening the app.
+                  *
+                  * The state did not go missing; it moved to where iOS keeps
+                  * it. A red "Overdue" header sits over the overdue rows, and
+                  * each row reddens its own date once it has passed.
+                  */}
+                <ThemedText type="largeTitle">Timeline</ThemedText>
               </View>
+
+              {/*
+                * Four cards, the way Reminders opens, and the answer to "a bit
+                * simple". Stripping the invented furniture left a screen of
+                * grey rows that says nothing until it is read; this answers
+                * the only question anybody opens the app with, in a glance,
+                * and turns the two states that matter into filters.
+                */}
+              {documents.length > 0 && (
+                <TimelineSummary
+                  overdue={expired.length}
+                  soon={soon.length}
+                  all={onThisSide.length}
+                  people={people}
+                  focus={focus}
+                  onFocus={setFocus}
+                  onHousehold={() => router.push('/household')}
+                />
+              )}
 
               {/*
                 * Offered only once there is something on both sides. A control
@@ -286,12 +324,8 @@ export default function HomeScreen() {
                   {({ pressed }) => (
                     <View
                       style={[styles.banner, { borderColor: theme.border }, pressed && styles.dim]}>
-                      <MaterialCommunityIcons
-                        name="calendar-sync-outline"
-                        size={18}
-                        color={theme.textTertiary}
-                      />
-                      <ThemedText type="small" style={styles.flex}>
+                      <Icon name="calendar.badge.clock" size={18} color={theme.textTertiary} />
+                      <ThemedText type="footnote" style={styles.flex}>
                         Nothing due for months. The ones that catch people out come round every
                         year: {missingAnnual.slice(0, 3).join(', ')}.
                       </ThemedText>
@@ -316,7 +350,7 @@ export default function HomeScreen() {
                     styles.search,
                     { borderColor: theme.border, backgroundColor: theme.backgroundElement },
                   ]}>
-                  <MaterialCommunityIcons name="magnify" size={17} color={theme.textTertiary} />
+                  <Icon name="magnifyingglass" size={16} color={theme.textTertiary} />
                   <TextInput
                     value={query}
                     onChangeText={setQuery}
@@ -330,11 +364,7 @@ export default function HomeScreen() {
                   />
                   {query.length > 0 && (
                     <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Clear">
-                      <MaterialCommunityIcons
-                        name="close-circle"
-                        size={17}
-                        color={theme.textTertiary}
-                      />
+                      <Icon name="xmark.circle.fill" size={17} color={theme.textTertiary} />
                     </Pressable>
                   )}
                 </View>
@@ -355,12 +385,8 @@ export default function HomeScreen() {
               {notificationsOn === false && documents.length > 0 && (
                 <Pressable onPress={turnOnNotifications} accessibilityRole="button">
                   <View style={[styles.banner, { borderColor: theme.border }]}>
-                    <MaterialCommunityIcons
-                      name="bell-off-outline"
-                      size={18}
-                      color={theme.urgentSoft}
-                    />
-                    <ThemedText type="small" style={styles.flex}>
+                    <Icon name="bell.slash" size={18} color={theme.urgentSoft} />
+                    <ThemedText type="footnote" style={styles.flex}>
                       Reminders are off. Tap to turn them on.
                     </ThemedText>
                   </View>
@@ -371,15 +397,33 @@ export default function HomeScreen() {
           renderSectionHeader={({ section }) => (
             <TimelineSectionHeader title={section.title} />
           )}
-          renderItem={({ item }) => (
-            <TimelineRow doc={item} onPress={() => router.push(`/document/${item.id}`)} />
-          )}
+          renderItem={({ item, index, section }) => {
+            /*
+             * An inset grouped card, which is what iOS puts a list inside: the
+             * rows on a white card with rounded ends, hairlines between them
+             * inset to where the text starts, and the section header outside
+             * it on the grey. Built per row because a SectionList has no
+             * wrapper to put around a section, and the first and last rows are
+             * the only ones that need corners.
+             */
+            const first = index === 0;
+            const last = index === section.data.length - 1;
+            return (
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.backgroundElement },
+                  first && styles.cardTop,
+                  last && styles.cardBottom,
+                ]}>
+                <TimelineRow doc={item} onPress={() => router.push(`/document/${item.id}`)} />
+                {!last && <View style={[styles.separator, { backgroundColor: theme.border }]} />}
+              </View>
+            );
+          }}
           ListEmptyComponent={
             loaded && documents.length === 0 ? (
-              <EmptyState
-                onAdd={() => router.push('/add')}
-                onBrowse={() => router.push('/add?start=type')}
-              />
+              <EmptyState onAdd={() => router.push('/add')} />
             ) : halves.documents.length > 0 && halves.subscriptions.length > 0 && !query.trim() ? (
               /*
                * The half you are on is empty but the other is not — which only
@@ -405,7 +449,7 @@ export default function HomeScreen() {
                   accessibilityRole="button">
                   {({ pressed }) => (
                     <ThemedText
-                      type="small"
+                      type="footnote"
                       themeColor="textTertiary"
                       style={[styles.noResults, pressed && styles.dim]}>
                       {elsewhere === 1 ? 'One match' : `${elsewhere} matches`} under{' '}
@@ -414,7 +458,7 @@ export default function HomeScreen() {
                   )}
                 </Pressable>
               ) : (
-                <ThemedText type="small" themeColor="textTertiary" style={styles.noResults}>
+                <ThemedText type="footnote" themeColor="textTertiary" style={styles.noResults}>
                   Nothing matches “{query.trim()}”.
                 </ThemedText>
               )
@@ -428,19 +472,19 @@ export default function HomeScreen() {
                     accessibilityRole="button"
                     onPress={() => router.push('/archive')}
                     style={styles.archiveLink}>
-                    <ThemedText type="small" themeColor="textTertiary">
+                    <ThemedText type="footnote" themeColor="textTertiary">
                       {archived.length} archived
                     </ThemedText>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={18}
-                      color={theme.textTertiary}
-                    />
+                    <Icon name="chevron.right" size={14} weight="semibold" color={theme.textTertiary} />
                   </Pressable>
                 )}
-                {/* Answers the question a sign-in screen usually answers. */}
-                <ThemedText type="small" themeColor="textTertiary" style={styles.assurance}>
-                  Saved on this iPhone · included in your backup
+                {/*
+                  * Answers the question a sign-in screen usually answers. One
+                  * clause now: it was two joined by a middot, which is a
+                  * punctuation mark almost nothing on iOS uses in a caption.
+                  */}
+                <ThemedText type="footnote" themeColor="textTertiary" style={styles.assurance}>
+                  Saved on this iPhone
                 </ThemedText>
               </View>
             ) : null
@@ -451,41 +495,35 @@ export default function HomeScreen() {
   );
 }
 
-function EmptyState({ onAdd, onBrowse }: { onAdd: () => void; onBrowse: () => void }) {
+function EmptyState({ onAdd }: { onAdd: () => void }) {
   const theme = useTheme();
   return (
     <View style={styles.empty}>
-      <ThemedText type="verdict">Nothing yet.</ThemedText>
       {/*
-        * Two halves, because the app has two and only one of them was ever
-        * mentioned. "Photograph a visa, a licence, a tenancy contract" told a
-        * new person this was a document wallet, so the gym membership and the
-        * internet bill went untracked by somebody who would have tracked them.
-        * The second sentence is the whole reason the Subscriptions tab exists.
+        * Grey text in the middle of the screen, which is how Reminders says
+        * "No Reminders" and how iOS says nothing-here everywhere else. This
+        * was a Title 2 under the Large Title, so the screen carried two
+        * headings, one of them a sentence with a full stop.
+        *
+        * The second line stays because it is the only place the app says what
+        * it is for, and a new person reading "Nothing tracked yet" on its own
+        * would be told what they can already see. The list of categories it
+        * used to link to is one tap inside the button.
         */}
       <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
+        Nothing tracked yet
+      </ThemedText>
+      <ThemedText type="footnote" themeColor="textTertiary" style={styles.centered}>
         A passport, a tenancy contract, the car insurance. The gym, the internet bill, a streaming
         plan. Anything with a date on it.
       </ThemedText>
       <Pressable onPress={onAdd} accessibilityRole="button">
         {({ pressed }) => (
           <View style={[styles.cta, { backgroundColor: theme.accent }, pressed && styles.dim]}>
-            <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+            <ThemedText type="headline" style={{ color: theme.accentContrast }}>
               Add your first item
             </ThemedText>
           </View>
-        )}
-      </Pressable>
-      {/*
-        * Opens the real category list rather than a second copy of it written
-        * for this screen. Two lists would answer the same question and drift
-        * apart the first time a category is added.
-        */}
-      <Pressable onPress={onBrowse} accessibilityRole="button">
-        {({ pressed }) => (
-          <ThemedText type="small" themeColor="textTertiary" style={pressed && styles.dim}>
-            See everything you can track
-          </ThemedText>
         )}
       </Pressable>
     </View>
@@ -499,8 +537,16 @@ const styles = StyleSheet.create({
   // Deep enough that the last row clears the camera button on the tab bar.
   list: { paddingHorizontal: Spacing.four, paddingBottom: 72 },
   masthead: { paddingTop: Spacing.four },
-  verdict: { marginTop: 6 },
-  reassurance: { paddingTop: Spacing.three, maxWidth: 340 },
+  /* The card the rows sit on, squared in the middle and rounded at the ends. */
+  card: { paddingHorizontal: Spacing.three },
+  cardTop: { borderTopLeftRadius: Radius.medium, borderTopRightRadius: Radius.medium },
+  cardBottom: { borderBottomLeftRadius: Radius.medium, borderBottomRightRadius: Radius.medium },
+  /*
+   * Inset to where the title starts, past the tile and the gap, which is how
+   * iOS draws a separator and why its lists read as rows rather than as a
+   * table.
+   */
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: 40 + Spacing.three },
   segmented: { paddingTop: Spacing.four },
   search: {
     flexDirection: 'row',
@@ -552,7 +598,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: Spacing.three, paddingTop: Spacing.six },
   centered: { textAlign: 'center' },
   cta: {
-    borderRadius: Radius.pill,
+    borderRadius: Radius.medium,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     marginTop: Spacing.two,

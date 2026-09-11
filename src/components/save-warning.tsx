@@ -1,8 +1,8 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -42,12 +42,12 @@ export function SaveWarning() {
           { backgroundColor: theme.backgroundElement, borderColor: theme.urgentStrong },
         ]}>
         <View style={styles.header}>
-          <MaterialCommunityIcons
-            name="alert-circle-outline"
+          <Icon
+            name="exclamationmark.circle"
             size={18}
             color={theme.urgentStrong}
           />
-          <ThemedText type="smallBold" style={{ color: theme.urgentStrong }}>
+          <ThemedText type="footnoteStrong" style={{ color: theme.urgentStrong }}>
             Not saved
           </ThemedText>
         </View>
@@ -70,7 +70,7 @@ export function SaveWarning() {
             disabled={retrying}
             accessibilityRole="button">
             <View style={[styles.button, { backgroundColor: theme.accent }]}>
-              <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+              <ThemedText type="footnoteStrong" style={{ color: theme.accentContrast }}>
                 {retrying ? 'Trying…' : 'Try again'}
               </ThemedText>
             </View>
@@ -83,7 +83,7 @@ export function SaveWarning() {
             }}
             accessibilityRole="button">
             <View style={styles.button}>
-              <ThemedText type="smallBold" themeColor="textSecondary">
+              <ThemedText type="footnoteStrong" themeColor="textSecondary">
                 Not now
               </ThemedText>
             </View>

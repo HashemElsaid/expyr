@@ -33,7 +33,7 @@ export function priceOfDocument(pages: number): Credits {
  * the app feel like it is haggling. Above it, the cost is real and so is the
  * wait, and being asked is the difference between a purchase and a surprise.
  */
-export const ASK_FIRST_ABOVE_PAGES = 8;
+export const ASK_FIRST_ABOVE_PAGES = 10;
 
 export function worthConfirming(pages: number): boolean {
   return pages > ASK_FIRST_ABOVE_PAGES;

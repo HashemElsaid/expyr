@@ -4,9 +4,9 @@ import { Stack, useRouter, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef } from 'react';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Icon } from '@/components/icon';
 import { LockGate } from '@/components/lock-gate';
 import { LockOffer } from '@/components/lock-offer';
 import { SaveWarning } from '@/components/save-warning';
@@ -66,7 +66,7 @@ function ErrorScreen({ error, retry }: ErrorBoundaryProps) {
 
 const errorStyles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 },
-  title: { ...Fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.7, textAlign: 'center' },
+  title: { ...Fonts.display, fontSize: 34, lineHeight: 38, textAlign: 'center' },
   body: { ...Fonts.body, fontSize: 15, lineHeight: 22, textAlign: 'center', maxWidth: 320 },
   detail: { ...Fonts.body, fontSize: 12, textAlign: 'center', maxWidth: 320 },
   button: { borderRadius: 999, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8 },
@@ -118,8 +118,8 @@ function ModalCloseButton() {
       accessibilityRole="button"
       accessibilityLabel="Cancel">
       {({ pressed }) => (
-        <MaterialCommunityIcons
-          name="close"
+        <Icon
+          name="xmark"
           size={24}
           color={pressed ? theme.text : theme.textSecondary}
         />

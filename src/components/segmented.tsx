@@ -104,7 +104,7 @@ export function Segmented<T extends string>({
             style={styles.slot}>
             <View style={styles.labelRow}>
               <ThemedText
-                type="smallBold"
+                type="footnoteStrong"
                 themeColor={selected ? 'text' : 'textSecondary'}
                 numberOfLines={1}>
                 {segment.label}

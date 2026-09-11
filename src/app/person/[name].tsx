@@ -114,7 +114,7 @@ export default function PersonScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <ThemedText
-              type="verdict"
+              type="largeTitle"
               style={person.urgent > 0 ? { color: theme.urgentStrong } : undefined}>
               {personVerdict(person)}
             </ThemedText>
@@ -135,7 +135,7 @@ export default function PersonScreen() {
                 {gaps.map((gap) => (
                   <ThemedText
                     key={gap.text}
-                    type="small"
+                    type="footnote"
                     themeColor={gap.severity === 'blocked' ? 'urgentSoft' : 'textTertiary'}>
                     {gap.text}
                   </ThemedText>
@@ -187,7 +187,7 @@ export default function PersonScreen() {
               Nothing is filed under {person.label} yet.
             </ThemedText>
             <SecondaryAction
-              icon="camera-outline"
+              icon="camera.fill"
               label={person.name === MINE ? 'Add something' : `Add something for ${person.label}`}
               onPress={() =>
                 router.push(

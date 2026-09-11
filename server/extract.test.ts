@@ -19,6 +19,7 @@ function scan(over: Partial<Extraction> = {}): Extraction {
     confidence: 'high',
     typeConfidence: 'medium',
     mrz: PASSPORT_MRZ,
+    text: 'PASSPORT. ERIKSSON, ANNA MARIA. UTOPIA.',
     note: 'Read the expiry date off the data page.',
     fields: [{ label: 'Full name', value: 'ANNA MARIA ERIKSSON', kind: 'name' }],
     ...over,

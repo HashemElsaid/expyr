@@ -1,44 +1,135 @@
 import type { TextStyle } from 'react-native';
 
 /**
- * Expyr's visual language: warm paper rather than clinical white, ink rather
- * than pure black, and colour reserved for genuine urgency. Everything that is
- * fine is deliberately quiet.
+ * iOS's own surfaces, and mint for the one thing that is ours.
+ *
+ * This was warm paper: #F7F4EF in daylight and a candle-lit brown-black at
+ * night, with hairlines in umber and greys mixed to match. It was the most
+ * distinctive thing about the app and it is gone on purpose.
+ *
+ * The reason is what the first outside readers said, which was that the
+ * screens looked machine-made. Paper was a large part of why. An app that
+ * invents its own surface colour is an app that has decided not to sit beside
+ * Settings and Reminders, and the moment a person notices the background is
+ * not the background every other app uses, they start looking for the other
+ * places it was invented, and finding them.
+ *
+ * So: systemGroupedBackground behind a list in daylight, near-black at night,
+ * secondarySystemGroupedBackground for the cards that sit on it, and Apple's
+ * separator for every hairline. These are the literal values from Human
+ * Interface Guidelines rather than PlatformColor, which would be the real
+ * semantic colour but resolves to nothing on web and cannot take an alpha.
+ *
+ * What is still ours is the mint, and it is now the only thing that is: the
+ * tint on anything interactive and the fill behind the one primary button on a
+ * screen. Character has to come from what the app knows rather than from the
+ * colour of the paper.
  */
 
 export const Colors = {
   light: {
-    background: '#F7F4EF',
-    backgroundElement: '#FFFDFA',
-    backgroundSelected: '#EDE8DF',
-    text: '#191713',
-    textSecondary: '#5B564C',
-    textTertiary: '#918B7E',
-    border: '#E2DCD0',
+    /** systemGroupedBackground: what a list of cards sits on. */
+    background: '#F2F2F7',
+    /** secondarySystemGroupedBackground: the card itself. */
+    backgroundElement: '#FFFFFF',
+    /** systemGray5, for a row under the finger. */
+    backgroundSelected: '#E5E5EA',
+    /** label. */
+    text: '#000000',
+    /*
+     * iOS's own secondary and tertiary label colours rather than browns mixed
+     * to match the paper.
+     *
+     * They are neutral on purpose, and read very slightly cool against warm
+     * paper, which is exactly how a native app looks: Apple tints the surface
+     * and leaves the greys alone. Mixing a warm grey to harmonise with the
+     * background is a decision Apple never makes, and making it everywhere is
+     * part of what read as invented.
+     *
+     * Written as rgba rather than PlatformColor, which would be the real
+     * semantic colour but resolves to nothing on web and cannot be given an
+     * alpha, and this app renders on web in its own tests.
+     */
+    textSecondary: 'rgba(60, 60, 67, 0.6)',
+    textTertiary: 'rgba(60, 60, 67, 0.35)',
+    /** separator, which is the hairline between rows in a card. */
+    border: 'rgba(60, 60, 67, 0.29)',
+    /*
+     * Ours, and now the only thing that is. Dark enough to carry white text on
+     * a filled button and to read as deliberate rather than decorative.
+     */
     accent: '#1D4B39',
-    accentContrast: '#FFFDFA',
-    urgentStrong: '#9E2B20',
-    urgentSoft: '#87591A',
+    accentContrast: '#FFFFFF',
+    /** systemRed and systemOrange: urgency in the colours iOS uses for it. */
+    urgentStrong: '#FF3B30',
+    urgentSoft: '#FF9500',
   },
   /**
-   * Not an inversion of the light theme — a candle-lit study. The paper goes
-   * warm brown-black, hairlines turn umber, and amber urgency glows the way it
-   * cannot in daylight.
+   * The same surfaces at night, which on iOS means black.
+   *
+   * Not an inversion of anything: iOS uses true black behind a grouped list on
+   * OLED, with the cards a shade above it, and that is what an iPhone owner's
+   * eye expects after dark.
    */
   dark: {
-    background: '#15100A',
-    backgroundElement: '#1E1811',
-    backgroundSelected: '#332A1E',
-    text: '#F3EFE7',
-    textSecondary: '#A79E8F',
-    textTertiary: '#7A7264',
-    border: '#2E261C',
+    /** systemGroupedBackground, dark. */
+    background: '#000000',
+    /** secondarySystemGroupedBackground, dark. */
+    backgroundElement: '#1C1C1E',
+    /** systemGray5, dark. */
+    backgroundSelected: '#2C2C2E',
+    text: '#FFFFFF',
+    /** The dark-mode pair of the same two, again Apple's own. */
+    textSecondary: 'rgba(235, 235, 245, 0.6)',
+    textTertiary: 'rgba(235, 235, 245, 0.35)',
+    /** separator, dark. */
+    border: 'rgba(84, 84, 88, 0.65)',
     accent: '#8ED6B2',
     accentContrast: '#0E241B',
-    urgentStrong: '#F09A8C',
-    urgentSoft: '#DFAF66',
+    /** systemRed and systemOrange, dark. */
+    urgentStrong: '#FF453A',
+    urgentSoft: '#FF9F0A',
   },
 } as const;
+
+/**
+ * Apple's system colours, for the tile behind a category's symbol.
+ *
+ * Settings is legible at a glance because every row carries a colour, and the
+ * colour means something: the same blue every time for the things that are
+ * about you, the same grey for the things that are about the phone. A list of
+ * fifteen identical grey tiles is a list nobody scans.
+ *
+ * Only Apple's own hues, in both modes, because these sit next to the system's
+ * own symbols and a hand-mixed orange beside systemOrange looks like a
+ * mistake rather than a choice.
+ */
+export const SystemColors = {
+  light: {
+    blue: '#007AFF',
+    green: '#34C759',
+    orange: '#FF9500',
+    purple: '#AF52DE',
+    teal: '#30B0C7',
+    indigo: '#5856D6',
+    brown: '#A2845E',
+    red: '#FF3B30',
+    gray: '#8E8E93',
+  },
+  dark: {
+    blue: '#0A84FF',
+    green: '#30D158',
+    orange: '#FF9F0A',
+    purple: '#BF5AF2',
+    teal: '#40C8E0',
+    indigo: '#5E5CE6',
+    brown: '#AC8E68',
+    red: '#FF453A',
+    gray: '#8E8E93',
+  },
+} as const;
+
+export type SystemColor = keyof typeof SystemColors.light;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 

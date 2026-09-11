@@ -1,9 +1,11 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/icon';
+import { PrimaryButton } from '@/components/form';
+import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -203,12 +205,78 @@ export default function AskScreen() {
    */
   const nothingRead = records.length === 0;
 
+  /*
+   * Expyr AI is what Pro is for.
+   *
+   * Reading a document and answering a question both cost real money at
+   * Anthropic every time, which is the one place in this app with a cost per
+   * use. It was free for everybody, paid for by nobody, and that is the
+   * feature the purchase now buys.
+   *
+   * A whole screen rather than a greyed-out one: somebody who cannot use this
+   * should be told what it is, once, and shown the way to it. A disabled
+   * version of a feature teaches nothing and invites poking.
+   *
+   * Every document a free account holds is still read and still kept, so the
+   * day Pro is bought there is nothing to redo.
+   */
+  if (!settings.premium) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <ScrollView contentContainerStyle={styles.locked} showsVerticalScrollIndicator={false}>
+            <ThemedText type="largeTitle">Expyr AI</ThemedText>
+
+            <Icon name="sparkles" size={44} color={theme.accent} style={styles.lockedMark} />
+
+            <ThemedText type="body" themeColor="textSecondary">
+              Ask about anything you are tracking and get the answer out of the document itself.
+              When the tenancy ends, what the notice period is, what the policy actually covers,
+              which of your subscriptions renews next.
+            </ThemedText>
+
+            <ListSection
+              title="What it can do"
+              footer={
+                documents.length > 0
+                  ? `Your ${documents.length} ${documents.length === 1 ? 'document is' : 'documents are'} already read and waiting`
+                  : 'Everything you add is read as it is added, so there is nothing to redo later'
+              }>
+              <ListRow
+                symbol="text.magnifyingglass"
+                tint="blue"
+                title="Reads the whole document"
+                subtitle="Not just the date on it"
+              />
+              <ListRow
+                symbol="questionmark.bubble"
+                tint="purple"
+                title="Answers in its own words"
+                subtitle="With the clause it came from"
+              />
+              <ListRow
+                symbol="rectangle.stack"
+                tint="green"
+                title="Across everything at once"
+                subtitle="Or one document at a time"
+              />
+            </ListSection>
+          </ScrollView>
+
+          <View style={styles.lockedFoot}>
+            <PrimaryButton label="See Expyr Pro" onPress={() => router.push('/paywall')} />
+          </View>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={[styles.flex, { paddingBottom: lift }]}>
           <View style={styles.header}>
-            <ThemedText type="display">Expyr AI</ThemedText>
+            <ThemedText type="largeTitle">Expyr AI</ThemedText>
             {scoped ? (
               <Pressable
                 onPress={() => router.setParams({ id: '' })}
@@ -221,16 +289,16 @@ export default function AskScreen() {
                       { borderColor: theme.border, backgroundColor: theme.backgroundSelected },
                       pressed && styles.dim,
                     ]}>
-                    <ThemedText type="small" numberOfLines={1} style={styles.scopeLabel}>
+                    <ThemedText type="footnote" numberOfLines={1} style={styles.scopeLabel}>
                       {scoped.title}
                     </ThemedText>
-                    <MaterialCommunityIcons name="close" size={14} color={theme.textTertiary} />
+                    <Icon name="xmark" size={14} color={theme.textTertiary} />
                   </View>
                 )}
               </Pressable>
             ) : (
               !nothingRead && (
-                <ThemedText type="label" themeColor="textTertiary">
+                <ThemedText type="footnote" themeColor="textTertiary">
                   {/*
                     * "0 of 6 read" was a status report on the app's own
                     * plumbing. What a person wants to know is what they can ask
@@ -252,9 +320,7 @@ export default function AskScreen() {
                     */}
                   {settings.credits.balance <= CREDITS_PER_QUESTION * 5
                     ? formatCredits(settings.credits.balance)
-                    : pool.length > 0
-                      ? `${documents.length} tracked · ${pool.length} read in full`
-                      : `${documents.length} item${documents.length === 1 ? '' : 's'} tracked`}
+                    : `${documents.length} ${documents.length === 1 ? 'document' : 'documents'} read`}
                 </ThemedText>
               )
             )}
@@ -268,8 +334,8 @@ export default function AskScreen() {
             showsVerticalScrollIndicator={false}>
             {nothingRead ? (
               <View style={styles.blank}>
-                <MaterialCommunityIcons
-                  name="creation-outline"
+                <Icon
+                  name="sparkles"
                   size={28}
                   color={theme.textTertiary}
                 />
@@ -281,7 +347,7 @@ export default function AskScreen() {
                   * simply not added anything, and is wrong twice over: dates can
                   * be answered from what Expyr already knows, with nothing read.
                   */}
-                <ThemedText type="headline" style={styles.centered}>
+                <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
                   Nothing to ask about yet
                 </ThemedText>
                 <ThemedText type="body" themeColor="textSecondary" style={styles.centered}>
@@ -297,7 +363,7 @@ export default function AskScreen() {
                         { backgroundColor: theme.accent },
                         pressed && styles.dim,
                       ]}>
-                      <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                      <ThemedText type="headline" style={{ color: theme.accentContrast }}>
                         Add a document
                       </ThemedText>
                     </View>
@@ -307,12 +373,10 @@ export default function AskScreen() {
             ) : turns.length === 0 ? (
               <View style={styles.intro}>
                 <ThemedText type="body" themeColor="textTertiary" style={styles.centered}>
-                  {scoped
-                    ? `Ask ${scoped.title} anything.`
-                    : 'Ask your own paperwork anything.'}
+                  {scoped ? `Ask ${scoped.title} anything` : 'Ask your own paperwork anything'}
                 </ThemedText>
-                <ThemedText type="small" themeColor="textTertiary" style={styles.centered}>
-                  Every answer quotes the clause it came from.
+                <ThemedText type="footnote" themeColor="textTertiary" style={styles.centered}>
+                  Every answer quotes the clause it came from
                 </ThemedText>
               </View>
             ) : null}
@@ -335,11 +399,11 @@ export default function AskScreen() {
                    */}
                   {turn.answer.answered && turn.answer.quote ? (
                     <View style={[styles.quote, { borderLeftColor: theme.accent }]}>
-                      <ThemedText type="small" themeColor="textSecondary" style={styles.quoteText}>
+                      <ThemedText type="footnote" themeColor="textSecondary" style={styles.quoteText}>
                         {turn.answer.quote}
                       </ThemedText>
                       {turn.answer.where ? (
-                        <ThemedText type="label" themeColor="textTertiary">
+                        <ThemedText type="footnote" themeColor="textTertiary">
                           {turn.answer.where}
                         </ThemedText>
                       ) : null}
@@ -348,12 +412,12 @@ export default function AskScreen() {
 
                   {turn.answer.answered && turn.answer.source && !scoped ? (
                     <View style={styles.sourceRow}>
-                      <MaterialCommunityIcons
-                        name="file-document-outline"
+                      <Icon
+                        name="doc"
                         size={14}
                         color={theme.textTertiary}
                       />
-                      <ThemedText type="small" themeColor="textTertiary">
+                      <ThemedText type="footnote" themeColor="textTertiary">
                         {turn.answer.source}
                       </ThemedText>
                     </View>
@@ -361,12 +425,12 @@ export default function AskScreen() {
 
                   {!turn.answer.answered && (
                     <View style={styles.silent}>
-                      <MaterialCommunityIcons
-                        name="information-outline"
+                      <Icon
+                        name="info.circle"
                         size={15}
                         color={theme.textTertiary}
                       />
-                      <ThemedText type="small" themeColor="textTertiary" style={styles.flex}>
+                      <ThemedText type="footnote" themeColor="textTertiary" style={styles.flex}>
                         {scoped
                           ? 'Not covered by this document.'
                           : 'Not covered by anything Expyr has read.'}{' '}
@@ -396,7 +460,7 @@ export default function AskScreen() {
 
             {error && (
               <View style={styles.reply}>
-                <ThemedText type="small" style={{ color: theme.urgentStrong }}>
+                <ThemedText type="footnote" style={{ color: theme.urgentStrong }}>
                   {error}
                 </ThemedText>
               </View>
@@ -404,7 +468,7 @@ export default function AskScreen() {
 
             {broke && (
               <View style={styles.reply}>
-                <ThemedText type="small" themeColor="textSecondary">
+                <ThemedText type="footnote" themeColor="textSecondary">
                   A question costs {CREDITS_PER_QUESTION} credits and you have{' '}
                   {formatCredits(settings.credits.balance)}.
                 </ThemedText>
@@ -422,7 +486,7 @@ export default function AskScreen() {
                         { backgroundColor: theme.accent },
                         pressed && styles.dim,
                       ]}>
-                      <ThemedText type="smallBold" style={{ color: theme.accentContrast }}>
+                      <ThemedText type="headline" style={{ color: theme.accentContrast }}>
                         Top up
                       </ThemedText>
                     </View>
@@ -454,7 +518,7 @@ export default function AskScreen() {
                             { borderColor: theme.border },
                             pressed && styles.dim,
                           ]}>
-                          <ThemedText type="small" themeColor="textSecondary">
+                          <ThemedText type="footnote" themeColor="textSecondary">
                             {starter}
                           </ThemedText>
                         </View>
@@ -498,8 +562,8 @@ export default function AskScreen() {
                         },
                         pressed && styles.dim,
                       ]}>
-                      <MaterialCommunityIcons
-                        name="arrow-up"
+                      <Icon
+                        name="arrow.up"
                         size={18}
                         color={
                           question.trim().length === 0 || busy
@@ -520,6 +584,24 @@ export default function AskScreen() {
 }
 
 const styles = StyleSheet.create({
+  /** The screen a free account sees, which is about the feature rather than in it. */
+  locked: {
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.four,
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  lockedMark: { alignSelf: 'center', marginVertical: Spacing.two },
+  lockedFoot: {
+    paddingHorizontal: Spacing.three,
+    paddingBottom: 72,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
   container: { flex: 1 },
   safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center' },
   flex: { flex: 1 },
@@ -565,7 +647,7 @@ const styles = StyleSheet.create({
   },
   topUp: { alignSelf: 'flex-start', marginTop: Spacing.two },
   topUpButton: {
-    borderRadius: Radius.pill,
+    borderRadius: Radius.medium,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
   },

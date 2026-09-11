@@ -43,7 +43,7 @@ export default function TermsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ThemedText type="headline">Terms of use</ThemedText>
+        <ThemedText type="largeTitle">Terms of use</ThemedText>
         <ThemedText type="body" themeColor="textSecondary">
           Plain terms for a small app. Apple&apos;s standard licence applies as well.
         </ThemedText>
@@ -51,7 +51,7 @@ export default function TermsScreen() {
         {SECTIONS.map((section) => (
           <View key={section.title} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <ThemedText type="label" themeColor="textTertiary">
+              <ThemedText type="footnote" themeColor="textTertiary">
                 {section.title}
               </ThemedText>
               <View style={[styles.rule, { backgroundColor: theme.border }]} />
@@ -64,7 +64,7 @@ export default function TermsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <ThemedText type="label" themeColor="textTertiary">
+            <ThemedText type="footnote" themeColor="textTertiary">
               Current prices
             </ThemedText>
             <View style={[styles.rule, { backgroundColor: theme.border }]} />
@@ -78,7 +78,7 @@ export default function TermsScreen() {
         <Pressable
           accessibilityRole="link"
           onPress={() => Linking.openURL(APPLE_EULA).catch(() => {})}>
-          <ThemedText type="smallBold" style={[styles.link, { color: theme.accent }]}>
+          <ThemedText type="footnoteStrong" style={[styles.link, { color: theme.accent }]}>
             Read Apple&apos;s standard licence agreement
           </ThemedText>
         </Pressable>

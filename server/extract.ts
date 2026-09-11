@@ -98,6 +98,21 @@ export const ExtractionSchema = z.object({
    */
   typeConfidence: z.enum(['high', 'medium', 'low']),
   /**
+   * Everything the page says, verbatim.
+   *
+   * The model is already looking at these pixels to find the date, so asking
+   * it to type the page out costs output tokens and not a second call. That
+   * matters because reading used to be a step: a person added a document and
+   * Expyr AI could only answer about it once they found a button at the bottom
+   * of its screen and pressed it. Nobody found it, so the feature looked
+   * empty.
+   *
+   * Empty for a document with nothing to transcribe, and empty rather than
+   * summarised or tidied: this is the text a question will be answered from,
+   * so a paraphrase here becomes a wrong quotation later.
+   */
+  text: z.string(),
+  /**
    * The machine-readable zone, transcribed character for character.
    *
    * Not for the user. `mrz.ts` parses it, checks it against its own check
@@ -228,6 +243,7 @@ Rules:
 - documentNumber only when an official number is clearly legible AND the category is one that actually carries a number. Otherwise return an empty string. Never guess digits that are blurred or cropped.
 - confidence is "high" only when you read the date clearly and are certain it is the expiry or due date.
 - typeConfidence is about the category alone and says nothing about the date. "high" when the tells above settle what the object is. "medium" or "low" when you are working from the words rather than the object: a title you are inferring from, two documents on one page, a crop that cuts off the machine-readable lines, a photograph too poor to tell a card from a page. The app asks the user a single question when this is not high, so saying low costs one tap and saves a wrong category. Guessing high costs somebody the wrong renewal guidance for a year.
+- text is everything printed on the item, typed out as it reads: every line, in order, including the small print. Not a summary and not tidied up, because questions get answered out of this and a paraphrase here becomes a wrong quotation later. Leave it empty for a photograph with nothing to transcribe, such as a card carrying only a name and a date already returned above. For a PDF, transcribe the pages you were given.
 - mrz is the machine-readable zone copied out exactly, one output line per printed line, when the picture shows one: the two lines of 44 characters at the foot of a passport data page, or the three lines of 30 characters on the back of an identity card. Copy every character including the < fillers, keep the lines in order, and do not tidy or correct anything that looks wrong to you. Return an empty string when no zone is visible, when it is cut off, or when you cannot read it with confidence. This is the one field where a faithful copy matters more than a sensible reading: it is checked against its own check digits, and a copy that has been helpfully corrected fails that check and is thrown away.
 - note is one short plain-language sentence telling the user which date you used. No jargon.
 - Always return the date even when it has already passed. Expyr deliberately tracks expired items so the user can renew or discard them, so a past date is a correct answer with found set to true. Never reject an item for being out of date.
@@ -413,6 +429,7 @@ const NOTHING_READ: Extraction = {
   typeConfidence: 'low',
   mrz: '',
   note: '',
+  text: '',
   fields: [],
 };
 

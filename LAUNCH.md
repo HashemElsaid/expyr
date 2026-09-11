@@ -137,8 +137,32 @@ outstanding, because it needs a phone.
    for a standard renewal, not 300 to 1,200; the overstay fine is a unified AED
    50 a day since February 2026. Same numbers in-app and on the web pages.
 
-9. **Bump the version to 1.0.1** so App Store Connect accepts the build
-   against a new version record.
+9. **Use the system font everywhere.** The first outside reader of the
+   timeline said it looks machine-made, and named the fonts as the reason:
+   Instrument Serif headlines over DM Sans. He asked for Apple's default. So:
+   drop both `@expo-google-fonts` packages and the `useFonts` call in
+   `_layout.tsx`, and make `Fonts` in `constants/theme.ts` resolve to the
+   system font, SF Pro on iOS. Headlines keep their size and get weight
+   instead of a serif: `fontWeight: '700'` with slightly tight
+   `letterSpacing`, the way Apple's own apps do large titles. Big figures use
+   `fontVariant: ['tabular-nums']` so columns of amounts line up. Grep for the
+   two literal family names too; `add.tsx` uses them directly. Nothing else
+   about the design changes: same paper, ink, spacing and radii. The launch
+   screen will need the same treatment if it names a font.
+
+10. **The paywall opens with the person's own numbers.** Above the plan table,
+    one line built from their data: "You are tracking 5 items worth AED 2,340
+    in renewals", using the items they have and the fees from
+    `document-types.ts`, falling back to "You are tracking 5 items" when no
+    fee is known and to nothing at all when the list is empty. The paywall is
+    reached from the item ceiling, the scan ceiling, the subscription import
+    and Settings, and in the first three the person has just watched the app
+    work; this line makes the screen about what they have rather than what
+    they lack. Never show the paywall on launch. The reasoning is in
+    `business/MONEY.md`, under the hard-paywall section.
+
+11. **Bump the version to 1.0.1** so App Store Connect accepts the build
+    against a new version record.
 
 Open and non-blocking, from earlier sections: the dark-mode shadow glow in
 section 8, and the Haiku-versus-Sonnet comparison for the brief in

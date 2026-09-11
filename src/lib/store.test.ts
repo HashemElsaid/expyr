@@ -58,9 +58,14 @@ describe('a runtime with no store in it', () => {
       throw new Error('the service must never be asked in this case');
     });
 
-    expect(outcome.ok).toBe(false);
-    expect(outcome.ok === false && outcome.cancelled).not.toBe(true);
-    expect(outcome.ok === false && outcome.message).toMatch(/cannot take payments/i);
+    /*
+     * Narrowed with a guard rather than an inline conjunction, which typed as
+     * the union of both refusals and therefore had no message on it. The first
+     * version of this line passed its tests and failed the typecheck.
+     */
+    if (outcome.ok) throw new Error('a runtime with no store must not report a purchase');
+    expect(outcome.cancelled).not.toBe(true);
+    expect('message' in outcome ? outcome.message : '').toMatch(/cannot take payments/i);
   });
 
   it('finds nothing to restore, rather than failing to look', async () => {

@@ -3,8 +3,8 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { Radius } from '@/constants/theme';
-import { iconFor } from '@/data/document-icons';
-import { useTheme } from '@/hooks/use-theme';
+import { iconFor, tintFor } from '@/data/document-icons';
+import { useSystemColors } from '@/hooks/use-theme';
 import { brandIconUri } from '@/lib/brand-icons';
 import { DocumentTypeId } from '@/types';
 
@@ -14,6 +14,14 @@ type Props = {
   iconDomain?: string;
   size?: number;
   tint?: string;
+  /**
+   * True once the date has passed, which turns the tile red.
+   *
+   * A state rather than a category, so it overrides the colour rather than
+   * being one of them. Red is the one colour in the set that says do something
+   * now, and it has to mean that on a passport as much as on a gym membership.
+   */
+  overdue?: boolean;
 };
 
 /**
@@ -28,8 +36,8 @@ type Props = {
  * up, and the photograph is one tap away on the document's own screen, at a
  * size where it can actually be read.
  */
-export function DocIcon({ typeId, iconDomain, size = 46, tint }: Props) {
-  const theme = useTheme();
+export function DocIcon({ typeId, iconDomain, size = 46, tint, overdue }: Props) {
+  const system = useSystemColors();
   const [brandFailed, setBrandFailed] = useState(false);
 
   const brand = brandIconUri(iconDomain);
@@ -46,26 +54,24 @@ export function DocIcon({ typeId, iconDomain, size = 46, tint }: Props) {
   }
 
   /*
-   * A filled tile rather than a hairline box. Apple puts a symbol on a solid
-   * rounded square in a list row and never outlines it, and fifteen outlined
-   * boxes down a list draw fifteen rectangles the eye has to read past to
-   * reach the words.
+   * A filled tile in the category's own colour, with a white symbol on it,
+   * which is how Settings draws a row and most of why Settings is legible at a
+   * glance. The colour is fixed per category, so it becomes something a person
+   * reads without looking rather than decoration.
    */
+  const fill = overdue ? system.red : system[tintFor(typeId)];
+
   return (
     <View
       style={[
         styles.tile,
-        {
-          width: size,
-          height: size,
-          borderRadius: Radius.small,
-          backgroundColor: theme.backgroundSelected,
-        },
+        { width: size, height: size, borderRadius: Radius.small, backgroundColor: fill },
       ]}>
       <Icon
         name={iconFor(typeId)}
-        size={Math.round(size * 0.5)}
-        color={tint ?? theme.textSecondary}
+        size={Math.round(size * 0.52)}
+        weight="medium"
+        color={tint ?? '#FFFFFF'}
       />
     </View>
   );

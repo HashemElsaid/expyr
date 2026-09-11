@@ -68,6 +68,7 @@ export function TimelineRow({
             typeId={doc.typeId}
             iconDomain={doc.iconDomain ?? (isSubscription(doc) ? guessDomain(doc.title) : undefined)}
             size={40}
+            overdue={gone}
           />
 
           <View style={styles.body}>

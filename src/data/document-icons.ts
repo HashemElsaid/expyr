@@ -1,4 +1,5 @@
 import type { SFSymbol } from '@/components/icon';
+import type { SystemColor } from '@/constants/theme';
 import { DocumentTypeId } from '@/types';
 
 /**
@@ -39,4 +40,46 @@ export const DOCUMENT_ICONS: Record<DocumentTypeId, SFSymbol> = {
 
 export function iconFor(typeId: DocumentTypeId): SFSymbol {
   return DOCUMENT_ICONS[typeId] ?? 'doc';
+}
+
+/**
+ * One of Apple's system colours per category, fixed for ever.
+ *
+ * Fixed is the whole value. A colour that means the same thing on every screen
+ * becomes something a person reads without looking: blue is who you are, green
+ * is the car, orange is the roof over your head and what insures it, teal is
+ * permission to work, purple is money leaving on a schedule. A random colour
+ * per row would be decoration, and decoration is what this whole pass is
+ * removing.
+ *
+ * Red is deliberately not here. It belongs to a state rather than a category,
+ * and a tile turns red when the thing has expired, whatever kind of thing it
+ * is.
+ */
+export const DOCUMENT_TINTS: Record<DocumentTypeId, SystemColor> = {
+  /* Who you are, and your right to be here. */
+  'residence-visa': 'blue',
+  'emirates-id': 'blue',
+  passport: 'blue',
+  'labor-card': 'blue',
+  /* The car. */
+  'car-registration': 'green',
+  /* The roof, and what insures it or you. */
+  'car-insurance': 'orange',
+  'health-insurance': 'orange',
+  'tenancy-ejari': 'orange',
+  /* Permission to work. */
+  'driving-license': 'teal',
+  'trade-license': 'teal',
+  'professional-license': 'teal',
+  /* Money leaving on a schedule. */
+  membership: 'purple',
+  bill: 'indigo',
+  /* Things you own rather than hold. */
+  warranty: 'brown',
+  other: 'gray',
+};
+
+export function tintFor(typeId: DocumentTypeId): SystemColor {
+  return DOCUMENT_TINTS[typeId] ?? 'gray';
 }

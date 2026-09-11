@@ -204,6 +204,13 @@ stopped.
    read that then fails on our side must come back, and the failure should
    name itself as ours
 
+**Set on 11 September**, one day after release: $20 of credits, auto-reload
+on at $5 back up to $20, monthly limit **$60**, notification **$20**. Lower
+than the $150 argued for above, deliberately: at two users the cautious tier
+covers several hundred installs and bounds a bad month at $60. The $20 email
+is the signal to raise it, and it can only arrive because people are using
+the app.
+
 **Auto-reload on**, $25 when the balance drops below $10. An earlier version of
 this document said to leave it off, because a breaker that rearms itself is
 not one. That was wrong for a prepaid account. With auto-reload off, the

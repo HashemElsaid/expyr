@@ -460,13 +460,21 @@ work removed.
       looked. That is the conclusion App Review would have reached. An
       UptimeRobot keyword monitor now hits `/health` every five minutes looking
       for `"ok":true`, and the paid plan does not sleep in any case
-- [ ] **Raise the Anthropic spend limit.** Still $20/month with a $10
+- [x] **Anthropic spend limit raised, 11 September.** Still $20/month with a $10
       notification, sized for one developer rather than an audience. At roughly
       $0.08 of API cost per install that runs out at about **250 installs in a
       month**, and the failure is not a bill you regret: the API starts
       refusing, scanning stops working, and the first reviews Expyr ever gets
       are about a feature that had simply stopped. Raise to **$150 with the
-      notification at $50** before launch. **Auto-reload on**, $25 when the balance drops below $10. This file used to
+      notification at $50** before launch.
+
+      **What was actually set**, one day after release and two users in:
+      $20 of credits bought, auto-reload on at $5 back up to $20, monthly
+      limit **$60**, notification **$20**. A cautious tier chosen on purpose:
+      the limit caps the worst month at what a few hundred installs would
+      have to earn, and the $20 email is the trigger to raise it. If that
+      email arrives, it is because the app is being used, which is the
+      problem worth having. **Auto-reload on**, $25 when the balance drops below $10. This file used to
       say leave it off, on the grounds that a breaker which rearms itself is
       not one. That was wrong for a prepaid account: with auto-reload off the
       *balance* becomes the breaker, at whatever number was last loaded, which

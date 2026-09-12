@@ -821,3 +821,106 @@ test('the whole protected path survives a reinstall', async () => {
     assert.equal(await spend(store, await accountFor(store, 'install-new'), 500), 1000);
   });
 });
+
+/*
+ * =========================================================================
+ * Where 1,980 came from.
+ *
+ * Build 5's launch reconcile reported 1,980 on a sandbox Apple ID and the
+ * question was whether that hides a second Pro grant. It does not, and the
+ * arithmetic is what settles it: a duplicate grant adds 500 with nothing
+ * taken off, so any total containing one is a round 2,000 or 2,480. Only a
+ * total built on the *first* grant carries the 20 that was spent on the one
+ * question ever asked, and 1,980 carries it.
+ *
+ * Replayed here from the state that week actually left behind.
+ * =========================================================================
+ */
+const PRO_TXN = '2000000111111111';
+const PACK_TXN = '2000000222222222';
+const TESTER = { subject: '001234.abc0123456789def0123456789ab.5678', emailVerified: false };
+
+/** The pre-fix week: one honest Pro grant, one question, one duplicate. */
+async function weekBeforeTheFix(store: FileCreditStore) {
+  // The first install: granted 500, spent 20 on a question.
+  await store.write({ id: 'install-A', balance: 480, seenAt: 0, redeemed: [PRO_TXN] });
+  // The reinstall that was paid a second time, orphaned on a dead token.
+  await store.write({ id: 'install-B', balance: 500, seenAt: 0, redeemed: [PRO_TXN] });
+  // And the claim, which the first redeem after the deploy wrote.
+  await store.write({ id: claimKey(PRO_TXN), balance: 0, seenAt: 0, claimedBy: 'install-A' });
+}
+
+test('1,980 is the first grant net of the question, plus the pack', async () => {
+  await onDisk(async (store) => {
+    await weekBeforeTheFix(store);
+    const account = accountKeyFor(TESTER);
+
+    // Protect my credits, carrying the 480 onto the account.
+    assert.equal(await link(store, 'install-A', account), 480);
+
+    // After the fix: reinstall, Pro replays, and is not paid again.
+    const replay = await redeem(store, 'install-C', PRO_TXN, 500);
+    assert.equal(replay.granted, false, 'the replay was paid');
+
+    // Buys the pack, then signs in.
+    await redeem(store, 'install-C', PACK_TXN, 1500);
+    assert.equal(await link(store, 'install-C', account), 1980);
+
+    assert.equal(await availableTo(store, account), 1980);
+  });
+});
+
+/*
+ * And the shape a real double grant would have had, which is the point: it
+ * cannot come to 1,980, because nothing was ever spent out of a duplicate.
+ */
+test('a double grant could not have produced 1,980', async () => {
+  await onDisk(async (store) => {
+    await weekBeforeTheFix(store);
+    const account = accountKeyFor(TESTER);
+
+    // Both pre-fix grants carried onto the account, the worst case.
+    await link(store, 'install-A', account);
+    await link(store, 'install-B', account);
+    await redeem(store, 'install-C', PACK_TXN, 1500);
+    await link(store, 'install-C', account);
+
+    assert.equal(await availableTo(store, account), 2480);
+    assert.notEqual(await availableTo(store, account), 1980);
+  });
+});
+
+/*
+ * Linking used to write the account record as a fresh object, which erased
+ * every field it did not name. Two of those are what stop money being handed
+ * out twice, and neither is anything anybody would suspect linking of
+ * touching.
+ */
+test('linking keeps the purchase history it writes over', async () => {
+  await onDisk(async (store) => {
+    await store.write({
+      id: 'apple_abc',
+      balance: 100,
+      seenAt: 0,
+      redeemed: ['an-old-purchase'],
+      welcomed: true,
+    });
+    await grant(store, 'install-1', 400);
+
+    assert.equal(await link(store, 'install-1', 'apple_abc'), 500);
+
+    const account = await store.read('apple_abc');
+    assert.deepEqual(account?.redeemed, ['an-old-purchase'], 'the history was erased');
+    assert.equal(account?.welcomed, true, 'the opening balance became claimable again');
+  });
+});
+
+test('linking keeps what the install had been paid for too', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', PACK_TXN, 1500);
+    await link(store, 'install-1', 'apple_abc');
+
+    const install = await store.read('install-1');
+    assert.deepEqual(install?.redeemed, [PACK_TXN], 'the install forgot its own purchase');
+  });
+});

@@ -283,6 +283,14 @@ export async function refund(
  * crash inside it credits somebody twice rather than taking credits they paid
  * for. A store with transactions would close it, and this one does not have
  * them, so the choice is which way to be wrong.
+ *
+ * Every write here spreads the record it is replacing. Writing a fresh object
+ * with the fields this function cares about silently erases the ones it does
+ * not, and the two it does not are the two that stop money being handed out
+ * twice: `redeemed`, so an account keeps knowing which purchases it has been
+ * paid for, and `welcomed`, so signing in is not a way to be given the
+ * opening balance again. That was the bug, and it was invisible: linking is
+ * not the operation anybody suspects of clearing a purchase history.
  */
 export async function link(
   store: CreditStore,
@@ -300,6 +308,7 @@ export async function link(
     // Nothing to move, or it has moved already. The phone is still signed in.
     if (!target) await store.write({ id: accountId, balance: alreadyThere, seenAt: now });
     await store.write({
+      ...install,
       id: installId,
       balance: install?.balance ?? 0,
       seenAt: now,
@@ -310,8 +319,9 @@ export async function link(
   }
 
   const moved = alreadyThere + install.balance;
-  await store.write({ id: accountId, balance: moved, seenAt: now });
+  await store.write({ ...target, id: accountId, balance: moved, seenAt: now });
   await store.write({
+    ...install,
     id: installId,
     balance: 0,
     seenAt: now,

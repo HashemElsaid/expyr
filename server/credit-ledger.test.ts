@@ -23,6 +23,7 @@ import {
   redeem,
   refund,
   sellable,
+  signedInAccount,
   spend,
 } from './credit-ledger.ts';
 
@@ -922,5 +923,38 @@ test('linking keeps what the install had been paid for too', async () => {
 
     const install = await store.read('install-1');
     assert.deepEqual(install?.redeemed, [PACK_TXN], 'the install forgot its own purchase');
+  });
+});
+
+/*
+ * Telling a phone whose account it is, which it can forget without the
+ * service forgetting.
+ *
+ * The install credential lives in the Keychain and the settings live in
+ * ordinary storage. Deleting the app clears the second and not the first, so
+ * a reinstalled phone is still the same install to the service, still signed
+ * in, while its own copy of that fact is gone. Reported from build 5: the
+ * balance arrived correctly and Settings went on offering to sign in.
+ */
+test('an install that signed in is told which account it is', async () => {
+  await onDisk(async (store) => {
+    await grant(store, 'install-1', 500);
+    await link(store, 'install-1', 'apple_abc');
+    assert.equal(await signedInAccount(store, 'install-1'), 'apple_abc');
+  });
+});
+
+/*
+ * And one that never signed in is told nothing, which is the whole reason
+ * this is not accountFor. That one answers with the install token when there
+ * is no account, and handing that to a phone would tell every install it had
+ * an account and hide the offer to protect its credits from everybody.
+ */
+test('an install that never signed in is told nothing, not its own token', async () => {
+  await onDisk(async (store) => {
+    await grant(store, 'install-2', 500);
+    assert.equal(await signedInAccount(store, 'install-2'), null);
+    assert.equal(await accountFor(store, 'install-2'), 'install-2', 'still spends as itself');
+    assert.equal(await signedInAccount(store, 'never-seen'), null);
   });
 });

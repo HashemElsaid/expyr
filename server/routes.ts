@@ -8,6 +8,7 @@ import { accountKeyFor, appleKeys, verifyAppleIdentityToken } from './apple-iden
 import { appleCredentials, appleKeyUsable, fetchTransaction } from './apple-store.ts';
 import {
   accountFor,
+  signedInAccount,
   availableTo,
   balanceOf,
   FileCreditStore,
@@ -406,6 +407,20 @@ export const ROUTES: Record<string, Route> = {
       return json({
         balance: await availableTo(creditStore, account),
         enforced: sellable(creditStore),
+        /*
+         * Whose account this is, when there is one.
+         *
+         * The install credential lives in the Keychain and the settings live
+         * in ordinary storage, and deleting the app clears one and not the
+         * other. So a reinstalled phone goes on being the same install to the
+         * service, signed in, while its own copy of that fact is gone: the
+         * balance arrives correctly and Settings still offers to sign in.
+         *
+         * Null for an install that never signed in, which is why this is not
+         * `account` above. That one falls back to the install token, and
+         * handing it over would tell every phone it had an account.
+         */
+        account: await signedInAccount(creditStore, ctx.install),
       });
     },
   },

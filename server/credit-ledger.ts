@@ -353,6 +353,23 @@ export async function accountFor(store: CreditStore, installId: string): Promise
   return install?.signedInAs ?? installId;
 }
 
+/**
+ * The account this install signed in to, or null if it never did.
+ *
+ * Deliberately not `accountFor`, which answers a different question and answers
+ * it with the install token when there is no account. That is the right answer
+ * for spending and the wrong one to hand a phone: it would tell an install that
+ * has never signed in that it has an account, and the offer to protect its
+ * credits would disappear on exactly the phones that need it.
+ */
+export async function signedInAccount(
+  store: CreditStore,
+  installId: string
+): Promise<string | null> {
+  const install = await store.read(installId);
+  return install?.signedInAs ?? null;
+}
+
 /** How many transaction identifiers an account remembers. */
 const MAX_REDEEMED = 500;
 

@@ -281,11 +281,11 @@ export default function SettingsScreen() {
           {settings.premium && (
             <ListSection
               title="Expyr AI"
-              footer="Opening a document reads it, so you can ask about it straight away. Turn this off to decide each time">
+              footer="Reads a document when you open it">
               <ListRow
                 symbol="text.magnifyingglass"
                 tint="blue"
-                title="Read documents automatically"
+                title="Read automatically"
                 control={
                   <Switch
                     value={settings.autoRead}

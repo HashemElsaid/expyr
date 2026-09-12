@@ -274,11 +274,32 @@ function AppShell() {
        * it returns null rather than zero on any kind of failure, so a phone
        * that cannot reach the service goes on showing what it has.
        */
-      const authoritative = await serviceBalance();
-      if (authoritative !== null) credits = adoptBalance(credits, authoritative, new Date());
+      const standing = await serviceBalance();
+      if (standing.balance !== null) {
+        credits = adoptBalance(credits, standing.balance, new Date());
+      }
 
-      if (credits !== settings.credits || pro !== settings.premium) {
-        update({ credits, premium: pro });
+      /*
+       * And who this phone is signed in as, which it can also have forgotten.
+       *
+       * The install credential is in the Keychain and the settings are not, so
+       * deleting the app takes one and leaves the other. The reinstalled phone
+       * is still the same install to the service, still signed in, while its
+       * own copy of that is gone. The balance came back and Settings went on
+       * offering to sign in, on an account that already existed.
+       *
+       * Only ever adopted, never cleared. The service reporting no account for
+       * this install is not evidence that an account does not exist, and
+       * dropping one on a bad answer would strand the credits behind it.
+       */
+      const account = settings.account ?? standing.account;
+
+      if (
+        credits !== settings.credits ||
+        pro !== settings.premium ||
+        account !== settings.account
+      ) {
+        update({ credits, premium: pro, account });
       }
     })();
     // Deliberately not depending on settings: this runs once, at launch.

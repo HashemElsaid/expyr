@@ -22,15 +22,25 @@ const TIMEOUT_MS = 15_000;
  * that forgets is worse than no balance: adopting it would wipe the copy on
  * the phone, which at that moment is the only record left.
  */
-export async function serviceBalance(): Promise<number | null> {
+export type ServiceStanding = {
+  /** Null when the service would not stand behind a figure. See `usableBalance`. */
+  balance: number | null;
+  /** The account this install signed in to, or null if it never did. */
+  account: string | null;
+};
+
+export async function serviceBalance(): Promise<ServiceStanding> {
   try {
-    const reply = await postJson<{ balance?: unknown; enforced?: unknown }>(
+    const reply = await postJson<{ balance?: unknown; enforced?: unknown; account?: unknown }>(
       '/account/available',
       {},
       { timeoutMs: TIMEOUT_MS }
     );
-    return usableBalance(reply);
+    return {
+      balance: usableBalance(reply),
+      account: typeof reply.account === 'string' ? reply.account : null,
+    };
   } catch {
-    return null;
+    return { balance: null, account: null };
   }
 }

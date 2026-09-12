@@ -541,6 +541,14 @@ then the version bump, `expo export`, and the build.
     purchase claimable again, on purpose, and the screen must not promise
     that every purchase record is erased. App change, so it needs build 5.
 
+23. **The test reminder is hardcoded UAE.** Hashem, 12 September, on his
+    lock screen: "Emirates ID expires in 30 days" and "Netflix charges you
+    in 3 days" go to everyone, in every country. Fix: the test uses the
+    person's own soonest item and soonest subscription when they have any,
+    otherwise examples true everywhere, "Passport expires in 30 days" and
+    "A subscription renews in 3 days". No middot in the subtitle, and the
+    body becomes "This is what a reminder looks like." Build 6.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

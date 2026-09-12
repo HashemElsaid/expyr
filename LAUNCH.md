@@ -549,6 +549,14 @@ then the version bump, `expo export`, and the build.
     "A subscription renews in 3 days". No middot in the subtitle, and the
     body becomes "This is what a reminder looks like." Build 6.
 
+24. **A new icon**, 12 September, chosen by Hashem from three concepts:
+    the document inside the viewfinder corners, the same glyph as the scan
+    button, white on a green gradient with iOS red for the overdue line. It
+    replaces the paper-and-seal icon that belonged to the old design.
+    Applied on main as 5c098f5 across the icon, both splash marks, favicon,
+    Android assets and the website mark; splash backgrounds moved to the
+    iOS surfaces. Build 7 carries it.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

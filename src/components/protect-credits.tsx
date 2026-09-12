@@ -4,6 +4,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
+import { adoptBalance } from '@/domain/credits';
 import { useTheme } from '@/hooks/use-theme';
 import { successFeedback } from '@/lib/haptics';
 import { signIn } from '@/lib/identity';
@@ -37,7 +38,7 @@ export function ProtectCredits({
   onDone: () => void;
 }) {
   const theme = useTheme();
-  const { update } = useSettings();
+  const { settings, update } = useSettings();
   const [busy, setBusy] = useState(false);
 
   async function protect() {
@@ -46,7 +47,14 @@ export function ProtectCredits({
     setBusy(false);
 
     if (outcome.ok) {
-      update({ account: outcome.account });
+      /*
+       * Whatever the service says this account holds. On the phone this was
+       * bought on that is the balance already showing, so nothing moves.
+       */
+      update({
+        account: outcome.account,
+        credits: adoptBalance(settings.credits, outcome.balance, new Date()),
+      });
       successFeedback();
       onDone();
       return;

@@ -743,3 +743,37 @@ test('a claim holds no balance', async () => {
     assert.equal(await balanceOf(store, claimKey('2000000123456789')), 0);
   });
 });
+
+/*
+ * The whole point of the account, and the half of it that lives here.
+ *
+ * Somebody protects their credits, deletes the app or changes phone, installs
+ * Expyr again and signs in. The new install has nothing on it and has never
+ * been seen. Linking must hand back what the account holds, because that
+ * number is the only thing standing between them and a balance they paid for.
+ */
+test('a brand new install signing in is given what the account holds', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', '2000000123456789', 500);
+    await link(store, 'install-1', 'apple_abc');
+    await spend(store, await accountFor(store, 'install-1'), 20);
+    assert.equal(await availableTo(store, 'apple_abc'), 480);
+
+    // Deleted, reinstalled. A token the service has never seen.
+    assert.equal(await link(store, 'install-fresh', 'apple_abc'), 480, 'the credits did not follow');
+    assert.equal(await accountFor(store, 'install-fresh'), 'apple_abc');
+    assert.equal(await availableTo(store, await accountFor(store, 'install-fresh')), 480);
+  });
+});
+
+/** And the reinstall spends against the account, not against itself. */
+test('the reinstalled phone spends the account balance', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', '2000000123456789', 500);
+    await link(store, 'install-1', 'apple_abc');
+
+    await link(store, 'install-fresh', 'apple_abc');
+    assert.equal(await spend(store, await accountFor(store, 'install-fresh'), 100), 400);
+    assert.equal(await availableTo(store, 'apple_abc'), 400);
+  });
+});

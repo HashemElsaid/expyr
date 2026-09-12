@@ -151,6 +151,61 @@ export function topUp(
  * a retry cost only the pages it adds, which is also what the transcript cache
  * already does.
  */
+/**
+ * Takes the service's balance as the truth, which it is.
+ *
+ * There is one moment this is needed and it is the moment the account exists
+ * for: signing in on a phone that has just been set up. The credits are held
+ * against the account, the service hands back how many there are, and until
+ * something wrote them down this phone went on showing its own empty ledger.
+ * Somebody who protected their credits, changed phones and signed in was told
+ * they had none. The credits were never gone; nothing on the phone was
+ * listening.
+ *
+ * A movement rather than an overwrite, so it appears in the statement like
+ * everything else and "where did these come from" is answerable by scrolling.
+ * The delta is signed, so this corrects downwards too: a phone that spent
+ * while the service disagreed is brought into line with the service rather
+ * than the other way round.
+ *
+ * Idempotent by its nature. Once the two agree the delta is zero and there is
+ * nothing to record, so signing in again is free and adds no entry.
+ */
+export function adoptBalance(ledger: Ledger, balance: Credits, at: Date): Ledger {
+  const target = Math.max(0, Math.round(balance));
+  if (target === ledger.balance) return ledger;
+  return apply(
+    ledger,
+    makeEntry(
+      'topup',
+      'Credits on your account',
+      target - ledger.balance,
+      at,
+      `account:${at.toISOString()}`
+    )
+  );
+}
+
+/**
+ * Whether a balance the service reported can be believed.
+ *
+ * Two ways it cannot. `enforced` is the service saying its own store is not
+ * durable, which happens when the credits disk is missing: the number it holds
+ * is whatever survived the last restart, and adopting that would wipe the copy
+ * on the phone, which at that moment is the only record anybody has. And a
+ * reply that is not a number at all is a reply from something that is not the
+ * service.
+ *
+ * Null rather than zero, always. A balance that could not be established is
+ * not a balance of zero, and the difference between those two is somebody's
+ * money.
+ */
+export function usableBalance(reply: { balance?: unknown; enforced?: unknown }): Credits | null {
+  if (reply.enforced !== true) return null;
+  if (typeof reply.balance !== 'number' || !Number.isFinite(reply.balance)) return null;
+  return Math.max(0, Math.round(reply.balance));
+}
+
 export function chargeForPages(
   ledger: Ledger,
   pages: number,

@@ -6,6 +6,7 @@ import {
   CREDITS_PER_QUESTION,
   EMPTY_LEDGER,
   MAX_ENTRIES,
+  adoptBalance,
   apply,
   asMoney,
   canAfford,
@@ -17,6 +18,7 @@ import {
   priceOfPages,
   refund,
   topUp,
+  usableBalance,
   type Ledger,
 } from '@/domain/credits';
 
@@ -293,5 +295,89 @@ describe('the app and the service agree on what things cost', () => {
   it('would notice a disagreement', () => {
     expect(serverNumber('CREDITS_PER_PAGE')).not.toBe(CREDITS_PER_PAGE + 1);
     expect(serverNumber('NOTHING_LIKE_THIS')).toBeNull();
+  });
+});
+
+/*
+ * Signing in on a phone that has just been set up.
+ *
+ * Reported from a TestFlight retest: credits protected before a reinstall did
+ * not come back after signing in on the new install. The service had them and
+ * handed them over on the link; the phone dropped the number on the floor and
+ * went on showing its own empty ledger. Nothing was ever lost, and nothing was
+ * listening.
+ */
+describe('taking the balance the service reports', () => {
+  const AT = new Date('2026-09-12T10:00:00.000Z');
+
+  it('brings back credits held on the account', () => {
+    const adopted = adoptBalance(EMPTY_LEDGER, 480, AT);
+    expect(adopted.balance).toBe(480);
+    expect(adopted.entries).toHaveLength(1);
+    expect(adopted.entries[0].detail).toBe('Credits on your account');
+  });
+
+  /*
+   * The ordinary case: signing in on the phone the credits were bought on,
+   * where the two already agree. Nothing to correct and nothing to explain,
+   * so no entry.
+   */
+  it('does nothing when the phone already agrees', () => {
+    const bought = topUp(EMPTY_LEDGER, 500, '500 credits', AT, 'txn-a');
+    expect(adoptBalance(bought, 500, AT)).toBe(bought);
+  });
+
+  /** Signing in twice adds nothing the second time. */
+  it('is safe to repeat', () => {
+    const once = adoptBalance(EMPTY_LEDGER, 480, AT);
+    const twice = adoptBalance(once, 480, AT);
+    expect(twice.balance).toBe(480);
+    expect(twice.entries).toHaveLength(1);
+  });
+
+  /*
+   * The service is the authority in both directions. A phone showing more
+   * than the account holds is corrected down rather than trusted.
+   */
+  it('corrects downwards too, because the service is the one that counts', () => {
+    const optimistic = topUp(EMPTY_LEDGER, 500, '500 credits', AT, 'txn-a');
+    const adopted = adoptBalance(optimistic, 120, AT);
+    expect(adopted.balance).toBe(120);
+    expect(adopted.entries[0].delta).toBe(-380);
+  });
+
+  it('never goes negative on a nonsense figure', () => {
+    expect(adoptBalance(EMPTY_LEDGER, -50, AT).balance).toBe(0);
+  });
+});
+
+/*
+ * The guard on a balance from the service, which exists because adopting a
+ * bad one overwrites the only copy the phone has.
+ */
+describe('believing a balance the service reported', () => {
+  it('takes an enforced number', () => {
+    expect(usableBalance({ balance: 480, enforced: true })).toBe(480);
+    expect(usableBalance({ balance: 0, enforced: true })).toBe(0);
+  });
+
+  /*
+   * The service saying its own store is not durable. Whatever number it holds
+   * is whatever survived the last restart, and the phone's copy is worth more.
+   */
+  it('refuses a balance the service will not stand behind', () => {
+    expect(usableBalance({ balance: 0, enforced: false })).toBeNull();
+    expect(usableBalance({ balance: 480 })).toBeNull();
+  });
+
+  /** Not a number is not a balance, and neither is a zero invented from one. */
+  it('refuses anything that is not a number', () => {
+    expect(usableBalance({ enforced: true })).toBeNull();
+    expect(usableBalance({ balance: 'lots', enforced: true })).toBeNull();
+    expect(usableBalance({ balance: Number.NaN, enforced: true })).toBeNull();
+  });
+
+  it('never reports a negative balance', () => {
+    expect(usableBalance({ balance: -20, enforced: true })).toBe(0);
   });
 });

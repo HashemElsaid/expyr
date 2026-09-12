@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import type { SFSymbol } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -44,13 +45,13 @@ export default function AboutScreen() {
         )}
 
         <LinkRow
-          icon="cellphone-lock"
+          icon="lock.iphone"
           title="Your documents stay on this phone"
           subtitle="Read exactly what is stored, and what happens when you scan."
           onPress={() => router.push('/privacy')}
         />
         <LinkRow
-          icon="script-text-outline"
+          icon="doc.text"
           title="Terms of use"
           subtitle="What Expyr promises, and what it does not."
           onPress={() => router.push('/terms')}
@@ -60,13 +61,23 @@ export default function AboutScreen() {
   );
 }
 
+/**
+ * Typed against the symbol catalogue, like every other icon in the app.
+ *
+ * It used to take a `string` and cast it away at the call to `Icon`, which is
+ * the one thing that defeats the catalogue: a wrong name stops being a
+ * compile error and becomes nothing on the screen, because `Icon` falls back
+ * to drawing nothing rather than a box. Both names here were
+ * MaterialCommunityIcons left behind by the conversion, so this screen had
+ * two blank gaps where its icons belong, and nothing said so.
+ */
 function LinkRow({
   icon,
   title,
   subtitle,
   onPress,
 }: {
-  icon: string;
+  icon: SFSymbol;
   title: string;
   subtitle: string;
   onPress: () => void;
@@ -76,7 +87,7 @@ function LinkRow({
     <Pressable onPress={onPress} accessibilityRole="button">
       {({ pressed }) => (
         <View style={[styles.row, pressed && styles.dim]}>
-          <Icon name={icon as never} size={20} color={theme.textSecondary} />
+          <Icon name={icon} size={20} color={theme.textSecondary} />
           <View style={styles.rowBody}>
             <ThemedText type="headline">{title}</ThemedText>
             <ThemedText type="footnote" themeColor="textTertiary">

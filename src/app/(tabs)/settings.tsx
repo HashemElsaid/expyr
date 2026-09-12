@@ -21,7 +21,7 @@ import {
 import { countryLabel, type Country } from '@/data/countries';
 import { emirateLabel, type Emirate } from '@/data/regions';
 import { useDocuments } from '@/store/documents';
-import { EMPTY_LEDGER, formatCredits, topUp } from '@/domain/credits';
+import { EMPTY_LEDGER, adoptBalance, formatCredits, topUp } from '@/domain/credits';
 import { WELCOME_CREDITS, type ThemePreference, useSettings } from '@/store/settings';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -58,7 +58,16 @@ export default function SettingsScreen() {
   async function protectCredits() {
     const outcome = await signIn();
     if (outcome.ok) {
-      update({ account: outcome.account });
+      /*
+       * The service's balance, which is the one that counts. This is the route
+       * somebody takes on a new phone, so it is usually the whole point: the
+       * credits are on the account and this is what brings them onto the
+       * screen.
+       */
+      update({
+        account: outcome.account,
+        credits: adoptBalance(settings.credits, outcome.balance, new Date()),
+      });
       successFeedback();
       return;
     }
@@ -77,7 +86,7 @@ export default function SettingsScreen() {
     Alert.alert(
       'Delete your account?',
       balance > 0
-        ? `Your ${formatCredits(balance)} will be lost and cannot be restored. Your documents stay on this phone either way.`
+        ? `Your ${formatCredits(balance)} will be lost and cannot be restored, and restoring your purchases later will not bring them back. Your documents stay on this phone either way.`
         : 'Your documents stay on this phone either way.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -215,20 +224,43 @@ export default function SettingsScreen() {
             />
 
             {/*
-              * Only shown once there is something to protect or something to
-              * delete. Somebody who has never bought credits has no reason to
-              * be asked to sign in, and an app that asks anyway is an app that
-              * wanted an account for its own sake.
+              * Shown to anybody who has bought something, which is two people
+              * rather than one.
+              *
+              * The obvious one has credits on this phone and signing in is
+              * what keeps them. The other has just reinstalled: Pro came back
+              * off Apple's replay, the credits did not, and they are sitting
+              * on the account waiting to be claimed. This row is the only way
+              * to claim them.
+              *
+              * It used to require a balance above zero, which hid it from the
+              * second person entirely. Their credits were safe, the service
+              * would have handed them over, and the app offered no way to
+              * ask. That is the dead end item 20 rules out, and it was on the
+              * one path somebody had paid to be on.
+              *
+              * Still nothing for somebody who has never bought anything. An
+              * app that asks those people for an account is an app that
+              * wanted the account for its own sake.
               */}
-            {canProtect && settings.account === null && settings.credits.balance > 0 && (
-              <ListRow
-                symbol="person.badge.key"
-                tint="blue"
-                title="Protect my credits"
-                chevron={false}
-                onPress={protectCredits}
-              />
-            )}
+            {canProtect &&
+              settings.account === null &&
+              (settings.credits.balance > 0 || settings.premium) && (
+                <ListRow
+                  symbol="person.badge.key"
+                  tint="blue"
+                  title={
+                    settings.credits.balance > 0 ? 'Protect my credits' : 'Restore my credits'
+                  }
+                  subtitle={
+                    settings.credits.balance > 0
+                      ? undefined
+                      : 'Signs in with Apple and brings back credits held on your account'
+                  }
+                  chevron={false}
+                  onPress={protectCredits}
+                />
+              )}
 
             {settings.account !== null && (
               <ListRow

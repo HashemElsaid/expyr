@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { PrimaryButton } from '@/components/form';
+import { ProtectCredits } from '@/components/protect-credits';
 import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, formatCredits, topUp } from '@/domain/credits';
+import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, adoptBalance, formatCredits, topUp } from '@/domain/credits';
+import { wantsProtectOffer } from '@/domain/protect-offer';
 import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
 import { pagesIn, PACKS, priceOf, type Pack } from '@/lib/credit-packs';
@@ -43,6 +45,8 @@ export default function TopUpScreen() {
    * phone that cannot do it at all.
    */
   const [canProtect, setCanProtect] = useState(false);
+  /** Set once a pack has been granted, which turns this into its receipt. */
+  const [bought, setBought] = useState<string | null>(null);
 
   useEffect(() => {
     // Catching, like every other promise on this screen: an unhandled
@@ -57,7 +61,11 @@ export default function TopUpScreen() {
     setBusy(false);
 
     if (outcome.ok) {
-      update({ account: outcome.account });
+      // The service's balance, which is the one that counts.
+      update({
+        account: outcome.account,
+        credits: adoptBalance(settings.credits, outcome.balance, new Date()),
+      });
       successFeedback();
       return;
     }
@@ -108,7 +116,37 @@ export default function TopUpScreen() {
       credits: topUp(settings.credits, credits, `${credits.toLocaleString('en-US')} credits`, new Date(), transactionId),
     });
     successFeedback();
+
+    /*
+     * A pack is the purchase most worth protecting: it is the one somebody
+     * can buy over and over, and the one with the largest balance sitting
+     * against an install token that a reinstall would throw away.
+     */
+    if (
+      wantsProtectOffer({
+        canSignIn: canProtect,
+        hasAccount: settings.account !== null,
+        creditsGranted: credits,
+      })
+    ) {
+      setBought(`${credits.toLocaleString('en-US')} credits added`);
+      return;
+    }
     close();
+  }
+
+  /*
+   * Bought. The screen that was selling it now confirms it, rather than
+   * vanishing and leaving a purchase to be inferred from a changed number.
+   */
+  if (bought !== null) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <ProtectCredits heading={bought} onDone={close} />
+        </SafeAreaView>
+      </ThemedView>
+    );
   }
 
   /*
@@ -210,13 +248,19 @@ export default function TopUpScreen() {
             * sounds like admin somebody can skip. Credits are a consumable and
             * Apple keeps no record of one that has been used, so a new phone
             * takes them unless there is an account to follow.
+            *
+            * Short because a row is one line. It was the panel's whole
+            * sentence and it truncated mid-word on an iPhone 16 Pro, which is
+            * one of the wider phones, so it truncated on all of them. A row
+            * title is a label and the sentence belongs where there is room
+            * for it, which is the panel after the purchase.
             */}
           {canProtect && settings.account === null && (
             <ListSection>
               <ListRow
                 symbol="person.badge.key"
                 tint="blue"
-                title="Keep these credits if you change phone"
+                title="Keep credits on a new phone"
                 chevron={false}
                 onPress={protectCredits}
               />

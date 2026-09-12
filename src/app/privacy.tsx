@@ -40,7 +40,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: 'Signing in, and what that stores',
-    body: 'Expyr works without an account and most people never make one. It is offered in one place only: after you have bought credits for Expyr AI, so that those credits follow you to a new phone. If you sign in with Apple, we store two things, an anonymous identifier Apple gives us for you and how many credits you have left. We never ask Apple for your name or your email and we never receive them. Your documents are not part of this and are never sent to us. You can delete the account from Settings at any time, which erases the identifier and the balance immediately; any unspent credits are lost, and the app says so before you confirm.',
+    body: 'Expyr works without an account and most people never make one. It is offered in one place only: after you have bought credits for Expyr AI, so that those credits follow you to a new phone. If you sign in with Apple, we store an anonymous identifier Apple gives us for you and how many credits you have left. We never ask Apple for your name or your email and we never receive them. Your documents are not part of this and are never sent to us. You can delete the account from Settings at any time, which erases the identifier and the balance immediately; any unspent credits are lost, and the app says so before you confirm. Separately from any account, we keep a note of which purchases have already been paid out, so that one purchase cannot be paid for twice. That note is Apple\'s transaction number and nothing else, it is not linked to you, and it stays after an account is deleted.',
   },
   {
     title: 'Locking the app',

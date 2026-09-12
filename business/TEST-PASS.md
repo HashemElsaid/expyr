@@ -86,6 +86,12 @@ tappable, can I get back without losing anything.
 
 ## Part C. Not in Expo Go
 
+**Run 12 September on TestFlight 1.0.1 (4). Item 21 passed; item 22
+failed**: after a delete and reinstall with no Apple sign-in, Pro returned
+(correct) and the balance read 500 again rather than 0, so the Pro grant was
+issued twice for one transaction. With the coding session; server-side fix
+expected, retest on the same build.
+
 Purchases, restore and Sign in with Apple cannot run in Expo Go. They wait
 for the development build or the 1.0.1 build:
 

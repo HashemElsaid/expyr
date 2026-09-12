@@ -346,7 +346,7 @@ export default function SettingsScreen() {
                 title={testState === 'sent' ? 'Test reminder sent' : 'Send a test reminder'}
                 chevron={false}
                 onPress={async () => {
-                  const result = await sendTestReminder();
+                  const result = await sendTestReminder(documents);
                   setTestState(result === 'sent' ? 'sent' : 'idle');
                   if (result === 'denied') {
                     Alert.alert('Reminders are off', 'Allow notifications first.');

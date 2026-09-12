@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import type { Country } from '@/data/countries';
+import { testReminderExamples } from '@/domain/test-reminder';
 import {
   planReminders,
   REMINDER_CATEGORY,
@@ -249,17 +250,25 @@ export async function cancelAllReminders() {
  * anybody does — is offered the answer that actually helps, which is that it
  * has been cancelled. Both carry no document id, so pressing either button on a
  * test does nothing to anybody's file.
+ *
+ * What they say comes from `testReminderExamples`, which uses the person's own
+ * soonest item. It used to be an Emirates ID and Netflix for everybody, which
+ * is a fair guess in Dubai and a stranger's paperwork anywhere else.
  */
-export async function sendTestReminder(): Promise<'sent' | 'denied' | 'unsupported'> {
+export async function sendTestReminder(
+  documents: readonly TrackedDocument[] = []
+): Promise<'sent' | 'denied' | 'unsupported'> {
   if (Platform.OS === 'web') return 'unsupported';
   if (!(await ensureNotificationPermission())) return 'denied';
+
+  const example = testReminderExamples(documents);
 
   await Notifications.scheduleNotificationAsync({
     content: {
       // Shaped exactly like a real one, because that is the thing being tested.
-      title: 'Emirates ID expires in 30 days',
+      title: example.document,
       subtitle: 'Test reminder',
-      body: 'A real one carries the date, and what being late costs.',
+      body: 'This is what a reminder looks like.',
       categoryIdentifier: REMINDER_CATEGORY,
     },
     trigger: {
@@ -270,9 +279,11 @@ export async function sendTestReminder(): Promise<'sent' | 'denied' | 'unsupport
 
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Netflix charges you in 3 days',
-      subtitle: 'Test reminder · Subscription',
-      body: 'Standard · AED 39. Hold this one to see what it offers.',
+      title: example.subscription,
+      // The title already says which kind this is, and the rules have no
+      // middot in them.
+      subtitle: 'Test reminder',
+      body: 'This is what a reminder looks like.',
       categoryIdentifier: SUBSCRIPTION_CATEGORY,
     },
     trigger: {

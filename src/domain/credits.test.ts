@@ -18,6 +18,7 @@ import {
   priceOfPages,
   refund,
   topUp,
+  usableBalance,
   type Ledger,
 } from '@/domain/credits';
 
@@ -347,5 +348,36 @@ describe('taking the balance the service reports', () => {
 
   it('never goes negative on a nonsense figure', () => {
     expect(adoptBalance(EMPTY_LEDGER, -50, AT).balance).toBe(0);
+  });
+});
+
+/*
+ * The guard on a balance from the service, which exists because adopting a
+ * bad one overwrites the only copy the phone has.
+ */
+describe('believing a balance the service reported', () => {
+  it('takes an enforced number', () => {
+    expect(usableBalance({ balance: 480, enforced: true })).toBe(480);
+    expect(usableBalance({ balance: 0, enforced: true })).toBe(0);
+  });
+
+  /*
+   * The service saying its own store is not durable. Whatever number it holds
+   * is whatever survived the last restart, and the phone's copy is worth more.
+   */
+  it('refuses a balance the service will not stand behind', () => {
+    expect(usableBalance({ balance: 0, enforced: false })).toBeNull();
+    expect(usableBalance({ balance: 480 })).toBeNull();
+  });
+
+  /** Not a number is not a balance, and neither is a zero invented from one. */
+  it('refuses anything that is not a number', () => {
+    expect(usableBalance({ enforced: true })).toBeNull();
+    expect(usableBalance({ balance: 'lots', enforced: true })).toBeNull();
+    expect(usableBalance({ balance: Number.NaN, enforced: true })).toBeNull();
+  });
+
+  it('never reports a negative balance', () => {
+    expect(usableBalance({ balance: -20, enforced: true })).toBe(0);
   });
 });

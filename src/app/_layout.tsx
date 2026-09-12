@@ -19,8 +19,9 @@ import {
   ACTION_SNOOZE,
   registerNotificationActions,
 } from '@/lib/notifications';
-import { topUp } from '@/domain/credits';
+import { adoptBalance, topUp } from '@/domain/credits';
 import { redeemWithService } from '@/lib/redeem';
+import { serviceBalance } from '@/lib/balance';
 import { sweep } from '@/lib/store';
 import { DocumentsProvider, useDocuments } from '@/store/documents';
 import { SettingsProvider, useSettings } from '@/store/settings';
@@ -229,17 +230,16 @@ function AppShell() {
     purchasesChecked.current = true;
 
     (async () => {
+      /*
+       * Built from the settings this effect closed over, then written once at
+       * the end. Reading the store again between the two would be reading a
+       * value this update is about to replace.
+       */
+      let credits = settings.credits;
+      let pro = settings.premium;
+
       try {
         const recovered = await sweep(redeemWithService);
-        if (recovered.length === 0) return;
-
-        /*
-         * Built from the settings this effect closed over, then written once.
-         * Reading the store again between the two would be reading a value
-         * this update is about to replace.
-         */
-        let credits = settings.credits;
-        let pro = settings.premium;
         for (const item of recovered) {
           if (item.pro) pro = true;
           if (typeof item.credits === 'number') {
@@ -254,9 +254,31 @@ function AppShell() {
             );
           }
         }
-        update({ credits, premium: pro });
       } catch {
         // Left with Apple, which will offer it again. Nothing to say here.
+      }
+
+      /*
+       * And what the service says is actually spendable, which settles any
+       * disagreement in its favour.
+       *
+       * The service has always been the authority and the phone's ledger has
+       * always been a copy it shows without asking, but nothing ever compared
+       * the two. So a copy that drifted stayed drifted for ever, and the way
+       * it drifted was not hypothetical: somebody who protected their credits
+       * and reinstalled had them sitting on their account, correct, while
+       * this phone showed zero and offered no way to find out.
+       *
+       * Cheap and quiet. One request that costs nothing, no Apple sheet
+       * because the install credential resolves the account on its own, and
+       * it returns null rather than zero on any kind of failure, so a phone
+       * that cannot reach the service goes on showing what it has.
+       */
+      const authoritative = await serviceBalance();
+      if (authoritative !== null) credits = adoptBalance(credits, authoritative, new Date());
+
+      if (credits !== settings.credits || pro !== settings.premium) {
+        update({ credits, premium: pro });
       }
     })();
     // Deliberately not depending on settings: this runs once, at launch.

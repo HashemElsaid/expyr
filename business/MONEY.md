@@ -383,6 +383,50 @@ possible future, not a dependency.
 
 ---
 
+## A tracker-only tier, considered 12 September
+
+Hashem asked whether a cheaper tier with no Expyr AI, Free / Standard /
+Premium, would earn more than Free / Pro. The honest answer is that it
+depends on one number nobody has yet: how much of Pro's value people put on
+the AI.
+
+**The case for it.** Two audiences. In the UAE, Pro is "one payment, no fine",
+and AED 149 is priced against a fine. Everywhere else the app is a plain
+tracker with a subscription scanner, and $40 is a lot for that; the
+competition there charges $5 to $15 once or about $10 a year. A Standard tier
+at roughly a third of Pro would catch people who leave today. Three-tier
+lineups usually lift revenue when the bottom is deliberately thin and the
+top is anchored.
+
+**The case against, now.** Cannibalisation is the whole risk: if most Pro
+buyers would have been happy with Standard, revenue falls. The split only
+works if the AI gate is clean, meaning Standard cannot buy credit packs at
+all, because 500 credits is worth about AED 4 at pack prices and cannot
+carry a AED 100 gap on its own. And it is a second product, a third paywall
+column, more review screenshots and a code change, on the day 1.0.1 is
+about to build, with zero installs of data.
+
+**Arithmetic that shows why it is a guess.** A thousand installs. Pro alone
+at 1%: AED 1,490. Tiers, if Standard adds buyers without stealing: 2% at AED
+49 plus 0.6% at AED 149 is AED 1,874, a quarter more. Tiers, if it mostly
+steals: 1.5% at 49 plus 0.4% at 149 is AED 1,331, a tenth less. Which of
+those happens is decided by how many Pro buyers ever open Expyr AI, which
+is exactly what item 7's server counts measure.
+
+**Decision: ship 1.0.1 as Free / Pro. Revisit at week eight** with three
+numbers: where installs come from (UAE or not), paywall views to Pro, and
+the share of Pro buyers who ever read or ask. If Pro conversion is low and
+AI use among buyers is low, add Standard as a tracker-only non-consumable
+at about a third of Pro, packs locked to Pro, in 1.0.2. If AI use among
+buyers is high, do not, because the AI is what they are paying for.
+
+**The cheaper lever available today, no code:** Pro's price is set per
+storefront. If installs turn out to be mostly outside the Gulf, the price
+outside the Gulf can come down to the tracker market's level while the UAE
+stays at 149, in App Store Connect, with no review. Same revisit date.
+
+---
+
 ## Open, and blocking nothing yet
 
 - **The withholding rate Apple shows at tax-form submission.** Expected to be

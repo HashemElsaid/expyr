@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { labelForId } from '@/data/document-types';
+import { isSubscription } from '@/domain/documents';
 
 import { DEMO_COUNTRY, DEMO_OWN_NAME, demoHousehold, demoKey } from './demo-household';
 
@@ -31,28 +32,84 @@ describe('the household the screenshots are taken of', () => {
   });
 
   /*
-   * The red state is the one the app exists for. A screenshot without it is a
-   * screenshot of a to-do list nobody has used.
+   * All four Timeline cards have to show a number, or the first screenshot is
+   * of an app with nothing going on. Overdue, Next 30 days, All, and the count
+   * of people in the household.
    */
-  it('has exactly one thing overdue', () => {
+  it('lights all four Timeline cards', () => {
+    const overdue = household.filter((item) => daysOut(item.expiryDate) < 0);
+    const soon = household.filter((item) => {
+      const days = daysOut(item.expiryDate);
+      return days >= 0 && days <= 30;
+    });
+    const people = new Set(household.map((item) => item.owner));
+
+    expect(overdue.length).toBeGreaterThan(0);
+    expect(soon.length).toBeGreaterThan(0);
+    expect(household.length).toBeGreaterThan(0);
+    expect(people.size).toBe(2);
+  });
+
+  /*
+   * The red state is the one the app exists for, and exactly one of them,
+   * because a screenshot of five lapsed documents sells carelessness rather
+   * than the app.
+   */
+  it('has exactly one thing overdue, and it is the registration', () => {
     const overdue = household.filter((item) => daysOut(item.expiryDate) < 0);
     expect(overdue).toHaveLength(1);
-    expect(overdue[0].title).toBe('Subaru Outback registration');
+    expect(overdue[0].title).toBe('Mercedes S-Class registration');
   });
 
-  it('has five subscriptions, not all renewing in the same month', () => {
-    const subscriptions = household.filter((item) => item.renewsEvery);
-    expect(subscriptions).toHaveLength(5);
-    expect(Math.max(...subscriptions.map((item) => daysOut(item.expiryDate)))).toBeGreaterThan(60);
+  it('has something inside the week', () => {
+    const thisWeek = household.filter((item) => {
+      const days = daysOut(item.expiryDate);
+      return days >= 0 && days <= 7;
+    });
+    expect(thisWeek.length).toBeGreaterThan(0);
   });
 
-  it('has eight documents that are not subscriptions', () => {
-    expect(household.filter((item) => !item.renewsEvery)).toHaveLength(8);
+  /*
+   * Global Entry is the trap. `isSubscription` counts anything of type
+   * membership as one whatever its dates say, so filing it under membership
+   * would have put a five-yearly document on the subscriptions screen between
+   * Netflix and the electricity bill.
+   */
+  it('keeps Global Entry out of the subscriptions', () => {
+    const globalEntry = household.find((item) => item.title === 'Global Entry membership');
+    expect(globalEntry).toBeDefined();
+    expect(isSubscription(globalEntry!)).toBe(false);
   });
 
-  it('is two people, one of them the owner of the phone', () => {
-    const owners = new Set(household.map((item) => item.owner));
-    expect(owners).toEqual(new Set([DEMO_OWN_NAME, 'Sarah']));
+  it('has the six subscriptions and the four bills, all recurring', () => {
+    const memberships = household.filter((item) => item.typeId === 'membership');
+    const bills = household.filter((item) => item.typeId === 'bill');
+    expect(memberships).toHaveLength(6);
+    expect(bills).toHaveLength(4);
+    for (const item of [...memberships, ...bills]) {
+      expect(item.renewsEvery, item.title).toBeTruthy();
+    }
+  });
+
+  /** Every price is in dollars, because they live in Denver. */
+  it('prices everything in USD', () => {
+    for (const item of household) {
+      for (const field of item.fields ?? []) {
+        if (field.kind !== 'money') continue;
+        expect(field.value, `${item.title}: ${field.value}`).toMatch(/USD/);
+      }
+    }
+  });
+
+  /*
+   * The rule is that a title says what the thing is. Whose it is lives in its
+   * own field and is shown beside the title, so a name in a title is the same
+   * fact twice.
+   */
+  it('never puts a person in a title', () => {
+    for (const item of household) {
+      expect(item.title, item.title).not.toMatch(/Michael|Sarah|Bennett/);
+    }
   });
 
   /*
@@ -62,18 +119,21 @@ describe('the household the screenshots are taken of', () => {
    */
   it('renders nothing from the UAE, under the country the seed sets', () => {
     const onScreen = household
-      .map((item) => `${item.title} ${labelForId(item.typeId, DEMO_COUNTRY)} ${JSON.stringify(item.fields ?? [])}`)
+      .map(
+        (item) =>
+          `${item.title} ${labelForId(item.typeId, DEMO_COUNTRY)} ${JSON.stringify(item.fields ?? [])}`
+      )
       .join(' ');
     expect(onScreen).not.toMatch(/Emirates|Ejari|AED|Dubai|Abu Dhabi/i);
   });
 
   /*
    * The one that is easy to get wrong. Labels are chosen by country, and with
-   * none set labelFor falls back to the UAE wording, so the Denver lease would
+   * none set labelFor falls back to the UAE wording, so the villa would
    * photograph as "Tenancy Contract (Ejari)". The seed sets the country for
    * exactly this reason, and this is the assertion that says so.
    */
-  it('shows the lease as a tenancy contract, not as an Ejari', () => {
+  it('shows the villa as a tenancy contract, not as an Ejari', () => {
     expect(labelForId('tenancy-ejari', DEMO_COUNTRY)).toBe('Tenancy Contract');
     expect(labelForId('tenancy-ejari', null)).toBe('Tenancy Contract (Ejari)');
   });

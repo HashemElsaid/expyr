@@ -115,6 +115,19 @@ the balance should arrive on its own at 1,500 (force quit and reopen once if
 should show no sign-in row, since the account is attached; if it shows
 "Restore my credits", tapping it should also bring 1,500 back.
 
+**Build 5 result, 12 September afternoon: Part C passes.** The balance
+arrived on its own at 1,980, which decomposes only one way: the 1,500 pack
+plus the first Pro grant net of the one question asked (500 minus 20). A
+duplicate grant would have shown 2,000, both pre-fix grants 2,480. Two server
+tests replay the week and reach 1,980 with the Pro replay refused. Found on
+the way and fixed in bd85b2e: linking an account was rewriting its record and
+erasing the fields that stop money being paid twice, masked until now.
+Settings still offered Protect my credits because the install credential
+lives in the Keychain and survives deletion while the phone's own note of
+the account does not; the service now reports the account at launch and the
+phone adopts it (ab04b74, build 6). Also in build 6: the toggle reads "Read
+automatically" with a one-clause footnote.
+
 Purchases, restore and Sign in with Apple cannot run in Expo Go. They wait
 for the development build or the 1.0.1 build:
 

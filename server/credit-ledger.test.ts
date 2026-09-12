@@ -12,6 +12,7 @@ import {
   MemoryCreditStore,
   accountFor,
   alreadyRedeemed,
+  claimKey,
   availableTo,
   balanceOf,
   debit,
@@ -568,5 +569,177 @@ test('one install spending does not touch another', async () => {
     await redeem(store, 'install-1', 'txn_1', 500);
     await spend(store, 'install-1', 200);
     assert.equal(await availableTo(store, 'install-2'), WELCOME_CREDITS);
+  });
+});
+
+/*
+ * =========================================================================
+ * A purchase is paid for once, and the buyer is not the thing that
+ * identifies it.
+ *
+ * Found on TestFlight 1.0.1 (4): clean install, bought Pro, 500 credits,
+ * spent 20 of them. Deleted the app, reinstalled, opened it. Apple replayed
+ * the entitlement, as a non-consumable always will, and the service paid the
+ * 500 again — because the list of redeemed transactions lived on the account,
+ * an account with no sign-in *is* the install token, and the reinstall issued
+ * a new one. Every reinstall was another 500 credits, about fifty cents of
+ * model time, with nothing to stop it repeating.
+ * =========================================================================
+ */
+
+test('the same purchase on a new install is not paid a second time', async () => {
+  await onDisk(async (store) => {
+    // Bought, on a phone that never signed in.
+    const first = await redeem(store, 'install-1', '2000000123456789', 500);
+    assert.equal(first.granted, true);
+    assert.equal(first.balance, 500);
+
+    // Deleted and reinstalled. New token, no history, same Apple purchase.
+    const second = await redeem(store, 'install-2', '2000000123456789', 500);
+    assert.equal(second.granted, false, 'paid twice for one purchase');
+    assert.equal(second.balance, 0);
+    assert.equal(await balanceOf(store, 'install-2'), 0);
+  });
+});
+
+test('and not on the fifth reinstall either', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', '2000000123456789', 500);
+    for (const install of ['install-2', 'install-3', 'install-4', 'install-5']) {
+      const outcome = await redeem(store, install, '2000000123456789', 500);
+      assert.equal(outcome.granted, false, `${install} was paid`);
+      assert.equal(await balanceOf(store, install), 0);
+    }
+  });
+});
+
+/*
+ * The ordinary replay, which is the case the old code did get right and which
+ * has to keep working: iOS hands back an unfinished transaction on every
+ * launch until it is finished, so the same purchase arrives here repeatedly
+ * on the same install in the normal course of things.
+ */
+test('the same purchase on the same install is still paid exactly once', async () => {
+  await onDisk(async (store) => {
+    assert.equal((await redeem(store, 'install-1', 'txn-a', 500)).balance, 500);
+    assert.equal((await redeem(store, 'install-1', 'txn-a', 500)).balance, 500);
+    assert.equal((await redeem(store, 'install-1', 'txn-a', 500)).granted, false);
+    assert.equal(await balanceOf(store, 'install-1'), 500);
+  });
+});
+
+/** Different purchases are different, which is what makes credit packs work. */
+test('two real purchases are both paid', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', 'txn-a', 1500);
+    await redeem(store, 'install-1', 'txn-b', 3000);
+    assert.equal(await balanceOf(store, 'install-1'), 4500);
+  });
+});
+
+/*
+ * The credits are written first and the claim second, so the window between
+ * them leaves credits with no claim. The account's own record of the
+ * transaction is what closes it: it went down in the same write as the
+ * balance, so the retry that matters still refuses.
+ *
+ * Written as the state a crash actually leaves, rather than by crashing.
+ */
+test('a crash before the claim is staked still does not pay twice', async () => {
+  await onDisk(async (store) => {
+    await store.write({
+      id: 'install-1',
+      balance: 500,
+      seenAt: 0,
+      redeemed: ['2000000123456789'],
+    });
+
+    const retry = await redeem(store, 'install-1', '2000000123456789', 500);
+    assert.equal(retry.granted, false);
+    assert.equal(await balanceOf(store, 'install-1'), 500);
+  });
+});
+
+/*
+ * And the direction the window falls in, which is the reason for the order.
+ * A claim staked first would have meant a crash could take 500 credits from
+ * somebody who had paid for them, with nothing left that could work out they
+ * were owed. This way the worst case costs us, not them.
+ */
+test('a claim on its own is never a buyer left unpaid', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', '2000000123456789', 500);
+    assert.equal(await balanceOf(store, 'install-1'), 500, 'paid before anything could fail');
+  });
+});
+
+/*
+ * Deleting the account gives up the balance, and says so before anybody taps
+ * it. What it must not give up is the record that a purchase was paid, or
+ * deleting the account becomes the way to be paid for it again — the same
+ * hole the reinstall was.
+ */
+test('deleting the account does not make the purchase claimable again', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'apple_abc', '2000000123456789', 500);
+    await forget(store, 'apple_abc');
+    assert.equal(await balanceOf(store, 'apple_abc'), 0, 'the balance should be gone');
+
+    const again = await redeem(store, 'apple_abc', '2000000123456789', 500);
+    assert.equal(again.granted, false);
+    assert.equal(await balanceOf(store, 'apple_abc'), 0);
+  });
+});
+
+/*
+ * Buying before signing in, then signing in. `link` moves the balance, so the
+ * credits follow the person; the replay that arrives afterwards under their
+ * new account must not add a second 500 on top.
+ */
+test('signing in after buying moves the credits without minting more', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', '2000000123456789', 500);
+    assert.equal(await link(store, 'install-1', 'apple_abc'), 500);
+
+    const replay = await redeem(store, 'apple_abc', '2000000123456789', 500);
+    assert.equal(replay.granted, false, 'signing in paid the purchase again');
+    assert.equal(await balanceOf(store, 'apple_abc'), 500);
+    // The phone spends as the account it signed in to, which is where they went.
+    assert.equal(await accountFor(store, 'install-1'), 'apple_abc');
+    assert.equal(await availableTo(store, await accountFor(store, 'install-1')), 500);
+  });
+});
+
+test('a purchase paid to anybody reads as already redeemed', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', '2000000123456789', 500);
+    assert.equal(await alreadyRedeemed(store, 'install-1', '2000000123456789'), true);
+    assert.equal(await alreadyRedeemed(store, 'install-2', '2000000123456789'), true);
+    assert.equal(await alreadyRedeemed(store, 'install-2', 'some-other-txn'), false);
+  });
+});
+
+/*
+ * The claim key ends up in a filename, and the id it is built from comes from
+ * outside. `pathFor` strips anything it does not like, so two ids that differ
+ * only in punctuation must not arrive at the same file, and the namespace has
+ * to survive that stripping — a colon would not have.
+ */
+test('the claim key is namespaced, sanitised and bounded', async () => {
+  assert.equal(claimKey('2000000123456789'), 'txn_2000000123456789');
+  assert.equal(claimKey('../../etc/passwd'), 'txn_etcpasswd');
+  assert.throws(() => claimKey(''), /Unusable transaction id/);
+  assert.throws(() => claimKey('/'), /Unusable transaction id/);
+  assert.throws(() => claimKey('9'.repeat(65)), /Unusable transaction id/);
+});
+
+/*
+ * A claim record is not an account and must never be spendable as one, which
+ * matters because it is written into the same store under a key of its own.
+ */
+test('a claim holds no balance', async () => {
+  await onDisk(async (store) => {
+    await redeem(store, 'install-1', '2000000123456789', 500);
+    assert.equal(await balanceOf(store, claimKey('2000000123456789')), 0);
   });
 });

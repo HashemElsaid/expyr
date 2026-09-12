@@ -56,6 +56,14 @@ export type Account = {
    */
   redeemed?: string[];
   /**
+   * On a claim record only: the account a purchase was paid to.
+   *
+   * Claim records are not accounts. They are the answer to "has this purchase
+   * ever been paid, to anybody", which an account cannot answer about a
+   * purchase that went to a different account. See `claimKey`.
+   */
+  claimedBy?: string;
+  /**
    * Whether this account has had its opening balance.
    *
    * Its own field rather than inferred from the balance, because a balance of
@@ -150,6 +158,9 @@ export class FileCreditStore implements CreditStore {
         ...(Array.isArray(parsed.redeemed)
           ? { redeemed: parsed.redeemed.filter((t): t is string => typeof t === 'string') }
           : {}),
+        // And this, or every purchase becomes claimable again after a deploy,
+        // which is the whole point of writing it down.
+        ...(typeof parsed.claimedBy === 'string' ? { claimedBy: parsed.claimedBy } : {}),
         // And this, or the free thirty pages arrive again at every deploy.
         ...(parsed.welcomed === true ? { welcomed: true } : {}),
       };
@@ -336,16 +347,65 @@ export async function accountFor(store: CreditStore, installId: string): Promise
 const MAX_REDEEMED = 500;
 
 /**
- * Credits a verified purchase, once.
+ * Where the record of a paid purchase lives, independent of who was paid.
+ *
+ * A record of its own rather than a field on the account, because the account
+ * is the thing that disappears. Delete the app and the install token goes with
+ * it; the next install is a stranger with an empty history, and a purchase
+ * remembered only there is a purchase that can be sold back to us every time.
+ * That was worth 500 credits a reinstall, for ever.
+ *
+ * The prefix cannot collide with a real account id. Install ids are hex from
+ * an HMAC and `t`, `x` and `n` are not hex digits; signed-in ids are
+ * `apple_` and the subject Apple gives us. Underscores survive the filename
+ * sanitiser, so the namespace survives the round trip to disk, which a colon
+ * would not have: `pathFor` strips it, and `txn:1` and `txn1` would have
+ * become the same file.
+ *
+ * Digits only, and bounded. This ends up in a filename and it arrives from
+ * Apple, so it is checked rather than trusted.
+ */
+export function claimKey(transactionId: string): string {
+  const safe = transactionId.replace(/[^A-Za-z0-9]/g, '');
+  if (safe.length === 0 || safe.length > 64) throw new Error('Unusable transaction id.');
+  return `txn_${safe}`;
+}
+
+/**
+ * Credits a verified purchase, once, to one account, for ever.
  *
  * Everything about whether the purchase is real happens before this: Apple is
  * asked, the bundle is checked, a refund is refused. This is only the last
  * step, and its whole job is that asking twice pays once.
  *
- * The transaction is recorded in the same write as the balance, so there is no
- * moment where the credits exist and the record of having granted them does
- * not. A store with transactions would guarantee that; this one gets it by
- * writing a single object.
+ * Twice used to mean twice on the same account. It was not enough. The list of
+ * redeemed transactions lived on the account, an account without a sign-in is
+ * the install token, and a reinstall issues a new one — so deleting the app
+ * and reinstalling it presented the same Apple purchase to a service with no
+ * memory of it, and Apple replays a non-consumable on every launch for ever.
+ * Buy Pro once, reinstall, and the 500 credits arrived again. There was no
+ * limit on how many times.
+ *
+ * So the record of a paid purchase is now its own object, keyed on the
+ * purchase rather than on the buyer, and it outlives every install token and
+ * the account itself.
+ *
+ * The credits are written before the claim, and that order is deliberate.
+ * There is no transaction across two records here, so one of the two windows
+ * has to be chosen, and they are not equally bad.
+ *
+ * Claim first: a crash in the window leaves a claim with no credits behind it,
+ * and every retry from then on reads the claim and refuses. Somebody who paid
+ * is never paid, and nothing in the system can work out that they should be.
+ *
+ * Credits first: a crash leaves credits with a claim missing. The account
+ * itself records the transaction in the same write as the balance, so the
+ * ordinary retry still refuses, and the only way to be paid twice is to crash
+ * inside a window between two local writes and then reinstall the app. Rare,
+ * and it errs towards the person who paid us.
+ *
+ * That is why the claim is checked but never compared against the account
+ * asking. A claim that exists means paid, whoever holds it.
  */
 export async function redeem(
   store: CreditStore,
@@ -359,7 +419,20 @@ export async function redeem(
   const existing = await store.read(accountId);
   const already = existing?.redeemed ?? [];
 
+  // Paid, to this account. The ordinary case: iOS offering the same unfinished
+  // transaction again on the next launch.
   if (already.includes(transactionId)) {
+    return { balance: existing?.balance ?? 0, granted: false };
+  }
+
+  /*
+   * Paid, to somebody. Usually the same person on a fresh install, sometimes
+   * the same person after deleting their account, and there is no way to tell
+   * either from a stranger holding the same receipt. It has been paid, so it
+   * is not paid again, and who holds the claim does not change that.
+   */
+  const key = claimKey(transactionId);
+  if ((await store.read(key)) !== null) {
     return { balance: existing?.balance ?? 0, granted: false };
   }
 
@@ -373,18 +446,20 @@ export async function redeem(
     seenAt: now,
     redeemed: [transactionId, ...already].slice(0, MAX_REDEEMED),
   });
+  await store.write({ id: key, balance: 0, seenAt: now, claimedBy: accountId });
 
   return { balance, granted: true };
 }
 
-/** Whether this account has already been paid for a given transaction. */
+/** Whether this purchase has already been paid, to this account or any other. */
 export async function alreadyRedeemed(
   store: CreditStore,
   accountId: string,
   transactionId: string
 ): Promise<boolean> {
   const account = await store.read(accountId);
-  return (account?.redeemed ?? []).includes(transactionId);
+  if ((account?.redeemed ?? []).includes(transactionId)) return true;
+  return (await store.read(claimKey(transactionId))) !== null;
 }
 
 /**
@@ -398,6 +473,12 @@ export async function alreadyRedeemed(
  * anybody taps it. There is no honest alternative. Apple handles refunds, not
  * us, and a balance kept "just in case" after somebody asked to be deleted is
  * exactly the data they asked us not to have.
+ *
+ * One thing deliberately stays: that a purchase was paid for. Those records
+ * are keyed on Apple's transaction identifier and hold nothing else — no
+ * balance, no history, no identity of ours — and releasing them would make
+ * deleting the account the way to be paid for the same purchase twice, which
+ * is the same hole a reinstall used to be.
  *
  * The installs pointing at it are unlinked in the same pass. Without that, the
  * phone keeps resolving to a key that no longer exists and reads as a balance

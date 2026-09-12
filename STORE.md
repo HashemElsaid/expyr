@@ -214,6 +214,31 @@ it.
 merely defensible. Raised with the coding session. Until it exists, do not
 strengthen this language.
 
+## What's New in 1.0.1 (4,000 characters max)
+
+Written 12 September, for build 4. Says what a person will notice, in the
+order they will notice it. The free-plan change is stated in the description,
+not here, since What's New is read by people who already have the app and
+Apple does not ask for it.
+
+```
+A new look, in your iPhone's own font and Apple's own shapes, so Expyr feels like it belongs on your phone.
+
+Scanning is more reliable. A passport reads as a passport, and when a scan is not sure what it is looking at, it asks you before saving.
+
+One photo with several documents in it becomes a review list. Keep what you want, fix what you need.
+
+Every scanned field can be corrected with a tap.
+
+A screenshot of your subscriptions list imports in one go, with what the year costs.
+
+Documents you add are read by Expyr AI on their own, ready to ask about. Expyr Pro now includes 500 Expyr AI credits.
+
+Also: a Bill category, Back buttons that keep your work, and renewal fees checked against the official figures.
+```
+
+---
+
 ## Keywords (100 characters, comma separated, no spaces)
 
 ```

@@ -99,6 +99,11 @@ expect Pro on and 0 credits. A reinstall without Protect my credits loses the
 balance permanently, so the app must point at protection at the moment of
 purchase; see LAUNCH.md item 22.
 
+**Retest 12 September after b5c2a88**: step 1 passes (Pro on, 0 credits after
+reinstall), step 2 passes (pack lands). **Step 3 fails**: with Protect my
+credits on and 1,500 in the balance, delete, reinstall, sign in again: Pro on,
+0 credits, and the balance never returns. Blocking. With the coding session.
+
 Purchases, restore and Sign in with Apple cannot run in Expo Go. They wait
 for the development build or the 1.0.1 build:
 

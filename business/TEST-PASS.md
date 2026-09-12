@@ -102,7 +102,18 @@ purchase; see LAUNCH.md item 22.
 **Retest 12 September after b5c2a88**: step 1 passes (Pro on, 0 credits after
 reinstall), step 2 passes (pack lands). **Step 3 fails**: with Protect my
 credits on and 1,500 in the balance, delete, reinstall, sign in again: Pro on,
-0 credits, and the balance never returns. Blocking. With the coding session.
+0 credits, and the balance never returns. Blocking. Cause, found 12
+September: the server was right all along; build 4's sign-in wrote the account
+and threw away the balance the service handed back, and once signed in the
+row that could have retried was hidden. Fixed in 9cf5a35 and 1730b67: the
+phone now asks the service for the balance at every launch and adopts its
+answer. App-side, so **build 5**, together with item 22 and the truncation.
+
+**Retest on build 5:** install over the top without deleting; open; Pro on and
+the balance should arrive on its own at 1,500 (force quit and reopen once if
+0 on the very first launch). Then delete, reinstall, open: same. Settings
+should show no sign-in row, since the account is attached; if it shows
+"Restore my credits", tapping it should also bring 1,500 back.
 
 Purchases, restore and Sign in with Apple cannot run in Expo Go. They wait
 for the development build or the 1.0.1 build:

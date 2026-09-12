@@ -23,8 +23,8 @@ SEEING THE APP QUICKLY
    camera.
 3. To test scanning, use the sample image attached here, or photograph any card
    with a printed date. Values are shown for confirmation before saving.
-4. Open the item for the countdown, renewal steps, cost and late fine. The Ask
-   tab answers questions about it. Settings has "Send a test reminder".
+4. Open the item for the countdown, renewal steps, cost and late fine. The Expyr
+   AI tab answers questions about it, with Pro. Settings has "Send a test reminder".
 
 USE OF AI, STATED PLAINLY
 

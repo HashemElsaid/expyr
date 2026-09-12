@@ -88,8 +88,39 @@ export default function SettingsScreen() {
    * replans every reminder, so firing thirteen at once races them into a list
    * with some of them missing.
    */
+  /**
+   * Replaces everything with the demo household, after one confirmation.
+   *
+   * Replaces rather than adds, which is the opposite of what it did. Adding
+   * looked right until the screenshots came back: a real overdue passport sat
+   * above the Bennetts, the counts read 27, and the one overdue item the set
+   * is arranged around was not the one showing. A screenshot session wants
+   * exactly the demo and nothing else.
+   *
+   * Asked first, because this deletes real documents, and a developer's own
+   * data is still somebody's data. The only destructive thing in the group,
+   * and the only one that asks.
+   */
+  function confirmSeedDemoData() {
+    Alert.alert(
+      'Replace everything with the demo household?',
+      documents.length > 0
+        ? `The ${documents.length} ${documents.length === 1 ? 'item' : 'items'} on this phone will be deleted.`
+        : 'Nothing is here yet, so nothing is lost.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Replace', style: 'destructive', onPress: () => void seedDemoData() },
+      ]
+    );
+  }
+
   async function seedDemoData() {
-    const already = new Set(documents.map(demoKey));
+    /*
+     * Everything first, so what is left is exactly the demo. This is also what
+     * makes the seed idempotent now, and more bluntly than the key matching it
+     * replaced: tapping twice deletes and rebuilds rather than deduplicating.
+     */
+    await deleteEverything();
     /*
      * The country as well as the name, and it is not decoration. Labels and
      * guidance are chosen by it: with no country set, labelFor falls back to
@@ -98,8 +129,9 @@ export default function SettingsScreen() {
      * photographing it under Dubai labels would defeat the whole point.
      */
     update({ ownName: DEMO_OWN_NAME, country: DEMO_COUNTRY });
+    // Sequential: each add rewrites the list and replans every reminder, so
+    // firing twenty at once races them into a list missing some of them.
     for (const draft of demoHousehold()) {
-      if (already.has(demoKey(draft))) continue;
       await addDocument(draft);
     }
     successFeedback();
@@ -146,7 +178,14 @@ export default function SettingsScreen() {
       ]
     );
   }
-  const { documents, reminders, rescheduleAll, addDocument, removeDocument } = useDocuments();
+  const {
+    documents,
+    reminders,
+    rescheduleAll,
+    addDocument,
+    removeDocument,
+    deleteEverything,
+  } = useDocuments();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
   const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
   const [testState, setTestState] = useState<'idle' | 'sent'>('idle');
@@ -166,13 +205,18 @@ export default function SettingsScreen() {
    * subtitle, ending in a full stop, explaining the platform's limits to
    * somebody who only wanted to know whether reminders were on.
    *
-   * "25 of 40 scheduled" is the same fact. The group's footer explains it once,
-   * and only in the case where it is true.
+   * "25 of 40" is the same fact. The group's footer says what the number is,
+   * once, rather than every row repeating it.
+   *
+   * Figures only, because a row has one line for its title and the value takes
+   * the width first: "64 of 93 scheduled" left "Notifications al..." beside it.
+   * A value is a value on iOS and the word belongs in the footer, which had
+   * room for it and was empty half the time anyway.
    */
   const shortOfCover = reminders.wanted > reminders.booked;
   const scheduled = shortOfCover
-    ? `${bookedWithIOS} of ${reminders.wanted} scheduled`
-    : `${bookedWithIOS} scheduled`;
+    ? `${bookedWithIOS} of ${reminders.wanted}`
+    : String(bookedWithIOS);
 
   useEffect(() => {
     checkBiometricSupport().then(setBiometrics).catch(() => {});
@@ -363,8 +407,10 @@ export default function SettingsScreen() {
                 : testState === 'sent'
                   ? 'Two sent, a few seconds apart. Lock your phone to see them properly'
                   : shortOfCover
-                    ? 'iOS holds a limited number at a time, so the furthest are booked as the nearer ones arrive'
-                    : undefined
+                    ? 'Reminders scheduled with iOS, which holds a limited number at a time, so the furthest are booked as the nearer ones arrive'
+                    : notificationsOn
+                      ? 'Reminders scheduled with iOS'
+                      : undefined
             }>
             <ListRow
               symbol={notificationsOn ? 'bell.badge.fill' : 'bell.slash.fill'}
@@ -510,11 +556,10 @@ export default function SettingsScreen() {
                 symbol="person.2.fill"
                 tint="indigo"
                 title="Seed demo data"
-                subtitle="The Bennett household, for screenshots"
+                subtitle="Replaces everything with the Bennett household"
                 chevron={false}
-                onPress={() => {
-                  void seedDemoData();
-                }}
+                destructive
+                onPress={confirmSeedDemoData}
               />
               <ListRow
                 symbol="trash"

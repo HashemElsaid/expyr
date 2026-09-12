@@ -70,11 +70,18 @@ export function countdownShort(days: number): string {
   return `${Math.round(days / 365)} years`;
 }
 
-/** The detail screen's headline answer to "should I worry?". */
+/**
+ * The detail screen's headline answer to "should I worry?".
+ *
+ * No full stop. It is a Large Title, and a Large Title with a stop on the end
+ * is the sentence-headline pattern item 17 took out of every other screen:
+ * iOS does not punctuate a title, and "4 months." reads as a fragment of
+ * something longer that got cut off.
+ */
 export function verdictPhrase(days: number): string {
-  if (days < 0) return `${-days} ${-days === 1 ? 'day' : 'days'} late.`;
-  if (days === 0) return 'Today.';
-  return `${countdownShort(days)}.`;
+  if (days < 0) return `${-days} ${-days === 1 ? 'day' : 'days'} late`;
+  if (days === 0) return 'Today';
+  return countdownShort(days);
 }
 
 /** Spelled out up to ten — reads better in a headline. */

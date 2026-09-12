@@ -99,10 +99,11 @@ describe('countdownShort', () => {
 
 describe('verdictPhrase', () => {
   it('reads as a sentence in all three directions', () => {
-    expect(verdictPhrase(-1)).toBe('1 day late.');
-    expect(verdictPhrase(-9)).toBe('9 days late.');
-    expect(verdictPhrase(0)).toBe('Today.');
-    expect(verdictPhrase(11)).toBe('11 days.');
+    // No full stop: it is a Large Title, and iOS does not punctuate one.
+    expect(verdictPhrase(-1)).toBe('1 day late');
+    expect(verdictPhrase(-9)).toBe('9 days late');
+    expect(verdictPhrase(0)).toBe('Today');
+    expect(verdictPhrase(11)).toBe('11 days');
   });
 });
 

@@ -128,6 +128,11 @@ the account does not; the service now reports the account at launch and the
 phone adopts it (ab04b74, build 6). Also in build 6: the toggle reads "Read
 automatically" with a one-clause footnote.
 
+**Build 6, 12 September evening: Part C closed.** Settings on the real
+install shows no Protect my credits row, a Delete my account row in its
+place, and 1,960 credits, which is the 1,980 less one question asked
+through the lease. Build 6 is from df1902e and is the submission build.
+
 Purchases, restore and Sign in with Apple cannot run in Expo Go. They wait
 for the development build or the 1.0.1 build:
 

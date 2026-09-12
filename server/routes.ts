@@ -402,6 +402,7 @@ export const ROUTES: Record<string, Route> = {
     handle: async (ctx) => {
       if (!ctx.install) throw invalid('this build cannot be identified');
       const account = await accountFor(creditStore, ctx.install);
+
       return json({
         balance: await availableTo(creditStore, account),
         enforced: sellable(creditStore),
@@ -480,6 +481,21 @@ export const ROUTES: Record<string, Route> = {
 
       const account = await accountFor(creditStore, ctx.install);
 
+      /*
+       * Which identifier means "this purchase".
+       *
+       * `transactionId` identifies an event, and a non-consumable restored on
+       * a new install can arrive as a new one. `originalTransactionId` is the
+       * purchase itself and does not move, so it is the one worth remembering
+       * — otherwise a reinstall presents the same Pro purchase under a fresh
+       * number and is paid for it again.
+       *
+       * Nothing to migrate. For a consumable each purchase is its own
+       * original, so the credit packs sold under 1.0.0 already recorded this
+       * value, and Pro granted no credits at all until 1.0.1.
+       */
+      const purchaseId = transaction.originalTransactionId ?? transaction.transactionId;
+
       if (grant.kind === 'pro') {
         /*
          * The entitlement itself is not stored. A non-consumable lives with
@@ -500,17 +516,23 @@ export const ROUTES: Record<string, Route> = {
          */
         let bundled: { credits: number; balance: number; granted: boolean } | null = null;
         if (grant.credits > 0 && sellable(creditStore)) {
-          const outcome = await redeem(
-            creditStore,
-            account,
-            transaction.transactionId,
-            grant.credits
-          );
-          bundled = { credits: grant.credits, ...outcome };
+          const outcome = await redeem(creditStore, account, purchaseId, grant.credits);
+          /*
+           * What was granted, which on a replay is nothing.
+           *
+           * This used to be the product's face value whatever happened, and
+           * the phone adds whatever this says to the ledger it shows. So a
+           * reinstall that the service correctly refused to pay twice would
+           * still have put 500 credits on the screen, spendable nowhere: the
+           * service is the one that counts and it had already said no. A
+           * balance that cannot be spent is worse than no balance, because it
+           * looks like something being taken away.
+           */
+          bundled = { credits: outcome.granted ? grant.credits : 0, ...outcome };
         }
 
         ctx.note({
-          note: `redeemed pro txn=${transaction.transactionId} bundled=${bundled?.granted === true}`,
+          note: `redeemed pro purchase=${purchaseId} bundled=${bundled?.granted === true}`,
         });
         return json({ productId: transaction.productId, pro: true, ...bundled });
       }
@@ -519,17 +541,18 @@ export const ROUTES: Record<string, Route> = {
         throw unavailable('credits cannot be granted just yet');
       }
 
-      const { balance, granted } = await redeem(
-        creditStore,
-        account,
-        transaction.transactionId,
-        grant.credits
-      );
+      const { balance, granted } = await redeem(creditStore, account, purchaseId, grant.credits);
 
       ctx.note({
-        note: `redeemed ${transaction.productId} txn=${transaction.transactionId} granted=${granted} account=${account}`,
+        note: `redeemed ${transaction.productId} purchase=${purchaseId} granted=${granted} account=${account}`,
       });
-      return json({ productId: transaction.productId, credits: grant.credits, balance, granted });
+      // Nothing granted, nothing to add. See the note in the Pro branch above.
+      return json({
+        productId: transaction.productId,
+        credits: granted ? grant.credits : 0,
+        balance,
+        granted,
+      });
     },
   },
 

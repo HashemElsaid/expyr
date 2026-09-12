@@ -529,6 +529,18 @@ now on has no free Expyr AI, which is the decided model arriving early.
 Next: Part B of `business/TEST-PASS.md` on the phone, one batch of fixes,
 then the version bump, `expo export`, and the build.
 
+22. **Protect my credits is offered at the moment of purchase.** Found by
+    the grant fix on 12 September: a person who buys Pro, never signs in,
+    and reinstalls gets Pro back and 0 credits, and cannot recover them
+    later, because the claim belonged to an install token that no longer
+    exists. So protection must be offered before the loss, not as a remedy.
+    On the screen that confirms a Pro purchase or a pack purchase, one
+    line and one tinted action: "Keep these credits if you change phones",
+    Sign in with Apple, with Not now. Never a blocker. Also check the
+    account-deletion copy: deleting the account no longer makes the
+    purchase claimable again, on purpose, and the screen must not promise
+    that every purchase record is erased. App change, so it needs build 5.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

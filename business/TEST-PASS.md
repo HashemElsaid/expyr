@@ -89,8 +89,15 @@ tappable, can I get back without losing anything.
 **Run 12 September on TestFlight 1.0.1 (4). Item 21 passed; item 22
 failed**: after a delete and reinstall with no Apple sign-in, Pro returned
 (correct) and the balance read 500 again rather than 0, so the Pro grant was
-issued twice for one transaction. With the coding session; server-side fix
-expected, retest on the same build.
+issued twice for one transaction. Cause: the grant was recorded
+against the install token, so a reinstall was a new account with a real
+receipt the service had no memory of, and the reply reported the product's
+face value rather than the outcome. Fixed in b5c2a88: a paid purchase is
+its own record keyed on the original transaction id, outliving every install
+and the account itself. Server only; retest on the same build: buy, reinstall,
+expect Pro on and 0 credits. A reinstall without Protect my credits loses the
+balance permanently, so the app must point at protection at the moment of
+purchase; see LAUNCH.md item 22.
 
 Purchases, restore and Sign in with Apple cannot run in Expo Go. They wait
 for the development build or the 1.0.1 build:

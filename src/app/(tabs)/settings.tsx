@@ -77,7 +77,7 @@ export default function SettingsScreen() {
     Alert.alert(
       'Delete your account?',
       balance > 0
-        ? `Your ${formatCredits(balance)} will be lost and cannot be restored. Your documents stay on this phone either way.`
+        ? `Your ${formatCredits(balance)} will be lost and cannot be restored, and restoring your purchases later will not bring them back. Your documents stay on this phone either way.`
         : 'Your documents stay on this phone either way.',
       [
         { text: 'Cancel', style: 'cancel' },

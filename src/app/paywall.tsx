@@ -1,18 +1,21 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { ProtectCredits } from '@/components/protect-credits';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { topUp } from '@/domain/credits';
+import { wantsProtectOffer } from '@/domain/protect-offer';
 import { trackedSentence } from '@/domain/renewal-value';
 import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
 import { PRO_CREDITS } from '@/lib/credit-packs';
 import { successFeedback } from '@/lib/haptics';
+import { canSignIn } from '@/lib/identity';
 import { PRO_PRODUCT_ID, plans, purchase, restore, type PurchaseOutcome } from '@/lib/purchases';
 import { useDocuments } from '@/store/documents';
 import {
@@ -120,15 +123,55 @@ export default function PaywallScreen() {
     });
   }
 
+  /*
+   * Whether Sign in with Apple can run at all. Asked once on arrival rather
+   * than at the moment of the offer, so a purchase never waits on it.
+   *
+   * Catching, like every other promise in a screen: an unhandled rejection in
+   * Expo Go is a red toast over the app.
+   */
+  const [canProtect, setCanProtect] = useState(false);
+  useEffect(() => {
+    canSignIn()
+      .then(setCanProtect)
+      .catch(() => setCanProtect(false));
+  }, []);
+
+  /** Set once a purchase has been granted, which turns this into its receipt. */
+  const [bought, setBought] = useState<string | null>(null);
+
+  /*
+   * What happens after the money is taken and the credits are written.
+   *
+   * Either the offer to protect them, or straight out. Both are endings; the
+   * offer is not a step on the way to one. Shared by buying and restoring
+   * because a restore can carry a first grant too.
+   */
+  function finish(outcome: Extract<PurchaseOutcome, { ok: true }>) {
+    keep(outcome);
+    successFeedback();
+
+    const granted = outcome.redeemed.credits ?? 0;
+    if (
+      wantsProtectOffer({
+        canSignIn: canProtect,
+        hasAccount: settings.account !== null,
+        creditsGranted: granted,
+      })
+    ) {
+      setBought(`Expyr Pro is on, with ${granted.toLocaleString('en-US')} credits`);
+      return;
+    }
+    close();
+  }
+
   async function buy() {
     setBusy(true);
     const outcome = await purchase(plan.id);
     setBusy(false);
 
     if (outcome.ok) {
-      keep(outcome);
-      successFeedback();
-      close();
+      finish(outcome);
       return;
     }
     // Changing your mind is not an error, and an alert about it is a scolding.
@@ -142,13 +185,25 @@ export default function PaywallScreen() {
     setBusy(false);
 
     if (outcome.ok) {
-      keep(outcome);
-      successFeedback();
-      close();
+      finish(outcome);
       return;
     }
     if (outcome.cancelled) return;
     Alert.alert('Nothing to restore', outcome.message);
+  }
+
+  /*
+   * Bought. The screen that was selling it now confirms it, rather than
+   * vanishing and leaving a purchase to be inferred from a changed tab.
+   */
+  if (bought !== null) {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <ProtectCredits heading={bought} onDone={close} />
+        </SafeAreaView>
+      </ThemedView>
+    );
   }
 
   return (

@@ -20,6 +20,7 @@ import {
 } from '@/lib/notifications';
 import { countryLabel, type Country } from '@/data/countries';
 import { emirateLabel, type Emirate } from '@/data/regions';
+import { DEMO_COUNTRY, DEMO_OWN_NAME, demoHousehold, demoKey } from '@/data/demo-household';
 import { useDocuments } from '@/store/documents';
 import { EMPTY_LEDGER, adoptBalance, formatCredits, topUp } from '@/domain/credits';
 import { WELCOME_CREDITS, type ThemePreference, useSettings } from '@/store/settings';
@@ -75,6 +76,44 @@ export default function SettingsScreen() {
     Alert.alert('That did not work', outcome.message);
   }
 
+  /**
+   * Fills the app with the household the App Store screenshots are taken of.
+   *
+   * Idempotent, because the point is to be able to tap it without thinking:
+   * anything already there under the same name and owner is left alone, so a
+   * second tap adds nothing and a tap after deleting one item puts back the
+   * one item.
+   *
+   * Sequential rather than in parallel. Each add writes the whole list and
+   * replans every reminder, so firing thirteen at once races them into a list
+   * with some of them missing.
+   */
+  async function seedDemoData() {
+    const already = new Set(documents.map(demoKey));
+    /*
+     * The country as well as the name, and it is not decoration. Labels and
+     * guidance are chosen by it: with no country set, labelFor falls back to
+     * the UAE wording and the Denver lease renders as "Tenancy Contract
+     * (Ejari)" with a fee in dirhams. Seeding an American household and
+     * photographing it under Dubai labels would defeat the whole point.
+     */
+    update({ ownName: DEMO_OWN_NAME, country: DEMO_COUNTRY });
+    for (const draft of demoHousehold()) {
+      if (already.has(demoKey(draft))) continue;
+      await addDocument(draft);
+    }
+    successFeedback();
+  }
+
+  /** Takes back exactly what the seed put there, and nothing a person added. */
+  async function clearDemoData() {
+    const seeded = new Set(demoHousehold().map(demoKey));
+    for (const doc of documents) {
+      if (seeded.has(demoKey(doc))) await removeDocument(doc.id);
+    }
+    successFeedback();
+  }
+
   /*
    * Guideline 5.1.1(v) requires this to be reachable from inside the app, and
    * the forfeit has to be said before it happens rather than discovered after.
@@ -107,7 +146,7 @@ export default function SettingsScreen() {
       ]
     );
   }
-  const { documents, reminders, rescheduleAll } = useDocuments();
+  const { documents, reminders, rescheduleAll, addDocument, removeDocument } = useDocuments();
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
   const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
   const [testState, setTestState] = useState<'idle' | 'sent'>('idle');
@@ -458,6 +497,33 @@ export default function SettingsScreen() {
                 onPress={() => {
                   update({ premium: !settings.premium });
                   successFeedback();
+                }}
+              />
+              {/*
+                * The screenshot household, in one tap.
+                *
+                * Screenshots have to be retaken for every version, and typing
+                * thirteen items in beforehand is how a store listing ends up
+                * showing "test test" and a date in 1970.
+                */}
+              <ListRow
+                symbol="person.2.fill"
+                tint="indigo"
+                title="Seed demo data"
+                subtitle="The Bennett household, for screenshots"
+                chevron={false}
+                onPress={() => {
+                  void seedDemoData();
+                }}
+              />
+              <ListRow
+                symbol="trash"
+                tint="indigo"
+                title="Clear demo data"
+                chevron={false}
+                destructive
+                onPress={() => {
+                  void clearDemoData();
                 }}
               />
             </ListSection>

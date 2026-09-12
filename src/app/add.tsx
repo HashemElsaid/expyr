@@ -1,4 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { getLocales } from 'expo-localization';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 
 import { ErrorNote, Note, PrimaryButton } from '@/components/form';
+import { localCurrency } from '@/domain/money';
 import { Icon, type SFSymbol } from '@/components/icon';
 import { ListInput, ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
@@ -56,7 +58,15 @@ import {
   FREE_SUBSCRIPTION_LIMIT,
   useSettings,
 } from '@/store/settings';
-import { Attachment, DocumentType, DocumentTypeId, ExtractedField, TrackedDocument } from '@/types';
+import {
+  Attachment,
+  DocumentType,
+  DocumentTypeId,
+  ExtractedField,
+  Money,
+  Recurrence,
+  TrackedDocument,
+} from '@/types';
 
 type Step = 'choose' | 'type' | 'confirmType' | 'review' | 'remind' | 'form' | 'scansSpent';
 
@@ -78,6 +88,31 @@ type Reviewed = {
 };
 
 const LEAD_DAY_OPTIONS = [1, 3, 7, 14, 30, 60, 90, 180];
+
+/** Recorded in the money the phone is set to, read once rather than per render. */
+const CURRENCY_HERE = localCurrency(() => getLocales()[0]?.currencyCode);
+
+/** How often a thing charges, in the order somebody would look for them. */
+const CADENCES: { value: Recurrence; label: string }[] = [
+  { value: 'weekly', label: 'Every week' },
+  { value: 'monthly', label: 'Every month' },
+  { value: 'quarterly', label: 'Every quarter' },
+  { value: 'yearly', label: 'Every year' },
+];
+
+/**
+ * The typed amount as a figure, or nothing.
+ *
+ * Nothing unless there is both a number and a cadence, because half of a
+ * price is not a price: an amount with no cadence cannot be turned into a
+ * year, and a cadence with no amount has nothing to turn.
+ */
+function pricedAt(text: string, every: Recurrence | null, currency: string): Money | undefined {
+  if (!every) return undefined;
+  const amount = Number(text.replace(/,/g, '').trim());
+  if (!Number.isFinite(amount) || amount <= 0) return undefined;
+  return { amount, currency, every };
+}
 
 /**
  * What was being entered when the sheet last closed.
@@ -217,6 +252,25 @@ export default function AddDocumentScreen() {
    * screen, where there is room to read it.
    */
   const [fields, setFields] = useState<ExtractedField[]>(editing?.fields ?? []);
+  /*
+   * What it charges, and how often, for the things that charge on a schedule.
+   *
+   * The amount is held as typed rather than as a number, because a half-typed
+   * "12." is a state somebody passes through and a form that fights them over
+   * it is a form nobody finishes. It is read into a figure once, on save.
+   */
+  /*
+   * Whether this is a thing that charges rather than a thing that expires.
+   * Bills and subscriptions, and anything already recurring, and nothing else:
+   * a passport has a renewal fee, and a fee paid once a decade is not what a
+   * year costs.
+   */
+  const charges =
+    typeId === 'bill' || typeId === 'membership' || editing?.renewsEvery !== undefined;
+  const [priceText, setPriceText] = useState(
+    editing?.price ? String(editing.price.amount) : ''
+  );
+  const [cadence, setCadence] = useState<Recurrence | null>(editing?.renewsEvery ?? null);
   /**
    * The category the scan guessed, kept only while it is being questioned.
    *
@@ -826,6 +880,15 @@ export default function AddDocumentScreen() {
       // Undefined rather than an empty list, so a hand-typed item carries no
       // trace of a feature it never used.
       fields: fields.length > 0 ? fields : undefined,
+      renewsEvery: cadence ?? undefined,
+      price: pricedAt(priceText, cadence, CURRENCY_HERE),
+      /*
+       * Carried rather than rebuilt. An edit replaces the whole record, so
+       * anything the form does not name is lost — which is how editing the
+       * title of an imported subscription used to drop its brand icon, and
+       * its recurrence with it, and quietly move it to the Documents side.
+       */
+      iconDomain: editing?.iconDomain,
     };
     const isFirstItem = documents.length === 0;
 
@@ -1462,6 +1525,43 @@ export default function AddDocumentScreen() {
             </Pressable>
           </View>
         </ListSection>
+
+        {/*
+          * What it costs, for the things that charge rather than expire.
+          *
+          * Shown for a bill and a subscription and nothing else: a passport
+          * has a renewal fee, but a fee somebody pays once every ten years is
+          * not what a year costs, and putting it here would invite it into a
+          * total that would then be indefensible.
+          *
+          * Both halves matter. Without a cadence there is no yearly figure to
+          * be had, and until now the form offered no way to say one at all —
+          * so a bill typed in by hand never recurred, fired one reminder and
+          * sat expired for ever, whatever the category said about itself.
+          */}
+        {charges && (
+          <ListSection
+            title="What it costs"
+            footer="Used for the yearly total on your subscriptions">
+            <ListInput
+              symbol="creditcard"
+              tint="green"
+              label={CURRENCY_HERE}
+              value={priceText}
+              onChangeText={setPriceText}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+            />
+            {CADENCES.map((option) => (
+              <ListRow
+                key={option.value}
+                title={option.label}
+                selected={cadence === option.value}
+                onPress={() => setCadence(cadence === option.value ? null : option.value)}
+              />
+            ))}
+          </ListSection>
+        )}
 
         <ListSection title="Notes">
           <ListInput

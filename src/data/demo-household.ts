@@ -220,6 +220,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: DEMO_OWN_NAME,
       leadDays: [3],
       files: [],
+      price: { amount: 24.99, currency: 'USD', every: 'monthly' },
       fields: [{ label: 'Plan', value: 'Premium, USD 24.99 a month', kind: 'money' }],
     },
     {
@@ -231,6 +232,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: SARAH,
       leadDays: [7],
       files: [],
+      price: { amount: 335, currency: 'USD', every: 'monthly' },
       fields: [{ label: 'Plan', value: 'Destination, USD 335 a month', kind: 'money' }],
     },
     {
@@ -242,6 +244,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: DEMO_OWN_NAME,
       leadDays: [3],
       files: [],
+      price: { amount: 115, currency: 'USD', every: 'monthly' },
       fields: [{ label: 'Plan', value: 'Unlimited Ultimate, USD 115 a month', kind: 'money' }],
     },
     {
@@ -253,6 +256,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: SARAH,
       leadDays: [3],
       files: [],
+      price: { amount: 19.99, currency: 'USD', every: 'monthly' },
       fields: [{ label: 'Plan', value: 'Family, USD 19.99 a month', kind: 'money' }],
     },
     {
@@ -264,6 +268,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: DEMO_OWN_NAME,
       leadDays: [3],
       files: [],
+      price: { amount: 9.99, currency: 'USD', every: 'monthly' },
       fields: [{ label: 'Plan', value: '2 TB, USD 9.99 a month', kind: 'money' }],
     },
     {
@@ -275,6 +280,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: DEMO_OWN_NAME,
       leadDays: [30, 7],
       files: [],
+      price: { amount: 415, currency: 'USD', every: 'yearly' },
       fields: [{ label: 'Plan', value: 'Digital, USD 415 a year', kind: 'money' }],
     },
 
@@ -292,6 +298,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: DEMO_OWN_NAME,
       leadDays: [7, 3],
       files: [],
+      price: { amount: 240, currency: 'USD', every: 'monthly' },
       fields: [{ label: 'Typical bill', value: 'USD 240 a month', kind: 'money' }],
     },
     {
@@ -303,6 +310,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: DEMO_OWN_NAME,
       leadDays: [7, 3],
       files: [],
+      price: { amount: 120, currency: 'USD', every: 'monthly' },
       fields: [{ label: 'Plan', value: 'Gigabit, USD 120 a month', kind: 'money' }],
     },
     {
@@ -314,6 +322,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: DEMO_OWN_NAME,
       leadDays: [14, 3],
       files: [],
+      price: { amount: 185, currency: 'USD', every: 'quarterly' },
       fields: [{ label: 'Typical bill', value: 'USD 185 a quarter', kind: 'money' }],
     },
     {
@@ -324,6 +333,7 @@ export function demoHousehold(): DocumentDraft[] {
       owner: DEMO_OWN_NAME,
       leadDays: [30, 7],
       files: [],
+      price: { amount: 1250, currency: 'USD', every: 'quarterly' },
       fields: [{ label: 'Dues', value: 'USD 1,250 a quarter', kind: 'money' }],
     },
   ];

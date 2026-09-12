@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { roomFor, splitImport } from '@/domain/capacity';
+import { parseMoney } from '@/domain/money';
 import { useTheme } from '@/hooks/use-theme';
 import { ensureBrandIcon } from '@/lib/brand-icons';
 import { longDate } from '@/lib/dates';
@@ -156,6 +157,16 @@ export default function SubscriptionsScreen() {
         const sub = found[index];
         if (!sub.renewsOn) continue;
         const period: Recurrence = sub.period === 'unknown' ? 'monthly' : sub.period;
+        /*
+         * The price as a figure, beside the price as printed.
+         *
+         * `noteFor` keeps what the screenshot said, word for word, because a
+         * reformatted number is a wrong one. This is the separate reading of
+         * it that can be added up, and it is absent rather than guessed when
+         * the screenshot did not say a currency: a price with no currency
+         * added to a total would be added as whatever the total already was.
+         */
+        const read = parseMoney(sub.price);
         await addDocument({
           typeId: 'membership',
           title: titleFor(sub),
@@ -164,6 +175,7 @@ export default function SubscriptionsScreen() {
           files: [],
           leadDays: leadDaysFor(sub.period),
           renewsEvery: period,
+          ...(read ? { price: { ...read, every: period } } : {}),
           iconDomain: sub.domain || undefined,
         });
         /*

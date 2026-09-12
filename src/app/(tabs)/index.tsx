@@ -14,6 +14,7 @@ import { isSubscription } from '@/domain/documents';
 import { TimelineRow, TimelineSectionHeader } from '@/components/timeline-row';
 import { TimelineSummary, type Focus } from '@/components/timeline-summary';
 import { buildHousehold } from '@/domain/household';
+import { formatYearly, yearlyTotal } from '@/domain/money';
 import { buildSections } from '@/domain/timeline';
 import { searchableText } from '@/domain/fields';
 import { useTheme } from '@/hooks/use-theme';
@@ -185,6 +186,19 @@ export default function HomeScreen() {
    * something else. A search narrows a list; it does not settle anything.
    */
   const onThisSide = side === 'subscriptions' ? halves.subscriptions : halves.documents;
+
+  /*
+   * The sum of everything that charges on a schedule, normalised to a year.
+   *
+   * Over every subscription rather than over what the search has narrowed to,
+   * because "what does my year cost" is a question about the year and not
+   * about the current filter. A total that moved while somebody typed would be
+   * a different number every keystroke and true of nothing.
+   */
+  const yearly = useMemo(
+    () => formatYearly(yearlyTotal(halves.subscriptions)),
+    [halves.subscriptions]
+  );
   const expired = onThisSide.filter((d) => daysUntil(d.expiryDate) < 0);
   const soon = onThisSide.filter((d) => {
     const days = daysUntil(d.expiryDate);
@@ -467,6 +481,24 @@ export default function HomeScreen() {
           ListFooterComponent={
             documents.length > 0 ? (
               <View>
+                {/*
+                  * What a year of this costs, under the list it is the sum of.
+                  *
+                  * Only on the subscriptions side, because that is the side it
+                  * is the total of. Under rather than over: the number means
+                  * something once the rows above it have been read, and a
+                  * figure at the top is a headline the list then has to live
+                  * up to.
+                  *
+                  * Absent rather than nought when nothing carries a price. A
+                  * total of zero is a claim, and the true statement there is
+                  * that nobody has said what anything costs yet.
+                  */}
+                {side === 'subscriptions' && yearly !== null && (
+                  <ThemedText type="footnote" themeColor="textTertiary" style={styles.assurance}>
+                    {yearly}
+                  </ThemedText>
+                )}
                 {archived.length > 0 && (
                   <Pressable
                     accessibilityRole="button"

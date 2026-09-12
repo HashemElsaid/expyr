@@ -235,6 +235,7 @@ export function ListInput({
   autoCapitalize = 'sentences',
   autoFocus,
   multiline,
+  keyboardType,
 }: {
   symbol?: SFSymbol;
   tint?: SystemColor;
@@ -245,6 +246,8 @@ export function ListInput({
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoFocus?: boolean;
   multiline?: boolean;
+  /** A price wants the decimal pad; everything else wants the ordinary one. */
+  keyboardType?: 'default' | 'decimal-pad';
 }) {
   const theme = useTheme();
   const system = useSystemColors();
@@ -271,6 +274,7 @@ export function ListInput({
         autoCapitalize={autoCapitalize}
         autoFocus={autoFocus}
         multiline={multiline}
+        keyboardType={keyboardType}
         style={[styles.input, { color: theme.text }, multiline && styles.inputTall]}
       />
     </View>

@@ -106,6 +106,25 @@ export type Visibility = 'private' | 'family';
  */
 export type Recurrence = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 
+/**
+ * What something costs, as a figure that can be added up.
+ *
+ * Separate from the money that turns up in `fields`, and deliberately: that
+ * one is the transcription, kept exactly as printed because a reformatted
+ * number is a wrong one. This is the structured reading of it, which is what
+ * makes a yearly total possible.
+ *
+ * The currency is stored rather than assumed. A build that assumed dollars
+ * would add dirhams to them and the sum would look perfectly plausible.
+ */
+export type Money = {
+  amount: number;
+  /** ISO 4217, as read: USD, AED, GBP. */
+  currency: string;
+  /** How often it is charged. Kept beside the amount so a total needs nothing else. */
+  every: Recurrence;
+};
+
 export type TrackedDocument = {
   id: string;
   typeId: DocumentTypeId;
@@ -142,6 +161,14 @@ export type TrackedDocument = {
    * subscription tracker that needs to be told it renewed is a to-do list.
    */
   renewsEvery?: Recurrence;
+  /**
+   * What it charges, for anything that charges on a schedule.
+   *
+   * Only ever set on something with `renewsEvery`, because the yearly total is
+   * a claim about what recurs. A passport renewal fee is real money and is not
+   * what a year costs.
+   */
+  price?: Money;
   /**
    * Everything else the document said about itself when it was scanned.
    *

@@ -2,10 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import { labelForId } from '@/data/document-types';
 import { isSubscription } from '@/domain/documents';
+import { formatYearly, yearlyTotal } from '@/domain/money';
+import type { DocumentDraft, TrackedDocument } from '@/types';
 
 import { DEMO_COUNTRY, DEMO_OWN_NAME, demoHousehold, demoKey } from './demo-household';
 
 const household = demoHousehold();
+
+/** The seed is drafts; the total takes documents. Nothing else differs here. */
+function asTracked(draft: DocumentDraft): TrackedDocument {
+  return { ...draft, id: draft.title, visibility: 'private', createdAt: '', updatedAt: '' };
+}
 
 function daysOut(iso: string): number {
   const today = new Date();
@@ -144,5 +151,39 @@ describe('the household the screenshots are taken of', () => {
       expect(daysOut(item.expiryDate)).toBeGreaterThan(-30);
       expect(daysOut(item.expiryDate)).toBeLessThan(400);
     }
+  });
+});
+
+/*
+ * The screenshot the listing headline promises. "See what your year actually
+ * costs" has to be a real figure under the real list, so the seeded household
+ * is what proves the number the picture will show.
+ */
+describe('what the demo household costs a year', () => {
+  const recurring = household.filter((item) => item.renewsEvery);
+
+  it('prices every recurring item, or the total understates itself', () => {
+    for (const item of recurring) {
+      expect(item.price, item.title).toBeDefined();
+      expect(item.price?.currency, item.title).toBe('USD');
+      // The cadence on the price is the cadence it actually charges at.
+      expect(item.price?.every, item.title).toBe(item.renewsEvery);
+    }
+  });
+
+  it('comes to one uncomfortable figure in one currency', () => {
+    const total = yearlyTotal(recurring.map(asTracked));
+    expect(total.kind).toBe('one');
+    // 864.97 a month over twelve, 1,435 a quarter over four, and Bloomberg's
+    // 415 once. Checked by hand, because a total nobody has checked is the
+    // thing this whole module is about not shipping.
+    expect(formatYearly(total)).toBe('USD 16,535 a year');
+  });
+
+  /** Nothing one-off is in it: the villa's rent and the car's fee stay out. */
+  it('leaves the one-off fees out of the year', () => {
+    const total = yearlyTotal(household.map(asTracked));
+    const recurringOnly = yearlyTotal(recurring.map(asTracked));
+    expect(total).toEqual(recurringOnly);
   });
 });

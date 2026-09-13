@@ -557,6 +557,13 @@ then the version bump, `expo export`, and the build.
     Android assets and the website mark; splash backgrounds moved to the
     iOS surfaces. Build 7 carries it.
 
+**1.0.1 submitted, 12 September evening: Waiting for Review.** Seven
+screenshots in the new design, the free-tier description, What's New, the
+review notes, Expyr Pro's new description submitted from its own page.
+First three days of 1.0 in Analytics as of 11 September: 46 impressions, 26
+product page views, 5 first-time downloads. Too few to mean anything yet;
+recorded as the baseline.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

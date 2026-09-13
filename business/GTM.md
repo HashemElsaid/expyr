@@ -159,7 +159,42 @@ where it genuinely answers the question asked. One good thread is worth more
 than a hundred impressions anywhere else, and one promotional post costs you
 the channel for good.
 
-### Local press, launch week, one email each
+### Local press, one email each, once 1.0.1 is live
+
+The pitch, drafted 13 September, sent from hashim.elsaeed@gmail.com the day
+1.0.1 is approved so the screenshots and the store page match. Subject line
+first, then the body. Nothing attached; the store link and one screenshot
+inline are enough, and editors do not open attachments from strangers.
+
+```
+Subject: A UAE-built app that reads your Emirates ID and tells you what renewing it costs
+
+Hi [first name],
+
+I am a developer in Abu Dhabi and I built Expyr because I paid an overstay
+fine once and never wanted to again.
+
+You photograph a document, an Emirates ID, a visa, a Mulkiya, a tenancy
+contract, and it reads the expiry date, reminds you weeks ahead, and tells
+you how to renew: where to go, what it costs, and what being late costs.
+The UAE guidance has been checked against the responsible authority for
+every category. It also reads a screenshot of your App Store subscriptions
+and shows what the year costs. Nothing touches your bank or your email.
+
+Free to try, one payment for everything, no subscription.
+
+App Store: https://apps.apple.com/app/id6809437011
+Renewal guides, free: https://hashemelsaid.github.io/expyr/guides/
+
+Happy to answer anything or send a promo code.
+
+Hashem Elsaid
+```
+
+Send to: Gulf News (tech desk), Khaleej Times (tech or lifestyle), TimeOut
+Dubai (apps roundup), and Gulf Business. Find the current named writer on
+each app roundup and address them, not a generic inbox. One follow-up after
+a week, none after that.
 
 Gulf News, Khaleej Times and TimeOut Dubai all run app roundups. A UAE-specific
 utility built by a UAE resident is a story they take. Free to pitch, and the

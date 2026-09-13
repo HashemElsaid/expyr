@@ -140,6 +140,29 @@ buying refunds.
 
 ---
 
+## The ad, as built, 13 September
+
+Four versions in one day, and the lesson is worth more than the file.
+
+- InVideo, twice, from stills and then from recordings: a slideshow, then a
+  cut that lost the plot, at 20 dollars for the month. What it did produce
+  that mattered: a usable voice read, a clean voice stem and a music stem
+  from its separation tool, and one photoreal render of a titanium iPhone on
+  a dark green stage. Everything else it made was discarded.
+- The final cut was assembled here, in Python with ffmpeg: Hashem's six
+  screen recordings mapped in perspective onto that rendered phone's screen,
+  status bar repainted to 9:41, word-accurate cuts from a speech-recognised
+  transcript of the voice, captions with one mint phrase, floating category
+  tiles, a feature-list beat, two push-ins, the clean voice over the music
+  stem, and an end card with the icon, Download now, and a store pill.
+  `Downloads\expyr-ad-v4.mp4`, 34 seconds, 1080 by 1920.
+- The scripts that build it live in this session's scratchpad (`ad_v4.py`
+  and the ones before it). Any re-cut is a change to a table of times, not a
+  new project. Re-recording a screen and re-rendering takes minutes.
+
+Rule from this: for a screen-recorded app ad, the AI tools are useful for a
+voice and a hero render, and no good at the cut. The cut is ours.
+
 ## What to count
 
 Per video: views, shares, profile visits, link taps, in the account's

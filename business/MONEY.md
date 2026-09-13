@@ -427,6 +427,14 @@ stays at 149, in App Store Connect, with no review. Same revisit date.
 
 ---
 
+## Marketing spend, running
+
+| Date | What | Amount | Why |
+|---|---|---|---|
+| 13 Sep 2026 | InVideo AI, Starter, monthly | USD 20 | Two 20-second TikTok ads from the App Store screenshots with an AI voice; 400 credits, about 10 to 20 per finished ad. Cancel the renewal after the month unless the recuts are still using it |
+
+---
+
 ## Open, and blocking nothing yet
 
 - **The withholding rate Apple shows at tax-form submission.** Expected to be

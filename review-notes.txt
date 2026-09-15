@@ -18,7 +18,7 @@ section, so there is nothing further to attach.
 
 The last review ran on an iPad Air 11-inch, where this iPhone app runs in
 compatibility mode. If a purchase could not be completed, please tell us the
-screen and the message and we will reproduce it.
+screen and the message.
 
 ACCOUNT DELETION
 

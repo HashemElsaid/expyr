@@ -564,6 +564,29 @@ First three days of 1.0 in Analytics as of 11 September: 46 impressions, 26
 product page views, 5 first-time downloads. Too few to mean anything yet;
 recorded as the baseline.
 
+**1.0.1 rejected 14 September, Guideline 2.1(b), and it uncovered a live
+bug in 1.0.** Apple: "Expyr Pro was never submitted. We have previously
+approved 3 In-App Purchase products, namely 1,500 Credits, 3,000 Credits and
+6,500 Credits." So `pro.lifetime` was never part of the 1.0 submission, only
+the three consumables were, and the unticked line in section 9 about a
+purchase-screen shot on each of the four products is the likely cause: a
+product without an App Review screenshot cannot leave Prepare for Submission
+and cannot be attached to a version.
+
+**What that means for the live app.** `paywall.tsx:85` reads
+`storePrices[PRO_PRODUCT_ID] ?? plan.price`, so with no product on the
+storefront the button still reads "Unlock Expyr Pro for AED 149.00" and the
+purchase then fails. Every install since 10 September has seen a Pro button
+that cannot complete. Nothing was lost in money, because nothing could be
+charged, but the 0.29% conversion measurement has been meaningless from the
+start and any early buyer was turned away.
+
+**The fix, in order:** attach `Downloads/expyr-iap-review/pro-paywall.png`
+to Expyr Pro's App Review Information so it reaches Ready to Submit; the
+In-App Purchases section then appears on the 1.0.1 version page; tick Expyr
+Pro there; upload a new binary, which Apple asked for twice; resubmit. Do
+not argue the point further, the reviewer has already answered it once.
+
 ### Not code, but goes on the same version
 
 - **The angled screenshots**, seven frames at 1284 x 2778 in

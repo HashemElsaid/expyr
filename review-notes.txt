@@ -11,8 +11,8 @@ IN-APP PURCHASES, ALL FOUR APPROVED
 
 1.0.1 (7) was rejected under 2.1(b) for products not submitted. All four are
 Approved in App Store Connect: pro.lifetime (Expyr Pro, non-consumable, Family
-Shareable), credits.small, credits.medium, credits.large (consumable). The app
-requests these four identifiers and no others. An Approved product offers no
+Shareable), credits.small, credits.medium and credits.large (consumable). The
+app requests these four and no others. An Approved product offers no
 Add for Review action and does not appear in the version's In-App Purchases
 section, so there is nothing further to attach.
 

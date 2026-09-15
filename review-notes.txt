@@ -28,7 +28,7 @@ confirms identity before anything is erased.
 
 SEEING THE APP QUICKLY
 
-1. Choose a country, then an emirate if it is the UAE. Notifications optional.
+1. Choose a country, and an emirate if the UAE. Notifications optional.
 2. Tap + to add an item. "Take a photo" scans, "Enter it myself" needs no camera.
 3. To test scanning, use the attached sample image or any card with a printed
    date. Values are confirmed before saving.
@@ -44,7 +44,7 @@ background, none required to use the app.
    it to the Anthropic Claude API to extract the expiry date and other fields.
    Values are shown for confirmation before saving.
 2. ASK. A saved document can be transcribed, then asked free-text questions,
-   answered from that document.
+   answered from it.
 3. RENEWAL GUIDANCE. Steps, fees and times for a document type in a region are
    model-generated with web search, then cached. Presented as indicative,
    carrying "confirm with the official channel" and a link to the official

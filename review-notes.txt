@@ -31,7 +31,7 @@ SEEING THE APP QUICKLY
 1. Choose a country, then an emirate if it is the UAE. Notifications optional.
 2. Tap + to add an item. "Take a photo" scans, "Enter it myself" needs no camera.
 3. To test scanning, use the attached sample image or any card with a printed
-   date. Values are shown for confirmation before saving.
+   date. Values are confirmed before saving.
 4. Open the item for the countdown, renewal steps, cost and late fine. Settings
    has "Send a test reminder".
 
@@ -62,8 +62,7 @@ every time it is used.
   page, twenty answers a question.
 - NOT a subscription. Nothing auto-renews.
 - No other way to pay: no external payment, no web checkout, no link out, no
-  third-party billing, nothing unlocked outside In-App Purchase. No physical
-  goods or real-world services.
+  third-party billing. No physical goods or real-world services.
 
 AVAILABILITY
 
@@ -82,8 +81,8 @@ retain them briefly for trust and safety and does not train on them. That is
 why the privacy labels declare them collected rather than claiming none.
 
 Nothing else is transmitted. Documents, dates, numbers, notes and photos stay
-in the app's private storage, including for signed-in users: the service holds
-an identifier and a credit count. Reminders are scheduled locally by iOS. No
-analytics SDK, no advertising SDK, no third-party tracking.
+in the app's private storage: the service holds an identifier and a credit
+count. Reminders are scheduled locally by iOS. No analytics SDK, no advertising
+SDK, no third-party tracking.
 
 iPhone only.

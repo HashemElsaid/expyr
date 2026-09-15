@@ -3,11 +3,23 @@ NO DEMO ACCOUNT NEEDED
 Every feature works on first launch without signing in. Leave Sign-In
 Information blank; there is nothing to enter.
 
-Sign in with Apple is optional and offered in one place: Settings, after
-credits have been bought, so credits survive a change of phone. Credits are a
-consumable and Apple keeps no record of a used one, so without it they would be
-lost with the device. It stores an anonymous Apple subject identifier and a
-credit count. We never receive a name or an email.
+Sign in with Apple is optional, offered in one place: Settings, after credits
+are bought, so credits survive a change of phone. It stores an anonymous Apple
+subject identifier and a credit count. Never a name or an email.
+
+IN-APP PURCHASES, ALL FOUR APPROVED
+
+1.0.1 (7) was rejected under 2.1(b) for products not submitted. All four are
+Approved in App Store Connect and were approved with release 1.0: pro.lifetime
+(Expyr Pro, non-consumable, Family Shareable), and credits.small,
+credits.medium, credits.large (consumable). The app requests exactly these four
+identifiers and no others. An Approved product offers no Add for Review action
+and does not appear in the version's In-App Purchases section, so there is
+nothing further to attach.
+
+The last review ran on an iPad Air 11-inch. Expyr is an iPhone app, running
+there in compatibility mode. If a purchase could not be completed, please tell
+us the screen and the message and we will reproduce it.
 
 ACCOUNT DELETION
 
@@ -17,14 +29,12 @@ sheet confirms identity before anything is erased.
 
 SEEING THE APP QUICKLY
 
-1. Choose a country, then an emirate if it is the UAE. Allow or decline
-   notifications; both paths work.
-2. Tap + to add an item. "Take a photo" scans. "Enter it myself" needs no
-   camera.
-3. To test scanning, use the sample image attached here, or photograph any card
-   with a printed date. Values are shown for confirmation before saving.
-4. Open the item for the countdown, renewal steps, cost and late fine. The Expyr
-   AI tab answers questions about it, with Pro. Settings has "Send a test reminder".
+1. Choose a country, then an emirate if it is the UAE. Notifications optional.
+2. Tap + to add an item. "Take a photo" scans, "Enter it myself" needs no camera.
+3. To test scanning, use the attached sample image or any card with a printed
+   date. Values are shown for confirmation before saving.
+4. Open the item for the countdown, renewal steps, cost and late fine. Settings
+   has "Send a test reminder".
 
 USE OF AI, STATED PLAINLY
 
@@ -36,10 +46,10 @@ background, none required to use the app.
    fields. Values are shown for confirmation before saving.
 2. ASK. A saved document can be transcribed, then asked free-text questions.
    Answers are drawn from that document.
-3. RENEWAL GUIDANCE. Steps, fees and processing times for a document type in a
-   region are model-generated using web search, then cached and reused. It is
-   presented as indicative, carries the wording "confirm with the official
-   channel", and links to the official source. Never as official instruction.
+3. RENEWAL GUIDANCE. Steps, fees and times for a document type in a region are
+   model-generated with web search, then cached and reused. Presented as
+   indicative, carrying "confirm with the official channel" and a link to the
+   official source. Never as official instruction.
 
 THE BUSINESS MODEL
 
@@ -74,10 +84,9 @@ which may retain them briefly for trust and safety and does not train on them.
 That is why the privacy labels declare them collected rather than claiming
 none.
 
-Nothing else is transmitted. Documents, dates, numbers, notes and photos are
-stored only in the app's private storage on the device, including for signed-in
-users: the service holds an identifier and a credit count and nothing else. Reminders are scheduled
-locally by iOS, never pushed from a server. There is no analytics SDK, no
-advertising SDK and no third-party tracking.
+Nothing else is transmitted. Documents, dates, numbers, notes and photos stay
+in the app's private storage, including for signed-in users: the service holds
+an identifier and a credit count. Reminders are scheduled locally by iOS. No
+analytics SDK, no advertising SDK, no third-party tracking.
 
 iPhone only.

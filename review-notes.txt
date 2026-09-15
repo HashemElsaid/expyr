@@ -53,36 +53,35 @@ background, none required to use the app.
 
 THE BUSINESS MODEL
 
-Expyr is free for 3 documents, 2 subscriptions and 10 scans. Expyr AI, which
-reads a document in full and answers questions about it, is part of Expyr Pro
-because it costs money every time it is used.
+Free for 3 documents, 2 subscriptions and 10 scans. Expyr AI, which reads a
+document and answers questions about it, is part of Pro because it costs money
+every time it is used.
 
-- ONE non-consumable: AED 149, paid once. Removes the three limits and
-  includes 500 Expyr AI credits. Family Shareable, up to six people.
-- THREE consumables: credit packs for Pro users who use Expyr AI heavily. Ten
-  credits reads a page, twenty answers a question.
-- NOT a subscription. Nothing auto-renews, nothing to cancel.
+- ONE non-consumable: AED 149 once. Removes the three limits, includes 500
+  Expyr AI credits. Family Shareable, up to six people.
+- THREE consumables: credit packs for heavy Expyr AI use. Ten credits reads a
+  page, twenty answers a question.
+- NOT a subscription. Nothing auto-renews.
 - No other way to pay: no external payment, no web checkout, no link out, no
-  third-party billing, and nothing unlocked outside In-App Purchase. No
-  physical goods or real-world services are sold.
+  third-party billing, nothing unlocked outside In-App Purchase. No physical
+  goods or real-world services.
 
 AVAILABILITY
 
-Expyr ships in all storefronts. Renewal guidance has been checked against the
+Expyr ships in all storefronts. Renewal guidance is checked against the
 responsible authority only for the UAE, and the app says so: elsewhere type
-names go generic and guidance is labelled generated rather than verified.
+names go generic and guidance is labelled generated, not verified.
 
 Expyr collects no government fees, acts as no authority's agent, and is neither
 affiliated with nor endorsed by any government body.
 
 WHAT LEAVES THE DEVICE
 
-Only an image or document the user explicitly picks, at the moment they pick it,
-plus questions they ask. Nothing is written to disk on our server and no
-question or answer text is logged by us. Both go to the Anthropic Claude API,
-which may retain them briefly for trust and safety and does not train on them.
-That is why the privacy labels declare them collected rather than claiming
-none.
+Only an image or document the user picks, at the moment they pick it, plus
+questions they ask. Nothing is written to disk on our server and no question or
+answer text is logged by us. Both go to the Anthropic Claude API, which may
+retain them briefly for trust and safety and does not train on them. That is
+why the privacy labels declare them collected rather than claiming none.
 
 Nothing else is transmitted. Documents, dates, numbers, notes and photos stay
 in the app's private storage, including for signed-in users: the service holds

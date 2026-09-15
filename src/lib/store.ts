@@ -116,9 +116,19 @@ async function connect(): Promise<Iap | null> {
  * that storefront, so a figure worked out here is a figure nobody is about to
  * be charged, and Guideline 3.1.2 exists because of exactly that.
  */
-export async function priceList(): Promise<Record<string, string>> {
+/**
+ * Apple's prices, or null when we never heard.
+ *
+ * Null and an empty record are different facts and used to be the same one.
+ * Null is "there is no store here, or it did not answer": a build made before
+ * payments existed, Expo Go, a device with no network. An empty record is
+ * StoreKit answering that it has none of these products, which is a real
+ * answer about the storefront and the one that must stop a screen offering
+ * something it cannot sell.
+ */
+export async function priceList(): Promise<Record<string, string> | null> {
   const store = await connect();
-  if (!store) return {};
+  if (!store) return null;
   try {
     const products = await store.fetchProducts({ skus: [...PRODUCT_IDS], type: 'in-app' });
     const prices: Record<string, string> = {};
@@ -129,8 +139,9 @@ export async function priceList(): Promise<Record<string, string>> {
     }
     return prices;
   } catch {
-    // A price we could not fetch is one the screen falls back to its table for.
-    return {};
+    // Not an answer about the storefront, so not one to act on. The screens
+    // fall back to their written tables, as they always have.
+    return null;
   }
 }
 

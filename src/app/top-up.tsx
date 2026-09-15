@@ -14,6 +14,7 @@ import { CREDITS_PER_PAGE, CREDITS_PER_QUESTION, adoptBalance, formatCredits, to
 import { wantsProtectOffer } from '@/domain/protect-offer';
 import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
+import { canBuy, offerFor, type Offer } from '@/domain/store-offer';
 import { pagesIn, PACKS, priceOf, type Pack } from '@/lib/credit-packs';
 import { region } from '@/lib/purchases';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
@@ -86,7 +87,18 @@ export default function TopUpScreen() {
    * fallback for a build with no store in it.
    */
   const storePrices = useStorePrices();
-  const priceFor = (pack: Pack): string => storePrices[pack.id] ?? priceOf(pack, here);
+  /*
+   * Per pack, because the storefront answers per product. The three packs
+   * happen to be the ones Apple has approved and Pro is the one it has not,
+   * but nothing here should depend on which: a product the store does not
+   * have is one this screen must not offer, whichever it turns out to be.
+   */
+  const offerOf = (pack: Pack): Offer => offerFor(storePrices, pack.id, priceOf(pack, here));
+  const priceFor = (pack: Pack): string => {
+    const offer = offerOf(pack);
+    return offer.kind === 'unavailable' ? 'Unavailable' : offer.price;
+  };
+  const chosenOffer = offerOf(chosen);
 
   function close() {
     if (router.canGoBack()) router.back();
@@ -235,10 +247,19 @@ export default function TopUpScreen() {
                 subtitle={`${pagesIn(pack).toLocaleString('en-US')} pages`}
                 value={priceFor(pack)}
                 selected={pack.id === chosen.id}
-                onPress={() => {
-                  tapFeedback();
-                  setChosen(pack);
-                }}
+                /*
+                 * A pack the store does not have cannot be chosen. Leaving it
+                 * selectable would put its price on the button and fail on
+                 * tap, which is the whole of the bug this closes.
+                 */
+                onPress={
+                  canBuy(offerOf(pack))
+                    ? () => {
+                        tapFeedback();
+                        setChosen(pack);
+                      }
+                    : undefined
+                }
               />
             ))}
           </ListSection>
@@ -269,18 +290,31 @@ export default function TopUpScreen() {
         </ScrollView>
 
         <View style={styles.foot}>
-          <Pressable onPress={buy} disabled={busy} accessibilityRole="button">
+          <Pressable
+            onPress={buy}
+            disabled={busy || !canBuy(chosenOffer)}
+            accessibilityRole="button">
             {({ pressed }) => (
               <View
                 style={[
                   styles.primary,
-                  { backgroundColor: theme.accent },
+                  {
+                    backgroundColor: canBuy(chosenOffer)
+                      ? theme.accent
+                      : theme.backgroundSelected,
+                  },
                   (pressed || busy) && styles.dim,
                 ]}>
-                <ThemedText type="headline" style={{ color: theme.accentContrast }}>
-                  {busy
-                    ? 'One moment'
-                    : `Buy ${chosen.credits.toLocaleString('en-US')} credits for ${priceFor(chosen)}`}
+                <ThemedText
+                  type="headline"
+                  style={{
+                    color: canBuy(chosenOffer) ? theme.accentContrast : theme.textTertiary,
+                  }}>
+                  {!canBuy(chosenOffer)
+                    ? 'Credits are unavailable'
+                    : busy
+                      ? 'One moment'
+                      : `Buy ${chosen.credits.toLocaleString('en-US')} credits for ${priceFor(chosen)}`}
                 </ThemedText>
               </View>
             )}

@@ -1,31 +1,30 @@
 NO DEMO ACCOUNT NEEDED
 
 Every feature works on first launch without signing in. Leave Sign-In
-Information blank; there is nothing to enter.
+Information blank.
 
-Sign in with Apple is optional, offered in one place: Settings, after credits
-are bought, so credits survive a change of phone. It stores an anonymous Apple
+Sign in with Apple is optional, in one place: Settings, after credits are
+bought, so credits survive a change of phone. It stores an anonymous Apple
 subject identifier and a credit count. Never a name or an email.
 
 IN-APP PURCHASES, ALL FOUR APPROVED
 
 1.0.1 (7) was rejected under 2.1(b) for products not submitted. All four are
-Approved in App Store Connect and were approved with release 1.0: pro.lifetime
-(Expyr Pro, non-consumable, Family Shareable), and credits.small,
-credits.medium, credits.large (consumable). The app requests exactly these four
-identifiers and no others. An Approved product offers no Add for Review action
-and does not appear in the version's In-App Purchases section, so there is
-nothing further to attach.
+Approved in App Store Connect: pro.lifetime (Expyr Pro, non-consumable, Family
+Shareable), credits.small, credits.medium, credits.large (consumable). The app
+requests these four identifiers and no others. An Approved product offers no
+Add for Review action and does not appear in the version's In-App Purchases
+section, so there is nothing further to attach.
 
-The last review ran on an iPad Air 11-inch. Expyr is an iPhone app, running
-there in compatibility mode. If a purchase could not be completed, please tell
-us the screen and the message and we will reproduce it.
+The last review ran on an iPad Air 11-inch, where this iPhone app runs in
+compatibility mode. If a purchase could not be completed, please tell us the
+screen and the message and we will reproduce it.
 
 ACCOUNT DELETION
 
 Settings, the Credits protected row, Delete. The user is warned that unspent
-credits are lost and that documents stay on the phone either way, then Apple's
-sheet confirms identity before anything is erased.
+credits are lost and documents stay on the phone either way, then Apple's sheet
+confirms identity before anything is erased.
 
 SEEING THE APP QUICKLY
 
@@ -38,18 +37,18 @@ SEEING THE APP QUICKLY
 
 USE OF AI, STATED PLAINLY
 
-Three features use a large language model. All user-initiated, none run in the
+Three features use a large language model. All user-initiated, none in the
 background, none required to use the app.
 
-1. SCANNING. An image the user selects is sent once to our service, which
-   forwards it to the Anthropic Claude API to extract the expiry date and other
-   fields. Values are shown for confirmation before saving.
-2. ASK. A saved document can be transcribed, then asked free-text questions.
-   Answers are drawn from that document.
+1. SCANNING. An image the user selects goes once to our service, which forwards
+   it to the Anthropic Claude API to extract the expiry date and other fields.
+   Values are shown for confirmation before saving.
+2. ASK. A saved document can be transcribed, then asked free-text questions,
+   answered from that document.
 3. RENEWAL GUIDANCE. Steps, fees and times for a document type in a region are
-   model-generated with web search, then cached and reused. Presented as
-   indicative, carrying "confirm with the official channel" and a link to the
-   official source. Never as official instruction.
+   model-generated with web search, then cached. Presented as indicative,
+   carrying "confirm with the official channel" and a link to the official
+   source. Never as official instruction.
 
 THE BUSINESS MODEL
 
@@ -70,9 +69,8 @@ AVAILABILITY
 
 Expyr ships in all storefronts. Renewal guidance is checked against the
 responsible authority only for the UAE, and the app says so: elsewhere type
-names go generic and guidance is labelled generated, not verified.
-
-Expyr collects no government fees, acts as no authority's agent, and is neither
+names go generic and guidance is labelled generated, not verified. Expyr
+collects no government fees, acts as no authority's agent, and is neither
 affiliated with nor endorsed by any government body.
 
 WHAT LEAVES THE DEVICE

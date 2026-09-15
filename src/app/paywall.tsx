@@ -11,6 +11,7 @@ import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { topUp } from '@/domain/credits';
 import { wantsProtectOffer } from '@/domain/protect-offer';
 import { trackedSentence } from '@/domain/renewal-value';
+import { canBuy, offerFor } from '@/domain/store-offer';
 import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
 import { PRO_CREDITS } from '@/lib/credit-packs';
@@ -82,7 +83,14 @@ export default function PaywallScreen() {
    * until the store answers, and on any build with no store in it.
    */
   const storePrices = useStorePrices();
-  const price = storePrices[PRO_PRODUCT_ID] ?? plan.price;
+  /*
+   * Whether Pro is actually for sale. It was not, for every install since the
+   * tenth of September: the product had never been submitted for review, so
+   * the storefront had no such thing, and the button offered it at the written
+   * price and failed on tap.
+   */
+  const offer = offerFor(storePrices, PRO_PRODUCT_ID, plan.price);
+  const price = offer.kind === 'unavailable' ? null : offer.price;
 
   /*
    * Normally this modal sits on top of Settings, but it can also be the first
@@ -293,16 +301,25 @@ export default function PaywallScreen() {
             * where the purchase is made: the first two are on this button and
             * the third is the line under it.
             */}
-          <Pressable onPress={buy} disabled={busy} accessibilityRole="button">
+          <Pressable
+            onPress={buy}
+            disabled={busy || !canBuy(offer)}
+            accessibilityRole="button">
             {({ pressed }) => (
               <View
                 style={[
                   styles.primary,
-                  { backgroundColor: theme.accent },
+                  { backgroundColor: canBuy(offer) ? theme.accent : theme.backgroundSelected },
                   (pressed || busy) && styles.dim,
                 ]}>
-                <ThemedText type="headline" style={{ color: theme.accentContrast }}>
-                  {busy ? 'One moment' : `Unlock ${plan.title} for ${price}`}
+                <ThemedText
+                  type="headline"
+                  style={{ color: canBuy(offer) ? theme.accentContrast : theme.textTertiary }}>
+                  {!canBuy(offer)
+                    ? `${plan.title} is unavailable`
+                    : busy
+                      ? 'One moment'
+                      : `Unlock ${plan.title} for ${price}`}
                 </ThemedText>
               </View>
             )}
@@ -316,8 +333,17 @@ export default function PaywallScreen() {
             * here. Nothing renews, so the auto-renewal disclosure does not
             * apply and claiming one would be worse than leaving it out.
             */}
+          {/*
+            * When there is nothing to sell, the terms of a sale are not the
+            * thing to say. What a person needs is that it is not their fault,
+            * that nothing has been taken, and that a purchase they already
+            * made is still theirs — which is what the Restore link below is
+            * for and why it stays.
+            */}
           <ThemedText type="footnote" themeColor="textTertiary" style={styles.legal}>
-            One-time purchase. Nothing renews. Shares with your Apple Family.
+            {canBuy(offer)
+              ? 'One-time purchase. Nothing renews. Shares with your Apple Family.'
+              : 'The App Store has nothing to sell for this yet. Nothing has been charged, and everything you already have is unchanged.'}
           </ThemedText>
 
           <View style={styles.links}>

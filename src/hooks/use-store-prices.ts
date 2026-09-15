@@ -16,13 +16,17 @@ import { priceList } from '@/lib/store';
  * a file. So the tables in purchases.ts and credit-packs.ts stop being what the
  * screens show and become what they fall back to.
  *
- * Empty until the store answers, and empty for ever on a build with no store
- * in it, which is every build made before payments were added. Callers must
- * fall back rather than wait: a screen that showed nothing until StoreKit
- * replied would be blank on exactly the builds that cannot sell anyway.
+ * Null until the store answers, and null for ever on a build with no store in
+ * it, which is every build made before payments were added. Callers must fall
+ * back rather than wait: a screen that showed nothing until StoreKit replied
+ * would be blank on exactly the builds that cannot sell anyway.
+ *
+ * Null rather than an empty record, because a record is an answer. StoreKit
+ * replying with no products means the storefront has none of them, which is
+ * what has to stop a screen offering one. See `offerFor`.
  */
-export function useStorePrices(): Record<string, string> {
-  const [prices, setPrices] = useState<Record<string, string>>({});
+export function useStorePrices(): Record<string, string> | null {
+  const [prices, setPrices] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
     let live = true;

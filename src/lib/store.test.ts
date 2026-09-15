@@ -79,7 +79,14 @@ describe('a runtime with no store in it', () => {
     expect(await sweep(async () => ({ transactionId: 'x', productId: 'y' }))).toEqual([]);
   });
 
-  it('quotes no prices, so the written tables are used instead', async () => {
+  /*
+   * Null, not an empty record, and the difference is load-bearing. An empty
+   * record is StoreKit answering that the storefront has none of these
+   * products, which is what stops a screen offering something it cannot sell.
+   * No store at all is not an answer about the storefront, so the written
+   * tables are used and the buttons stay live.
+   */
+  it('says it does not know, rather than saying there is nothing for sale', async () => {
     vi.doMock('expo-iap', () => ({
       initConnection: () => {
         throw new Error("Cannot find native module 'ExpoIap'");
@@ -87,7 +94,7 @@ describe('a runtime with no store in it', () => {
     }));
 
     const { priceList } = await import('@/lib/store');
-    expect(await priceList()).toEqual({});
+    expect(await priceList()).toBeNull();
   });
 });
 

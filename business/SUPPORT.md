@@ -147,6 +147,10 @@ so it behaves exactly like a purchase, including the 1.0.1 credit grant keyed
 on the transaction id. Limits: ten active offers per app, one redemption of a
 given offer per customer.
 
+Used so far: the "Ahmad" offer, made 11 September, with custom codes AHMADPRO
+and PRO1. Hashem deactivated both, on 13 and 19 September, and the whole offer
+is now listed as inactive. The next person needs a new offer.
+
 **TestFlight is the answer for testing the next build.** A tester installed
 through TestFlight gets every in-app purchase free, because TestFlight runs
 against the sandbox. Right for someone hunting bugs in 1.0.1 before it ships,

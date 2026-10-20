@@ -573,19 +573,34 @@ purchase-screen shot on each of the four products is the likely cause: a
 product without an App Review screenshot cannot leave Prepare for Submission
 and cannot be attached to a version.
 
-**What that means for the live app.** `paywall.tsx:85` reads
-`storePrices[PRO_PRODUCT_ID] ?? plan.price`, so with no product on the
-storefront the button still reads "Unlock Expyr Pro for AED 149.00" and the
-purchase then fails. Every install since 10 September has seen a Pro button
-that cannot complete. Nothing was lost in money, because nothing could be
-charged, but the 0.29% conversion measurement has been meaningless from the
-start and any early buyer was turned away.
+**What that means for the live app: nothing, it turned out.** The paragraph
+first written here said Pro had never been on sale. That was wrong. Hashem's
+purchase sheet on the live 1.0 showed Expyr Pro for sale, and its product page
+(`pro.lifetime`, Apple ID 6809480104) reads Approved, Non-Consumable, all four
+products Approved. The rejection was about Apple's review record, not the
+storefront, so 1.0's Pro button worked and the conversion baseline stands.
 
 **The fix, in order:** attach `Downloads/expyr-iap-review/pro-paywall.png`
 to Expyr Pro's App Review Information so it reaches Ready to Submit; the
 In-App Purchases section then appears on the 1.0.1 version page; tick Expyr
 Pro there; upload a new binary, which Apple asked for twice; resubmit. Do
 not argue the point further, the reviewer has already answered it once.
+
+**What actually happened, and 1.0.1 is live.** An Approved product has no Add
+for Review button and does not appear on a version page, so the fix above could
+not be done as written. Build 8 went in on 15 September at 23:36 with new
+review notes, and on 16 September Apple rejected it again with the same 2.1(b)
+wording. On 17 September Hashem replied in the submission with the product
+record (reference name, product ID, Apple ID, Approved status, Add for Review
+disabled), two screenshots, and a request to reconcile the record or say what
+submission action was possible. On 18 September Apple answered "We will
+continue the review", and 1.0.1 (8) was **approved**. App Store Connect shows
+iOS 1.0.1 **Ready for Distribution**, checked 20 October.
+
+The lesson for the next time an Approved product is called "never
+submitted": reply in the submission with the product's own record and
+screenshots, and ask for the exact action. A new binary did not move it; the
+message did.
 
 ### Not code, but goes on the same version
 

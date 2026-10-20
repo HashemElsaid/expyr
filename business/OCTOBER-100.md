@@ -17,6 +17,12 @@ before money goes on ads. Two facts behind it:
   Development session was asked on 20 October to save it on a branch, audit
   the live app and the redesign, and recommend: ads now on 1.0.1, or ship the
   redesign as 1.0.2 first.
+- **Audit back, 20 October: no blocker in the live app.** But the live
+  listing's first screenshot shows a real personal document from the phone
+  it was captured on, not demo data, and Apple Ads shows the first
+  screenshots in the ad itself. So ads wait for 1.0.2 and its new
+  screenshots, which come from the 13 September recordings: demo household
+  only, checked frame by frame. Never reuse any earlier "frame 01".
 - **Screenshots only change with a new version.** Better store screenshots
   mean a 1.0.2 and another Apple review either way. Submissions are blocked
   until Hashem accepts Apple's updated Developer Program License Agreement in

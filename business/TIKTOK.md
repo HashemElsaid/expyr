@@ -206,9 +206,28 @@ was not being distributed at all.
   deadlines. Account 8 hooks: ten about subscriptions, in dollars.
 - Final slide on account 1 changed to the subscriptions screenshot.
 - Autopilot paused on account 8 until it has been warmed up by hand.
-- New image collection "Expyr - App screens", eleven bright full-screen shots
-  of the real app cut from the screen recordings, in
-  `Desktop/expyr-reelfarm-images`, to replace the cafe photos.
+- New image collection "Expyr - App screens v2" on both formats, hook and
+  content slides, replacing the cafe photos. Eleven 1080 by 1920 images in
+  `Desktop/expyr-reelfarm-images-v2`: a frame from the screen recordings,
+  status bar repainted to 9:41, inside a drawn iPhone 17 Pro in Cosmic Orange
+  on a dark green stage, with the icon, "Expyr" and a slogan written for that
+  screen above the phone (for example "Ask your lease. Get the exact clause."
+  on the Expyr AI answer). The lockup sits above the phone and below where
+  ReelFarm's text ends. The first full-bleed set, `expyr-reelfarm-images`, is
+  obsolete.
+- Overlay off on both formats, so the images show at full brightness.
+  Auto-images stays off, because it pulls ReelFarm's own stock photos.
+- Text cut so it never runs into the logo: content body word length 5-10, a
+  "HARD LIMIT: 10 words" line in the body and slide 4 directions, text width
+  90%, and "body at most 14 words" in Tone & Style. ReelFarm's text starts
+  about 11% down the slide, not 15%, which is why the long bodies collided.
+- Samples are made with "Add to the queue" off, so nothing posts until
+  checked.
+
+**Known gap.** With Auto-images off, ReelFarm puts the eleven images on slides
+at random, so a subscriptions slide can land on a licence screenshot with a
+reminders slogan. Image overrides per slide would fix it for subscription posts,
+but on account 1 they would mismatch the four document hooks.
 
 **What to read in two weeks:** average views per post against 310, whether any
 post passes 1,000, and whether comments move off zero. The single number that

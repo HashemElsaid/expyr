@@ -7,6 +7,21 @@ between 21 and 31 October.
 come from people who do not know him: no friends, family, WhatsApp contacts or
 asking people to forward it. So every channel below is public or paid.
 
+**On hold, 20 October: no ads until the audit is back.** Hashem's call:
+everything in the app has to work and the store page has to match the app
+before money goes on ads. Two facts behind it:
+
+- **The redesign was never shipped.** A redesign made with Codex sits as
+  uncommitted changes (56 files, 17 September to 11 October) in the main
+  checkout. The live app is 1.0.1 build 8, the September design. The App
+  Development session was asked on 20 October to save it on a branch, audit
+  the live app and the redesign, and recommend: ads now on 1.0.1, or ship the
+  redesign as 1.0.2 first.
+- **Screenshots only change with a new version.** Better store screenshots
+  mean a 1.0.2 and another Apple review either way. Submissions are blocked
+  until Hashem accepts Apple's updated Developer Program License Agreement in
+  App Store Connect.
+
 ## Where we start
 
 App Analytics, 20 September to 19 October:

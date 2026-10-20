@@ -168,3 +168,49 @@ voice and a hero render, and no good at the cut. The cut is ours.
 Per video: views, shares, profile visits, link taps, in the account's
 analytics. Per week: App Store Connect impressions and downloads against
 the previous week. That is the whole dashboard.
+
+---
+
+## ReelFarm, reviewed and rebuilt 20 October 2026
+
+**What was running.** Two faceless TikTok accounts on ReelFarm autopilot,
+twice a day: @theadultingmanual1 on the "Expyr - UAE" format and
+@theadultingmanual8 on "Expyr - US". Seven-slide slideshows on cafe and laptop
+stock photos, tip-style hooks with no stakes, Expyr first mentioned on slide 6,
+and a slide labelled "Example note, fictional" because the format's prompt asked
+for one.
+
+**Baseline, 28 September to 19 October:**
+
+| | @theadultingmanual1 | @theadultingmanual8 |
+|---|---|---|
+| Posts tracked | 45 | 3 |
+| Views | 17,310 | 238 |
+| Likes | 329 | 10 |
+| Comments | 0 | 0 |
+| Shares | 15 | 0 |
+| Saves | 101 | 0 |
+
+Average views per post on account 1: 476, then 349, then 310 over the three
+weeks. Every post was shown to a test audience and none broke out. Account 8
+was not being distributed at all.
+
+**What changed on 20 October:**
+
+- Both formats cut to five slides: hook, the fact behind it, one action, an
+  Expyr bridge on slide 4, the app screenshot on slide 5.
+- Master prompt rewritten on both: subscriptions first, a real cost or fine in
+  every post, only checkable facts, no fictional examples, a comment question
+  in every caption.
+- Account 1 hooks: eight about subscriptions, four about UAE fines and
+  deadlines. Account 8 hooks: ten about subscriptions, in dollars.
+- Final slide on account 1 changed to the subscriptions screenshot.
+- Autopilot paused on account 8 until it has been warmed up by hand.
+- New image collection "Expyr - App screens", eleven bright full-screen shots
+  of the real app cut from the screen recordings, in
+  `Desktop/expyr-reelfarm-images`, to replace the cafe photos.
+
+**What to read in two weeks:** average views per post against 310, whether any
+post passes 1,000, and whether comments move off zero. The single number that
+matters is profile visits, in the TikTok app, because that is the step between
+a view and an install.

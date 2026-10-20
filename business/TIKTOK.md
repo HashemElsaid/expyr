@@ -224,6 +224,31 @@ was not being distributed at all.
 - Samples are made with "Add to the queue" off, so nothing posts until
   checked.
 
+**Why @theadultingmanual8 gets no views, read 20 October from TikTok's own
+post data.** It did get views at first: 1,171 and 1,294 on 21 and 22
+September. Then 221, 15, 24 and 3, no posts from 3 to 14 October, and 0 to 2
+views on every post since 14 October. Zero means TikTok is not showing the
+posts even to the small test audience every new post gets. The UAE account
+carries the same "AI-generated" label and the same mixed-language "original
+sound" labels and still gets 100 to 550 views, so those are not the cause.
+What differs:
+
+1. **Its first posts were copies of account 1's.** The first three US posts
+   are the same slideshows, same images and text, that account 1 posted a
+   day or two earlier. TikTok treats reposted content as unoriginal and stops
+   recommending accounts that do it; the decline starts right after.
+2. **It is almost certainly a UAE account.** TikTok decides an account's
+   country from the phone and network it was set up and used on, not from
+   ReelFarm's "United States" prompt. The US posts go out at 00:35 UTC, which
+   is 4:35 am in Dubai, so the first audience TikTok tries is asleep.
+3. **The 13 to 14 October changes were to the writing rules only**, which do
+   not touch either cause, and the posts after them still got zero.
+
+The deciding check is in the TikTok app, signed in as the account: Settings
+and privacy, Account, Account status, plus the "Ineligible for For You" notice
+on any post's analytics. Until then the account stays paused, and it must not
+use the same images as account 1 again.
+
 **Known gap.** With Auto-images off, ReelFarm puts the eleven images on slides
 at random, so a subscriptions slide can land on a licence screenshot with a
 reminders slogan. Image overrides per slide would fix it for subscription posts,

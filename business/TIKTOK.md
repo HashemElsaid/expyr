@@ -249,6 +249,26 @@ and privacy, Account, Account status, plus the "Ineligible for For You" notice
 on any post's analytics. Until then the account stays paused, and it must not
 use the same images as account 1 again.
 
+**The "AI-generated" label, and the switch to drafts, 20 October.** Every one
+of the 68 posts on both accounts carries TikTok's AI-generated flag, a real
+camera video included, so it is ReelFarm setting the flag on upload, not
+TikTok detecting anything. ReelFarm has no setting for it. Hashem does not
+want the label, so both accounts' Post mode (ReelFarm, Accounts) is now
+**Publish as draft**: posts land in the TikTok app's inbox and Hashem
+publishes them there, with "AI-generated content" off and "Disclose post
+content, Your brand" on, which TikTok requires for promoting your own
+business. ReelFarm's own note says posting straight to a new account limits
+reach, which drafts also fix. Schedules: UAE drafts at 1 pm and 10 pm Dubai,
+US at 6 pm Dubai. Publish the US one in the evening.
+
+**US account restart.** Its own image collection, "Expyr - US screens": eleven
+images in `Desktop/expyr-reelfarm-images-us` from the same recordings, but a
+silver iPhone on navy, different moments and angles, and US slogans, so
+nothing it posts is a copy of the UAE account. Autopilot stays off until the
+images are uploaded and the format points at them. Honest limit: published
+from a phone in the UAE, TikTok will still treat it as a UAE account and
+show it to UAE viewers first.
+
 **Known gap.** With Auto-images off, ReelFarm puts the eleven images on slides
 at random, so a subscriptions slide can land on a licence screenshot with a
 reminders slogan. Image overrides per slide would fix it for subscription posts,

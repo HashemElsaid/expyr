@@ -278,3 +278,64 @@ but on account 1 they would mismatch the four document hooks.
 post passes 1,000, and whether comments move off zero. The single number that
 matters is profile visits, in the TikTok app, because that is the step between
 a view and an install.
+
+---
+
+## Why the slideshows stalled, and the video series, 27 October 2026
+
+**Read from both profiles on 27 October.** @theadultingmanual1: 54 posts, all
+photo slideshows, 36 followers, 617 likes, 0 comments on almost every post,
+nothing posted since 19 October. @theadultingmanual8: 14 posts, 0 to 3 views on
+everything since 14 October, nothing since 20 October. The switch to drafts
+on 20 October meant nothing reached either profile after it.
+
+**What the numbers say.** The same cafe-and-laptop photos got 4,788 views when
+the post was "6 things that quietly cost you money" and 1,253 for paying bills
+as an adult. The document posts (lease notice clause, passport before booking,
+Emirates ID reminder) sit at 150 to 550 whatever the wording. So two things,
+in this order:
+
+1. **The hooks were instructions, not hooks.** "Before moving out, find your
+   lease notice clause" is a to-do item. Nothing in the first second says what
+   the viewer loses. Money lost without noticing is the only topic that broke
+   out.
+2. **The look reads as a content farm.** Fifty-four stock "aesthetic desk"
+   photos make an account that looks like thousands of others, and every post
+   carried the AI-generated label. People scroll past before reading. Zero
+   comments in 54 posts is the sign nobody felt addressed.
+
+Also against it: every caption ended "Expyr is our iPhone app for...", which
+turns each post into an ad.
+
+**What replaced it.** Eight vertical videos, 13 to 19 seconds, rendered in
+Python from one script: a paper-and-ink "manual page" look that is the series'
+own, motion and a stake on the very first frame, synthesized sound effects,
+and the app appearing only at the end, as the answer, in the real 13 September
+screen recordings (demo household, status bar repainted to 9:41) and the app's
+exact reminder wording.
+
+| File | Hook on frame one | Account |
+|---|---|---|
+| 01-meter-uae | Your Emirates ID expired 30 days ago. A counter runs AED 20 a day to the AED 1,000 cap | 1 |
+| 02-remember-uae / -us | Things adults are expected to just remember: 24 expiry tags pile up, "Your brain: remembering 1 of 24" | 1 / 8 |
+| 03-receipt-aed / -usd | "it's only 9.99 a month", struck through, then a year's receipt: AED 8,559.51 / $2,201.15 | 1 / 8 |
+| 04-quiz | Answer without checking your phone. Four timed questions, "Comment your score" | 1 only |
+| 05-free-trial-aed / -usd | A free trial is a bet that you'll forget. Day 8: CHARGED | 1 / 8 |
+
+Fines quoted are the five checked against primary sources in
+`src/data/document-types.ts`: Emirates ID AED 20 a day after the 30-day grace,
+capped at AED 1,000; residence visa AED 50 a day once the grace period ends;
+Mulkiya and licence AED 10 a month. Receipt and trial prices are illustrative
+and use generic names, not brands.
+
+Files, captions and the posting order: `Desktop/adulting-manual-tiktoks`, with
+`POSTING.txt` and the render scripts in `source/`. Posted by hand from the
+TikTok app, AI-generated off, "Your brand" on, a Commercial Music Library sound
+at about 20% under the effects. ReelFarm stays paused while these run.
+
+**The test for account 8.** One video (02-remember-us). Under 50 views in 24
+hours means it is still suppressed, and everything goes to account 1.
+
+**What to read after five posts:** average watch time against length (aim for
+over 60%), comments (baseline 0), profile visits, and whether any post passes
+1,000 views. The format that passes it gets three more.

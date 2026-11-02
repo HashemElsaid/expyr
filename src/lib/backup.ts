@@ -73,7 +73,7 @@ export async function exportBackup(documents: TrackedDocument[]): Promise<void> 
 
   const file = scratchFile(`expyr-backup-${timestamp()}.json`);
   file.create();
-  file.write(JSON.stringify(payload));
+  file.writeSync(JSON.stringify(payload));
   await share(file, 'application/json', 'Save your Expyr backup');
 }
 
@@ -113,7 +113,7 @@ export async function exportCsv(
 
   const file = scratchFile(`expyr-${timestamp()}.csv`);
   file.create();
-  file.write(rows.join('\n'));
+  file.writeSync(rows.join('\n'));
   await share(file, 'text/csv', 'Export your Expyr items');
 }
 
@@ -174,7 +174,7 @@ export async function importBackup(): Promise<RestoreResult | null> {
         );
         if (target.exists) target.delete();
         target.create();
-        target.write(item.base64, { encoding: 'base64' });
+        target.writeSync(item.base64, { encoding: 'base64' });
         files.push({ uri: target.uri, type: item.type, key: item.key });
       } catch {
         // Restore the entry even if one attachment cannot be written.

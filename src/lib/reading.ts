@@ -112,7 +112,7 @@ function saveProgress(documentId: string, progress: Progress) {
     const file = progressFile(documentId);
     if (file.exists) file.delete();
     file.create();
-    file.write(JSON.stringify(progress));
+    file.writeSync(JSON.stringify(progress));
   } catch {
     // Losing the marker costs a repeat, not the reading.
   }
@@ -191,14 +191,14 @@ function saveTranscript(documentId: string, transcript: string) {
   const t = transcriptFile(documentId);
   if (t.exists) t.delete();
   t.create();
-  t.write(transcript);
+  t.writeSync(transcript);
 }
 
 function saveBrief(documentId: string, brief: Brief) {
   const b = briefFile(documentId);
   if (b.exists) b.delete();
   b.create();
-  b.write(JSON.stringify(brief));
+  b.writeSync(JSON.stringify(brief));
 }
 
 /**
@@ -246,7 +246,7 @@ export function saveTurns(scope: string, turns: Turn[]) {
     if (file.exists) file.delete();
     if (turns.length === 0) return;
     file.create();
-    file.write(JSON.stringify(turns.slice(-MAX_STORED_TURNS)));
+    file.writeSync(JSON.stringify(turns.slice(-MAX_STORED_TURNS)));
   } catch {
     // It is still on screen. Failing to save it is not worth an alert.
   }

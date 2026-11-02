@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { InteractionManager, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
@@ -86,13 +86,27 @@ export function LockOffer() {
   useEffect(() => {
     if (!wanted) return;
 
+    /*
+     * Waits for the thread to go idle, then for the settle delay on top.
+     *
+     * This used InteractionManager.runAfterInteractions, which React Native
+     * 0.88 removed outright: touching it now throws, so on SDK 58 the first
+     * saved photograph would have crashed the app at exactly the moment the
+     * old freeze happened. requestIdleCallback is the replacement React Native
+     * names, and the timeout means a busy thread can delay the offer but never
+     * cancel it. The settle delay is unchanged, because it is what keeps the
+     * modal out of the sheet's dismissal animation.
+     */
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const task = InteractionManager.runAfterInteractions(() => {
-      timer = setTimeout(() => setSettled(true), SETTLE_MS);
-    });
+    const idle = requestIdleCallback(
+      () => {
+        timer = setTimeout(() => setSettled(true), SETTLE_MS);
+      },
+      { timeout: 2000 }
+    );
 
     return () => {
-      task.cancel();
+      cancelIdleCallback(idle);
       if (timer) clearTimeout(timer);
     };
   }, [wanted]);

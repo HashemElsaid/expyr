@@ -139,7 +139,7 @@ function write(key: string, value: Guidance) {
     const file = fileFor(key);
     if (file.exists) file.delete();
     file.create();
-    file.write(JSON.stringify({ value, at: Date.now() } satisfies Stored));
+    file.writeSync(JSON.stringify({ value, at: Date.now() } satisfies Stored));
   } catch {
     // A cache that cannot be written costs one request next time. Not an error.
   }

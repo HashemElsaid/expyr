@@ -116,7 +116,7 @@ function rememberMiss(domain: string, at: number) {
     const file = missFor(domain);
     if (file.exists) file.delete();
     file.create();
-    file.write(String(at));
+    file.writeSync(String(at));
   } catch {
     // Forgetting costs a repeated request, not a broken icon.
   }
@@ -198,7 +198,7 @@ export async function ensureBrandIcon(domain?: string): Promise<boolean> {
     if (bytes.length === 0) return false;
 
     file.create();
-    file.write(bytes);
+    file.writeSync(bytes);
     return true;
   } catch {
     return false;

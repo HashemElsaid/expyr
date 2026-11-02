@@ -476,7 +476,7 @@ export default function HomeScreen() {
                   Nothing matches “{query.trim()}”.
                 </ThemedText>
               )
-            ) : null
+            ) : undefined
           }
           ListFooterComponent={
             documents.length > 0 ? (
@@ -519,7 +519,7 @@ export default function HomeScreen() {
                   Saved on this iPhone
                 </ThemedText>
               </View>
-            ) : null
+            ) : undefined
           }
         />
       </SafeAreaView>

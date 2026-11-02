@@ -94,7 +94,9 @@
       "expo-secure-store",
       "expo-localization",
       "expo-apple-authentication",
-      "expo-iap"
+      "expo-iap",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

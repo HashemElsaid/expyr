@@ -42,3 +42,18 @@ example
 # generated native folders
 /ios
 /android
+
+# Personal and marketing material that lives beside the code but must never
+# be committed. The repository is public.
+# Scratch, including CVs.
+tmp/
+# Marketing video and images, hundreds of megabytes.
+ads/
+# CVs.
+output/pdf/resumes/
+# Screenshots of the marketing account.
+output/reelfarm-*/
+# Captured on a phone holding the owner's own documents; frame 01 shows a
+# real passport and its expiry, and the contact sheet repeats it.
+output/app-store-screenshots-new/01-everything-in-one-place.png
+output/app-store-screenshots-new/contact-sheet.png

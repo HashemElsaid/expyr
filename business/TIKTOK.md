@@ -339,3 +339,64 @@ hours means it is still suppressed, and everything goes to account 1.
 **What to read after five posts:** average watch time against length (aim for
 over 60%), comments (baseline 0), profile visits, and whether any post passes
 1,000 views. The format that passes it gets three more.
+
+---
+
+## Account 8, diagnosed again, and the first scheduled post, 29 October 2026
+
+**The region theory of 20 October was wrong.** TikTok Studio's own viewer data
+for account 8's best post (1,294 views, 23 September) shows **95.1% United
+States, 2.3% UAE**, 96.6% from For You. TikTok did treat the account as American
+and did distribute it. What changed is the account, not the country.
+
+**The timeline, from the post analytics and the account's notifications:**
+
+| When | Post | Views |
+|---|---|---|
+| 21 to 23 Sep | The first three, copies of account 1's slideshows | 31, 1,171, 1,294 |
+| 27 Sep, 21:57 | "Your account logged in from a new device: Chrome, Abu Dhabi" | |
+| 28 Sep | "A few habits... Download Expyr on the App Store" | 221 |
+| about 1 Oct | "Never miss an expiration date again. Download Expyr" (photo and video) | 15, 24 |
+| 14 to 20 Oct | Seven tip slideshows, each ending "Expyr is our iPhone app" | 0 to 3 |
+
+No violation or restriction notice anywhere in the account's notifications.
+Zero views on an eligible post means TikTok is not giving it even the small
+test audience every new post gets, so this is an account-level trust problem,
+not dull content: account 1 posts the same kind of slideshow and still gets
+150 to 550. The likely causes, together rather than one:
+
+1. **Copied content.** The first posts were account 1's posts, same images
+   and words.
+2. **Linked accounts boosting each other.** The notifications show account 1
+   liking and reposting account 8's posts, and an "Expyr" account liking them
+   too, all from the same owner. TikTok reads a ring of accounts engaging with
+   each other as inauthentic.
+3. **A sudden location change.** A US-facing account, then a first login from
+   a browser in Abu Dhabi, then the drop.
+4. **Hard-sell posts at the worst moment.** "Download Expyr on the App
+   Store" posts came right as the account was being re-evaluated.
+
+**The test, scheduled 29 October, 20:00 Dubai:** 02-remember-us, an original
+video, brand disclosure on, AI label off. TikTok's own pre-post "Content check
+lite" returned "No issues found" for For You eligibility, so if it still gets
+0 to 3 views the account is suppressed. Read it on 30 October:
+
+- **Under 50 views:** retire account 8. Put everything into account 1. A fresh
+  US account only makes sense if it can be run cleanly: created on one phone,
+  never logged in elsewhere, never following, liking or reposting account 1 or
+  the Expyr account, and nothing on it that has appeared anywhere else.
+- **50 or more:** the account recovers. Post the US cuts only (03-receipt-usd,
+  07-sound-of-a-month-usd, 08-notes-app-us, 05-free-trial-usd), one a day,
+  and stop the accounts interacting with each other.
+
+**New videos, 29 October,** in `Desktop/adulting-manual-tiktoks/made-by-claude`:
+
+| File | Hook on frame one |
+|---|---|
+| 06-iphone-list | Your iPhone keeps a list of every subscription you pay. You've never opened it. Three steps, a camera flash, then Expyr reading the screenshot |
+| 07-sound-of-a-month-aed / -usd | A lock screen at 3:12: "One month of subscriptions. Sound on." Ten charge notifications land with a ding each, a running total, then the year |
+| 08-notes-app-uae / -us | "How you track renewals now:" a notes app typed out ("emirates ID - sometime in spring"), stamped THIS IS NOT A SYSTEM, then the real Timeline |
+
+Posting goes through TikTok Studio on the web. The browser uploader takes
+files under 10 MB, so each video gets a two-pass copy at about 8 MB
+(`source/upload_copy.py`); TikTok re-compresses below that anyway.

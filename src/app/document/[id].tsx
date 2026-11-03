@@ -41,6 +41,7 @@ import { buildRunway, spanLabel } from '@/domain/runway';
 import { dayMonth, daysUntil, formatDate, shortDate } from '@/lib/dates';
 import { money } from '@/lib/figures';
 import { upcoming } from '@/lib/recurrence';
+import { subscriptionLeads } from '@/lib/reminder-plan';
 import { chargeAmount } from '@/domain/year';
 import { moveReminder } from '@/domain/reminder-allowance';
 import { arrive, flyHome, useInFlight } from '@/lib/card-flight';
@@ -52,7 +53,13 @@ import { ExtractedField, TrackedDocument } from '@/types';
 /** Reminder dates derived from the schedule — no extra state to keep in sync. */
 function reminderDates(doc: TrackedDocument) {
   const expiry = new Date(`${doc.expiryDate}T09:00:00`);
-  return [...doc.leadDays]
+  /*
+   * A subscription is asked about on the day itself, and warned ahead only
+   * when it is a free trial or a yearly charge; the planner decides which, and
+   * this lists the same days so the page never promises one it will not send.
+   */
+  const leads = doc.renewsEvery ? [...subscriptionLeads(doc, 0), 0] : doc.leadDays;
+  return [...leads]
     .sort((a, b) => b - a)
     .map((lead) => {
       const date = new Date(expiry);
@@ -464,7 +471,7 @@ export default function DocumentDetailScreen() {
         {doc.renewsEvery && isSubscription(doc) && (
           <ListSection
             title="Next charges"
-            footer="Renews by itself. When a charge date passes, Expyr moves to the next one. Tell it only if you cancel">
+            footer="On the day it charges, Expyr asks: renewed or stopped. No answer counts as renewed">
             {upcoming(doc.expiryDate, doc.renewsEvery, new Date(), 3).map((iso) => (
               <ListRow
                 key={iso}
@@ -521,7 +528,7 @@ export default function DocumentDetailScreen() {
                   symbol="bell.fill"
                   tint={r.past ? 'gray' : 'red'}
                   title={dayMonth(r.date)}
-                  value={r.past ? 'Sent' : undefined}
+                  value={r.past ? 'Sent' : r.lead === 0 ? 'Asks, renewed or stopped' : undefined}
                 />
               ))
             )}

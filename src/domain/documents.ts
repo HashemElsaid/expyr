@@ -156,6 +156,29 @@ export function rollForward(doc: TrackedDocument, today: Date = new Date()): Tra
 }
 
 /**
+ * Somebody answered "Renewed" on the day a subscription charged.
+ *
+ * Moves it on to the next charge straight away rather than waiting for the
+ * day to pass, so the page and the year card stop saying it is due today the
+ * moment they have said it went through. A charge that is not due yet is left
+ * alone: answering early must not skip a payment.
+ */
+export function confirmCharge(doc: TrackedDocument, today: Date = new Date()): TrackedDocument {
+  if (!doc.renewsEvery || doc.archivedAt) return doc;
+  const tomorrow = new Date(today);
+  tomorrow.setHours(0, 0, 0, 0);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const { next, past } = advance(doc.expiryDate, doc.renewsEvery, tomorrow);
+  if (past.length === 0) return doc;
+  return {
+    ...doc,
+    expiryDate: next,
+    history: [...(doc.history ?? []), ...past],
+    trial: undefined,
+  };
+}
+
+/**
  * The whole collection, brought up to date. Returns the same array when
  * nothing moved, so a caller can skip the write and the reminder rebalance
  * that would otherwise follow.

@@ -466,6 +466,27 @@ export default function SettingsScreen() {
           </ListSection>
 
           {/*
+           * What a subscription is reminded about, said once where people look
+           * for it. Facts rather than switches: one question on the day keeps
+           * the notifications few enough that nobody turns them all off.
+           */}
+          <ListSection title="Subscription reminders" footer="No answer counts as renewed">
+            <ListRow
+              symbol="questionmark.circle.fill"
+              tint="blue"
+              title="On the day it charges"
+              value="Renewed or stopped?"
+            />
+            <ListRow
+              symbol="calendar"
+              tint="orange"
+              title="Before a yearly charge"
+              value="2 weeks, 3 days"
+            />
+            <ListRow symbol="gift.fill" tint="green" title="Before a free trial ends" value="2 days" />
+          </ListSection>
+
+          {/*
            * A segmented control, which is what iOS uses for three exclusive
            * choices. Three mint pills were a set of buttons that happened to
            * be exclusive, which is a different thing and read as one.

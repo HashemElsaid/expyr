@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  confirmCharge,
   expiryVerb,
   isSubscription,
   migrateDocument,
@@ -271,5 +272,26 @@ describe('trials and check-ins across a reload', () => {
     const rolled = rollForward(doc, new Date(2026, 10, 3));
     expect(rolled.trial).toBeUndefined();
     expect(rolled.expiryDate).toBe('2026-12-01');
+  });
+});
+
+describe('confirmCharge', () => {
+  const today = new Date(2026, 10, 3);
+
+  it('moves a subscription due today on to its next charge', () => {
+    const doc = makeDocument('membership', { renewsEvery: 'monthly', expiryDate: '2026-11-03' });
+    const done = confirmCharge(doc, today);
+    expect(done.expiryDate).toBe('2026-12-03');
+    expect(done.history).toEqual(['2026-11-03']);
+  });
+
+  it('ends a free trial that has just charged', () => {
+    const doc = makeDocument('membership', { renewsEvery: 'monthly', expiryDate: '2026-11-03', trial: true });
+    expect(confirmCharge(doc, today).trial).toBeUndefined();
+  });
+
+  it('never skips a charge that is not due yet', () => {
+    const doc = makeDocument('membership', { renewsEvery: 'monthly', expiryDate: '2026-11-10' });
+    expect(confirmCharge(doc, today)).toBe(doc);
   });
 });

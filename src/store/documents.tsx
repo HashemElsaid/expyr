@@ -12,7 +12,7 @@ import {
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { LocalDocumentRepository, type DocumentRepository } from '@/data/document-repository';
-import { isSubscription, rollForwardAll } from '@/domain/documents';
+import { confirmCharge, isSubscription, rollForwardAll } from '@/domain/documents';
 import { grandfatheredPicks, remindedSubscriptions } from '@/domain/reminder-allowance';
 import { daysUntil } from '@/lib/dates';
 import { deleteAttachment, storeAttachment } from '@/lib/files';
@@ -61,6 +61,8 @@ type DocumentsContextValue = {
    */
   reminded: ReadonlySet<string>;
   setArchived: (id: string, archived: boolean) => Promise<void>;
+  /** A subscription's charge went through: on to the next one. */
+  confirmRenewal: (id: string) => Promise<void>;
   addDocument: (draft: DocumentDraft) => Promise<TrackedDocument>;
   updateDocument: (id: string, draft: DocumentDraft) => Promise<void>;
   removeDocument: (id: string) => Promise<void>;
@@ -388,6 +390,25 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   );
 
   /**
+   * "Renewed", answered on the day a subscription charged: it moves on to the
+   * next charge now rather than when the day has passed.
+   */
+  const confirmRenewal = useCallback(
+    async (id: string) => {
+      const target = latest.current.find((d) => d.id === id);
+      if (!target) return;
+      const moved = confirmCharge(target);
+      if (moved === target) return;
+      const updated = { ...moved, updatedAt: new Date().toISOString() };
+      await commit(
+        latest.current.map((d) => (d.id === id ? updated : d)),
+        () => repository.upsert(updated)
+      );
+    },
+    [commit]
+  );
+
+  /**
    * Records the snooze on the document rather than booking a notification for
    * it. The planner picks it up on the next pass, which means a later
    * rebalance carries it forward instead of cancelling something it knew
@@ -433,6 +454,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       reminders,
       reminded,
       setArchived,
+      confirmRenewal,
       addDocument,
       updateDocument,
       removeDocument,
@@ -448,6 +470,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       reminders,
       reminded,
       setArchived,
+      confirmRenewal,
       addDocument,
       updateDocument,
       removeDocument,

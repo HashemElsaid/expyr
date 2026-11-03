@@ -8,6 +8,7 @@ import {
   planReminders,
   REMINDER_CATEGORY,
   REMINDER_TIME,
+  RENEWAL_DAY_CATEGORY,
   SUBSCRIPTION_CATEGORY,
   type PlannedReminder,
 } from '@/lib/reminder-plan';
@@ -35,11 +36,13 @@ Notifications.setNotificationHandler({
  * Re-exported so callers have one place to import notification vocabulary from,
  * even though the categories themselves are decided by the planner.
  */
-export { REMINDER_CATEGORY, REMINDER_TIME, SUBSCRIPTION_CATEGORY };
+export { REMINDER_CATEGORY, REMINDER_TIME, RENEWAL_DAY_CATEGORY, SUBSCRIPTION_CATEGORY };
 
 export const ACTION_SNOOZE = 'expyr.snooze';
 export const ACTION_RENEWED = 'expyr.renewed';
 export const ACTION_CANCELLED = 'expyr.cancelled';
+/** "Renewed", on the day a subscription charges: it went through. */
+export const ACTION_CHARGED = 'expyr.charged';
 
 /**
  * What Expyr currently has booked, and the plan it was booked from.
@@ -99,6 +102,22 @@ export async function registerNotificationActions() {
   await Notifications.setNotificationCategoryAsync(SUBSCRIPTION_CATEGORY, [
     { identifier: ACTION_SNOOZE, buttonTitle: 'Remind me in a week' },
     { identifier: ACTION_CANCELLED, buttonTitle: 'I cancelled this' },
+  ]).catch(() => {});
+
+  /*
+   * The question on the day a subscription charges, answered from the lock
+   * screen: press and hold the notification and two buttons appear. Neither
+   * opens the app; iOS wakes Expyr in the background to record the answer.
+   * Stopped is red because it archives the subscription and its reminders.
+   * Not answering at all counts as renewed, so nothing is ever stuck waiting.
+   */
+  await Notifications.setNotificationCategoryAsync(RENEWAL_DAY_CATEGORY, [
+    { identifier: ACTION_CHARGED, buttonTitle: 'Renewed', options: { opensAppToForeground: false } },
+    {
+      identifier: ACTION_CANCELLED,
+      buttonTitle: 'Stopped',
+      options: { opensAppToForeground: false, isDestructive: true },
+    },
   ]).catch(() => {});
 }
 
@@ -245,11 +264,10 @@ export async function cancelAllReminders() {
  * Two real reminders, a few seconds from now.
  *
  * Waiting weeks to discover that notifications never worked is the worst way to
- * find out. Two rather than one because the pair of buttons differs: a document
- * is offered "Already done", and a subscription — which renews itself whatever
- * anybody does — is offered the answer that actually helps, which is that it
- * has been cancelled. Both carry no document id, so pressing either button on a
- * test does nothing to anybody's file.
+ * find out. Two rather than one because the buttons differ: a document is
+ * offered "Already done", and a subscription is asked on the day it charges,
+ * Renewed or Stopped. Both carry no document id, so pressing either button on
+ * a test does nothing to anybody's file.
  *
  * What they say comes from `testReminderExamples`, which uses the person's own
  * soonest item. It used to be an Emirates ID and Netflix for everybody, which
@@ -279,12 +297,11 @@ export async function sendTestReminder(
 
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: example.subscription,
-      // The title already says which kind this is, and the rules have no
-      // middot in them.
+      // The renewal-day question, so its two buttons can be tried for real.
+      title: `${example.subscription} is due today`,
       subtitle: 'Test reminder',
-      body: 'This is what a reminder looks like.',
-      categoryIdentifier: SUBSCRIPTION_CATEGORY,
+      body: 'Renewed or stopped? Press and hold for the buttons.',
+      categoryIdentifier: RENEWAL_DAY_CATEGORY,
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,

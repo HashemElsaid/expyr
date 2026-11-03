@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import {
   ACTION_CANCELLED,
+  ACTION_CHARGED,
   ACTION_RENEWED,
   ACTION_SNOOZE,
   registerNotificationActions,
@@ -141,7 +142,7 @@ function AppShell() {
   const scheme = useColorScheme();
   const router = useRouter();
   const { settings, loaded, update } = useSettings();
-  const { setArchived, snoozeDocument } = useDocuments();
+  const { setArchived, snoozeDocument, confirmRenewal, loaded: documentsLoaded } = useDocuments();
 
   // Send first-time users through onboarding before they see an empty list.
   useEffect(() => {
@@ -167,7 +168,17 @@ function AppShell() {
         return;
       }
       /*
-       * Cancelled from the notification itself: archived rather than deleted,
+       * "Renewed", on the day a subscription charged. Recorded without opening
+       * anything: the person answered from the lock screen and is not looking
+       * at the app.
+       */
+      if (response.actionIdentifier === ACTION_CHARGED) {
+        void confirmRenewal(documentId);
+        return;
+      }
+      /*
+       * Cancelled from the notification itself, "I cancelled this" ahead of a
+       * charge or "Stopped" on the day: archived rather than deleted,
        * because the record of what it cost and when it ran is worth keeping,
        * and because undoing an archive is one tap while undoing a delete is
        * not possible.
@@ -178,7 +189,7 @@ function AppShell() {
       }
       router.push(`/document/${documentId}`);
     },
-    [router, setArchived, snoozeDocument]
+    [router, setArchived, snoozeDocument, confirmRenewal]
   );
 
   useEffect(() => {
@@ -198,7 +209,13 @@ function AppShell() {
    */
   const coldStartChecked = useRef(false);
   useEffect(() => {
-    if (!loaded || coldStartChecked.current) return;
+    /*
+     * The documents as well as the settings, because the answer acts on a
+     * document. A Renewed or Stopped tapped while the app was closed wakes it
+     * in the background and arrives here, and acting on it before the list had
+     * loaded would find nothing to act on and drop it.
+     */
+    if (!loaded || !documentsLoaded || coldStartChecked.current) return;
     coldStartChecked.current = true;
 
     (async () => {
@@ -213,7 +230,7 @@ function AppShell() {
         // A missed cold start is not worth blocking the app over.
       }
     })();
-  }, [loaded, handleResponse]);
+  }, [loaded, documentsLoaded, handleResponse]);
 
   /**
    * Finishes any purchase that was interrupted.

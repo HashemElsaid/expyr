@@ -2,6 +2,8 @@ import { hasGuidance, type Country } from '@/data/countries';
 import { getDocumentType, labelFor } from '@/data/document-types';
 import { expiryVerb } from '@/domain/documents';
 import { daysUntil, dueIn, longDate, toISODate } from '@/lib/dates';
+import { chargeAmount } from '@/domain/year';
+import { money } from '@/lib/figures';
 import { upcoming } from '@/lib/recurrence';
 import type { TrackedDocument } from '@/types';
 
@@ -35,6 +37,12 @@ export const REMINDER_CATEGORY = 'expyr.reminder';
  * Netflix, which renews itself whatever you do.
  */
 export const SUBSCRIPTION_CATEGORY = 'expyr.subscription';
+/**
+ * The question on the day a subscription charges, with its two answers as
+ * buttons: Renewed, and Stopped. No colon or hyphen in the name, which iOS
+ * categories do not tolerate.
+ */
+export const RENEWAL_DAY_CATEGORY = 'expyr.renewalday';
 
 /**
  * How many of the 64 to use.
@@ -113,7 +121,9 @@ function contentFor(
      * header, so nothing here says Expyr and nothing asks to be opened —
      * tapping it is what opening it means.
      */
-    title: `${doc.title} ${verb} ${dueIn(leadDays)}`,
+    title: doc.trial
+      ? `${doc.title} free trial ends ${dueIn(leadDays)}`
+      : `${doc.title} ${verb} ${dueIn(leadDays)}`,
     subtitle: [doc.owner, typeLabel === doc.title.trim() ? null : typeLabel]
       .filter(Boolean)
       .join(' · '),
@@ -133,6 +143,35 @@ function contentFor(
  * everything else out of the budget.
  */
 const OCCURRENCES_AHEAD = 3;
+
+/**
+ * The days before a subscription's charge that it is warned on, for the
+ * charge at `index` among those booked ahead. A free trial is warned before
+ * its first charge only; a yearly charge before every one; anything else not
+ * at all, because the day itself asks.
+ */
+export function subscriptionLeads(
+  doc: Pick<TrackedDocument, 'trial' | 'renewsEvery' | 'leadDays'>,
+  index: number
+): number[] {
+  const ahead = doc.leadDays.filter((lead) => lead > 0);
+  if (doc.trial) return index === 0 ? ahead : [];
+  if (doc.renewsEvery === 'yearly') return ahead;
+  return [];
+}
+
+/** The question on the day: "Netflix is due today. USD 24.99. Renewed or stopped?" */
+function renewalDayFor(
+  doc: TrackedDocument
+): Pick<PlannedReminder, 'title' | 'subtitle' | 'body' | 'categoryIdentifier'> {
+  const each = chargeAmount(doc);
+  return {
+    title: `${doc.title} is due today`,
+    subtitle: doc.owner ?? '',
+    body: each ? `${doc.price!.currency} ${money(each)}. Renewed or stopped?` : 'Renewed or stopped?',
+    categoryIdentifier: RENEWAL_DAY_CATEGORY,
+  };
+}
 
 /**
  * Every reminder a document wants: one per lead day, plus a snooze if one is
@@ -158,13 +197,26 @@ function candidatesFor(
     ? upcoming(doc.expiryDate, doc.renewsEvery, now, OCCURRENCES_AHEAD)
     : [doc.expiryDate];
 
-  for (const date of dates) {
-    for (const lead of doc.leadDays) {
+  dates.forEach((date, index) => {
+    /*
+     * A subscription is asked about once, on the day it charges, and warned
+     * ahead only where the warning is the point: a free trial about to become
+     * its first charge, and a yearly charge big enough to want notice.
+     * Everything else that charges monthly would otherwise send two
+     * notifications a charge, and somebody with ten subscriptions turns
+     * notifications off and misses the ones that matter.
+     */
+    const leads = doc.renewsEvery ? subscriptionLeads(doc, index) : doc.leadDays;
+    for (const lead of leads) {
       const fireAt = fireDateFor(date, lead, now);
       if (!fireAt) continue;
       out.push({ documentId: doc.id, fireAt, ...contentFor(doc, lead, country, date) });
     }
-  }
+    if (doc.renewsEvery) {
+      const fireAt = fireDateFor(date, 0, now);
+      if (fireAt) out.push({ documentId: doc.id, fireAt, ...renewalDayFor(doc) });
+    }
+  });
 
   /*
    * A snooze is stored on the document rather than booked directly with iOS,

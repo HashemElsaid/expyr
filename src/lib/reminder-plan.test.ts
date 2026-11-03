@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { REMINDER_BUDGET, SUBSCRIPTION_CATEGORY, leadLabel, planReminders, snoozeDate } from '@/lib/reminder-plan';
+import {
+  REMINDER_BUDGET,
+  RENEWAL_DAY_CATEGORY,
+  SUBSCRIPTION_CATEGORY,
+  leadLabel,
+  planReminders,
+  snoozeDate,
+} from '@/lib/reminder-plan';
 import { inDays, makeDocument } from '@/test/factories';
 
 /**
@@ -87,17 +94,69 @@ describe('planReminders', () => {
 
   /* ------------------------------------------------------------ the words -- */
 
-  it('tells a subscription it will charge, not that it will expire', () => {
-    const netflix = makeDocument('membership', {
-      title: 'Netflix',
+  it('tells a yearly subscription it will charge, not that it will expire', () => {
+    const plan = makeDocument('membership', {
+      title: 'Bloomberg',
       expiryDate: inDays(20),
-      renewsEvery: 'monthly',
+      renewsEvery: 'yearly',
+      leadDays: [3],
     });
 
-    const first = planReminders([netflix], 'ae').book[0];
+    const first = planReminders([plan], 'ae').book[0];
     expect(first.title).toContain('charges you');
     expect(first.title).not.toContain('expires');
     expect(first.categoryIdentifier).toBe(SUBSCRIPTION_CATEGORY);
+  });
+
+  /*
+   * One notification per charge: the question on the day. A monthly charge
+   * that was also warned three days before sent two a month for every
+   * subscription, which is how notifications get turned off altogether.
+   */
+  it('asks on the day a monthly subscription charges, and only then', () => {
+    const netflix = makeDocument('membership', {
+      title: 'Netflix',
+      expiryDate: '2026-10-03',
+      renewsEvery: 'monthly',
+      leadDays: [3],
+      price: { amount: 24.99, currency: 'USD', every: 'monthly' },
+    });
+
+    const book = planReminders([netflix], 'ae', new Date(2026, 8, 5)).book;
+    expect(book.every((r) => r.categoryIdentifier === RENEWAL_DAY_CATEGORY)).toBe(true);
+    expect(book[0].title).toBe('Netflix is due today');
+    expect(book[0].body).toBe('USD 24.99. Renewed or stopped?');
+    expect(book[0].fireAt.getDate()).toBe(3);
+    expect(book[0].fireAt.getHours()).toBe(9);
+  });
+
+  it('warns a yearly charge ahead and still asks on the day', () => {
+    const plan = makeDocument('membership', {
+      expiryDate: '2026-10-03',
+      renewsEvery: 'yearly',
+      leadDays: [14, 3],
+    });
+    const book = planReminders([plan], 'ae', new Date(2026, 8, 5)).book;
+    // Three charges ahead, each warned two weeks and three days before, then asked about on the day.
+    expect(book).toHaveLength(9);
+    expect(book.slice(0, 3).map((r) => r.categoryIdentifier)).toEqual([
+      SUBSCRIPTION_CATEGORY,
+      SUBSCRIPTION_CATEGORY,
+      RENEWAL_DAY_CATEGORY,
+    ]);
+  });
+
+  it('warns a free trial before its first charge only', () => {
+    const trial = makeDocument('membership', {
+      title: 'Apple TV+',
+      expiryDate: '2026-09-20',
+      renewsEvery: 'monthly',
+      leadDays: [2],
+      trial: true,
+    });
+    const book = planReminders([trial], 'ae', new Date(2026, 8, 5)).book;
+    expect(book[0].title).toBe('Apple TV+ free trial ends in 2 days');
+    expect(book.filter((r) => r.categoryIdentifier === SUBSCRIPTION_CATEGORY)).toHaveLength(1);
   });
 
   it('does not repeat the category when it is already the title', () => {
@@ -148,9 +207,12 @@ describe('planReminders', () => {
       leadDays: [3],
     });
 
-    const bodies = planReminders([netflix], 'ae', new Date(2026, 8, 5)).book.map((r) => r.body);
-    expect(bodies[0]).toContain('3 October');
-    expect(bodies[1]).toContain('3 November');
+    const days = planReminders([netflix], 'ae', new Date(2026, 8, 5)).book.map((r) => [
+      r.fireAt.getMonth(),
+      r.fireAt.getDate(),
+    ]);
+    expect(days[0]).toEqual([9, 3]);
+    expect(days[1]).toEqual([10, 3]);
   });
 
   it('rolls a subscription whose charge has already passed', () => {
@@ -164,7 +226,7 @@ describe('planReminders', () => {
     });
 
     const first = planReminders([gym], 'ae', new Date(2026, 8, 5)).book[0];
-    expect(first.body).toContain('20 September');
+    expect([first.fireAt.getMonth(), first.fireAt.getDate()]).toEqual([8, 20]);
   });
 
   /* ------------------------------------------------------------- snoozes -- */

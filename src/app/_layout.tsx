@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Icon } from '@/components/icon';
 import { LockGate } from '@/components/lock-gate';
@@ -91,15 +92,20 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <SettingsProvider>
-      <DocumentsProvider>
-        <LockGate>
-          <AppShell />
-        </LockGate>
-      </DocumentsProvider>
-    </SettingsProvider>
+    // At the root, because swiping between the pages is a native gesture.
+    <GestureHandlerRootView style={styles.root}>
+      <SettingsProvider>
+        <DocumentsProvider>
+          <LockGate>
+            <AppShell />
+          </LockGate>
+        </DocumentsProvider>
+      </SettingsProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });
 
 /**
  * The way out of the add sheet.
@@ -357,6 +363,8 @@ function AppShell() {
         <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
         <Stack.Screen name="terms" options={{ title: 'Terms' }} />
         <Stack.Screen name="archive" options={{ title: 'Archive' }} />
+        {/* Titled from inside, with a Large Title of its own. */}
+        <Stack.Screen name="household" options={{ title: '' }} />
         <Stack.Screen name="location" options={{ title: 'Where you live' }} />
         <Stack.Screen name="data" options={{ title: 'Your data' }} />
         <Stack.Screen name="subscriptions" options={{ title: 'Subscriptions' }} />

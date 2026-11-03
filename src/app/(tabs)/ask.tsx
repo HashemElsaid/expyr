@@ -10,10 +10,11 @@ import {
   View,
   type ScrollViewInstance,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
 import { PrimaryButton } from '@/components/form';
+import { useTabBarFrame } from '@/components/pager';
 import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -65,21 +66,14 @@ export default function AskScreen() {
   const { documents, archived } = useDocuments();
   const { settings, update } = useSettings();
   const scroller = useRef<ScrollViewInstance>(null);
-  const insets = useSafeAreaInsets();
 
   /*
-   * The keyboard covers the tab bar, so lifting the composer by the whole
-   * keyboard leaves a band of empty page exactly the height of the bar. Lift by
-   * the difference instead. KeyboardAvoidingView cannot know about the bar,
-   * which is why it left that gap.
+   * The tab bar floats over the bottom of the page, so the composer keeps
+   * clear of it. With the keyboard up the keyboard covers the bar, and the
+   * composer sits on the keyboard instead. KeyboardAvoidingView cannot know
+   * about the bar, which is why this is measured by hand.
    */
-  /*
-   * The bar's own height plus whatever the home indicator takes. Measured
-   * rather than asked for: expo-router 57 dropped React Navigation, and the
-   * hook that used to answer this now lives inside the package's build folder,
-   * which is not an address worth depending on.
-   */
-  const tabBarHeight = 49 + insets.bottom;
+  const bar = useTabBarFrame();
   const [keyboard, setKeyboard] = useState(0);
   useEffect(() => {
     const shown = Keyboard.addListener(
@@ -95,7 +89,7 @@ export default function AskScreen() {
       hidden.remove();
     };
   }, []);
-  const lift = Math.max(0, keyboard - tabBarHeight);
+  const lift = keyboard > 0 ? keyboard : bar.inset - Spacing.three;
 
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState('');
@@ -272,7 +266,8 @@ export default function AskScreen() {
             </ListSection>
           </ScrollView>
 
-          <View style={styles.lockedFoot}>
+          {/* Pinned above the floating tab bar rather than behind it. */}
+          <View style={[styles.lockedFoot, { paddingBottom: bar.inset - Spacing.two }]}>
             <PrimaryButton label="See Expyr Pro" onPress={() => router.push('/paywall')} />
           </View>
         </SafeAreaView>
@@ -606,7 +601,6 @@ const styles = StyleSheet.create({
   lockedMark: { alignSelf: 'center', marginVertical: Spacing.two },
   lockedFoot: {
     paddingHorizontal: Spacing.three,
-    paddingBottom: 72,
     maxWidth: MaxContentWidth,
     width: '100%',
     alignSelf: 'center',

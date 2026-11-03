@@ -117,6 +117,11 @@ export function dayMonth(date: Date): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+/** "6 Nov", for a row that already sits under a month and year heading. */
+export function dayMonthOf(isoDate: string): string {
+  return dayMonth(new Date(`${isoDate}T00:00:00`));
+}
+
 export function toISODate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');

@@ -252,7 +252,12 @@ export default function HouseholdScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {/*
+        * Pushed from Settings now rather than a tab of its own, so the
+        * navigation bar is above it and holds the back button; the top inset
+        * is the bar's to take.
+        */}
+      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
           <ThemedText type="largeTitle" style={styles.header}>
             Household

@@ -4,6 +4,7 @@ import { Alert, Linking, Platform, ScrollView, StyleSheet, Switch, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ListRow, ListSection } from '@/components/list';
+import { useTabBarFrame } from '@/components/pager';
 import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -23,6 +24,7 @@ import { emirateLabel, type Emirate } from '@/data/regions';
 import { DEMO_COUNTRY, DEMO_OWN_NAME, demoHousehold, demoKey } from '@/data/demo-household';
 import { useDocuments } from '@/store/documents';
 import { EMPTY_LEDGER, adoptBalance, formatCredits, topUp } from '@/domain/credits';
+import { buildHousehold } from '@/domain/household';
 import { WELCOME_CREDITS, type ThemePreference, useSettings } from '@/store/settings';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -186,6 +188,14 @@ export default function SettingsScreen() {
     removeDocument,
     deleteEverything,
   } = useDocuments();
+  const bar = useTabBarFrame();
+  /*
+   * The household, counted the same way the Household page counts it, so the
+   * two can never disagree. The row only appears once there is somebody other
+   * than the phone's owner: most people only track their own things, and a
+   * Household row with one person in it is a feature asking to be noticed.
+   */
+  const householdSize = buildHousehold(documents, settings.people, settings.ownName).length;
   const [notificationsOn, setNotificationsOn] = useState<boolean | null>(null);
   const [biometrics, setBiometrics] = useState({ available: false, label: 'Face ID' });
   const [testState, setTestState] = useState<'idle' | 'sent'>('idle');
@@ -265,7 +275,9 @@ export default function SettingsScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: bar.inset }]}
+          showsVerticalScrollIndicator={false}>
           <ThemedText type="largeTitle" style={styles.header}>
             Settings
           </ThemedText>
@@ -356,6 +368,18 @@ export default function SettingsScreen() {
               />
             )}
           </ListSection>
+
+          {householdSize > 1 && (
+            <ListSection title="People">
+              <ListRow
+                symbol="person.2.fill"
+                tint="green"
+                title="Household"
+                value={`${householdSize} people`}
+                onPress={() => router.push('/household')}
+              />
+            </ListSection>
+          )}
 
           {/*
             * Only with Pro, because reading is what Pro buys and a switch that

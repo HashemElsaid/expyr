@@ -11,7 +11,7 @@ import type { Money, Recurrence, TrackedDocument } from '@/types';
  */
 
 /** How many times a year each cadence charges. */
-const TIMES_A_YEAR: Record<Recurrence, number> = {
+export const TIMES_A_YEAR: Record<Recurrence, number> = {
   weekly: 52,
   monthly: 12,
   quarterly: 4,

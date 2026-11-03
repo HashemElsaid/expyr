@@ -400,3 +400,45 @@ lite" returned "No issues found" for For You eligibility, so if it still gets
 Posting goes through TikTok Studio on the web. The browser uploader takes
 files under 10 MB, so each video gets a two-pass copy at about 8 MB
 (`source/upload_copy.py`); TikTok re-compresses below that anyway.
+
+---
+
+## Back to slideshows, 3 November 2026
+
+**Hashem's call:** the rendered videos looked AI-made. The numbers agree.
+Four videos, median 240 views (107 to 241), most viewers gone within the first
+second. Fifty-four slideshows, median 445. Profile views were 7 in the videos'
+week against 3 the week before, too few to call. The video style is dropped,
+and the four rendered videos scheduled for 3 to 6 November were deleted before
+they posted.
+
+**What failed in October was not the format.** Account 1's best post ever is a
+slideshow, "6 things that quietly cost you money", 4,788 views. What failed was
+to-do hooks, stock "aesthetic desk" photos, the AI-generated label on every
+post, and captions that ended as ads. So the slideshows now follow four rules:
+
+1. **Slide one is a money number,** subscriptions first (`POSITIONING.md`).
+   Never a to-do item, never a document or passport first.
+2. **Real pictures only.** App screens from real recordings with demo data,
+   and plain everyday photos. No stock, nothing AI-generated, text in TikTok's
+   own style.
+3. **The app is the answer on the last slide only.** No "our app" in captions.
+   Each caption ends with a question people want to answer.
+4. **Never through ReelFarm,** which sets the AI-generated flag. Posted from
+   TikTok Studio, AI-generated off, "Your brand" on.
+
+**Captions open with a plain descriptive sentence,** because a third of account
+1's views now come from TikTok search, finding the older slideshows through
+their descriptive captions.
+
+**Posting has no daily job.** TikTok Studio on the web posts and schedules
+photo posts (up to 35 images, with sound, disclosure and the AI toggle), so a
+week is scheduled in one sitting. Checked 3 November.
+
+**Week 1:** seven subscription-first slideshows at 20:00 Dubai. Plan in
+`Desktop/adulting-manual-tiktoks/SLIDESHOWS-WEEK-1.txt`. The last slide is a
+real screen from the 13 September recordings, demo data only.
+
+**What to read after the week:** median views against 445, any post past
+1,000, comments against zero, and profile visits, which are the step between a
+view and an install.

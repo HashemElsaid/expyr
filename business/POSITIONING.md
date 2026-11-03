@@ -112,6 +112,26 @@ the product, adding those has to take seconds, for example a list of popular
 services with UAE prices to tap. Not decided yet; a question for App
 Development and Hashem.
 
+## What makes it different: the AI, pointed at subscriptions
+
+Proposed 3 November, **being tested, not decided.** A subscription tracker
+alone is a crowded shelf. The candidate for the next release after the
+redesign:
+
+> Show Expyr your bank statement. It finds every subscription, and how to cut
+> them.
+
+A screenshot of the bank app's transactions, or the monthly PDF statement.
+The AI finds every repeating charge, including the card-billed ones the App
+Store import cannot see, flags forgotten ones, duplicates and price rises,
+then shows what could be saved and how to cancel each one. The line it
+produces is the whole pitch: "You spend AED 6,240 a year. You could save
+AED 1,140." No bank login, ever, which no tracker in the UAE offers.
+
+App Development is running a one-to-two-day test on made-up statements first:
+how much it finds, what it gets wrong, and what each read costs. Nothing about
+it goes in a store page, a video or an ad until it exists in the app.
+
 ## How we will know it is working
 
 - **Ads:** when they start, one week split between subscription searches and

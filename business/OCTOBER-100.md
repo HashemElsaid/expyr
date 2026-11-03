@@ -24,9 +24,10 @@ before money goes on ads. Two facts behind it:
   screenshots, which come from the 13 September recordings: demo household
   only, checked frame by frame. Never reuse any earlier "frame 01".
 - **Screenshots only change with a new version.** Better store screenshots
-  mean a 1.0.2 and another Apple review either way. Submissions are blocked
-  until Hashem accepts Apple's updated Developer Program License Agreement in
-  App Store Connect.
+  mean a 1.0.2 and another Apple review either way. Submissions were blocked
+  until Hashem accepted Apple's updated agreements. **Done 3 November**: the
+  Developer Program License Agreement and the new Paid Apps Agreement are both
+  accepted, and App Store Connect no longer shows the warning.
 
 ## Where we start
 

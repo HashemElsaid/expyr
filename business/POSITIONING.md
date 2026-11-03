@@ -96,6 +96,13 @@ Changes with the redesign version, not before:
   document words in the keyword fields.
 - **Screenshots, header and search image:** subscriptions first, demo data only.
   TikTok Marketing is making them.
+- **Category: Finance** primary, Productivity secondary, replacing Productivity
+  and Utilities. Decided 3 November. Every subscription tracker Hashem looked
+  at sits in Finance, which is where people browse for one and where Apple's
+  "You might also like" comes from. Expyr provides no financial service, so
+  an individual developer account is fine there; SubKit is one too.
+- **Pro price: AED 59.99**, from AED 149, decided 3 November, on release day.
+  The reasoning and the arithmetic are in `MONEY.md`.
 
 ## The gap to close
 

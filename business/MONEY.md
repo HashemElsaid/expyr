@@ -427,6 +427,57 @@ stays at 149, in App Store Connect, with no review. Same revisit date.
 
 ---
 
+## Pro to AED 59.99, decided 3 November
+
+Hashem's call, with the subscriptions-first positioning in `POSITIONING.md`.
+**Takes effect the day the redesign is released, not before**, because the
+redesign's paywall is the one that puts the price next to the person's own
+yearly total. Supersedes AED 149 and the 12 September note that the UAE
+should stay at 149.
+
+**Why.** Once Expyr leads with subscriptions, people compare it with
+subscription trackers, not with document trackers. What four of them charged
+in the UAE store on 3 November:
+
+| App | Monthly | Yearly | One-time |
+|---|---|---|---|
+| SubKit | AED 7.99 | AED 39.99 | AED 119.99 |
+| Orbit | | AED 79.99 | AED 49.99 to 59.99 |
+| Kango Studios ("$" icon) | AED 3.99 | AED 37.99 to 59.99 | AED 19.99 "Unlimited Subscriptions" |
+| Girton ("$" bell icon) | AED 49.99, and AED 19.99 a week with a trial | AED 149.99 | AED 229.99 |
+
+At AED 149 Expyr was the second dearest one-time price of the five. At 59.99
+it is half SubKit's lifetime and level with Orbit's, and it still includes
+documents and Expyr AI.
+
+**What one sale pays at AED 59.99:**
+
+```
+AED 59.99   what somebody pays
+AED 57.13   less 5% UAE VAT
+AED 48.56   less 15% commission            = USD 13.22
+```
+
+Against AED 120.62 at 149, so it needs about **2.5 times as many buyers** to
+earn the same. That is the bet: an impulse buy at the moment the paywall says
+"You spend AED 4,200 a year" converts far better than AED 149 does.
+
+**The AI does not change this.** Pro includes 500 credits, about 25 questions
+or 50 pages, which costs at most about USD 0.50 per buyer. Beyond that people
+buy packs, which pay for themselves. Credit packs stay as they are.
+
+**How, on release day:** App Store Connect, In-App Purchases, Expyr Pro, Price
+Schedule, new base price AED 59.99 on the UAE storefront, starting that day.
+No review needed. Read off what Apple generates for the other storefronts and
+give it to App Development for the fallback table in `src/lib/purchases.ts`.
+The paywall shows StoreKit's live price, so nothing else in the app has to
+change for it.
+
+**Reversible** the same way, any day. Read after four weeks of the new
+paywall: paywall views to Pro sales, against whatever 1.0.1 managed.
+
+---
+
 ## Marketing spend, running
 
 | Date | What | Amount | Why |

@@ -47,7 +47,7 @@ export default function NewSheet() {
         symbol="doc.viewfinder"
         title="Scan a document"
         detail="Passport, ID, licence or insurance"
-        onPress={() => router.replace('/add')}
+        onPress={() => router.replace('/add?camera=1')}
       />
     </ThemedView>
   );

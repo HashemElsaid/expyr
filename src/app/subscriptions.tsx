@@ -1,19 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  Easing,
-  FadeInDown,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DocIcon } from '@/components/doc-icon';
 import { PrimaryButton } from '@/components/form';
+import { ReadingShot } from '@/components/reading-shot';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -236,7 +229,7 @@ export default function AddFromScreenshot() {
         </View>
 
         {reading ? (
-          <ReadingShot uri={reading} />
+          <ReadingShot uri={reading} caption="Names, prices and dates, read off the screen" />
         ) : rows ? (
           <>
             {!single && (
@@ -400,37 +393,6 @@ function ReceiptSketch() {
   );
 }
 
-/** The person's own screenshot, with a line of light reading down it. */
-function ReadingShot({ uri }: { uri: string }) {
-  const reduced = useReducedMotion();
-  const sweep = useSharedValue(0);
-  const [height, setHeight] = useState(0);
-
-  useEffect(() => {
-    if (reduced) return;
-    sweep.value = withRepeat(withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }), -1, true);
-  }, [reduced, sweep]);
-
-  const band = useAnimatedStyle(() => ({
-    transform: [{ translateY: -60 + sweep.value * (height + 60) }],
-  }));
-
-  return (
-    <View style={styles.reading}>
-      <View
-        style={styles.shot}
-        onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
-        accessibilityLabel="Your screenshot, being read">
-        <Image source={{ uri }} style={styles.shotImage} resizeMode="cover" />
-        {!reduced && <Animated.View style={[styles.sweep, band]} />}
-      </View>
-      <ThemedText type="footnote" themeColor="textSecondary" style={styles.center}>
-        Names, prices and dates, read off the screen
-      </ThemedText>
-    </View>
-  );
-}
-
 /** One subscription the screenshot showed, and what will happen to it. */
 function FoundRow({
   row,
@@ -581,18 +543,6 @@ const styles = StyleSheet.create({
   sketchBarShort: { width: '40%', marginTop: 3 },
   sketchLine: { height: StyleSheet.hairlineWidth, backgroundColor: BAR, marginVertical: 2 },
   sketchPrice: { ...Fonts.strong, fontSize: 9, color: INK },
-  reading: { gap: Spacing.three },
-  shot: { borderRadius: 18, overflow: 'hidden', height: 380, backgroundColor: PAPER },
-  shotImage: { width: '100%', height: '100%' },
-  sweep: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 60,
-    backgroundImage:
-      'linear-gradient(180deg, rgba(168, 230, 198, 0) 0%, rgba(168, 230, 198, 0.55) 50%, rgba(168, 230, 198, 0) 100%)',
-  },
   group: { borderRadius: 18, overflow: 'hidden' },
   found: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
   foundWords: { flex: 1, minWidth: 0, gap: 4, alignItems: 'flex-start' },

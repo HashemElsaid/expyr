@@ -2,6 +2,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { getLocales } from 'expo-localization';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +14,11 @@ import {
   View,
 } from 'react-native';
 
+import { DetailCard } from '@/components/document/detail-card';
 import { ErrorNote, Note, PrimaryButton } from '@/components/form';
+import { ReadingShot } from '@/components/reading-shot';
+import { ScanCamera } from '@/components/scan-camera';
+import { Stamp } from '@/components/stamp';
 import { localCurrency } from '@/domain/money';
 import { Icon, type SFSymbol } from '@/components/icon';
 import { ListInput, ListRow, ListSection } from '@/components/list';
@@ -34,6 +39,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { defaultExpiry, startingExpiry } from '@/domain/expiry';
 import { kindOf, roomFor, splitImport } from '@/domain/capacity';
 import { isSubscription } from '@/domain/documents';
+import { isMine } from '@/domain/household';
 import { needsTypeConfirmation, titleAfterCorrection } from '@/domain/scan-review';
 import { useTheme } from '@/hooks/use-theme';
 import { countWord, dayMonth, formatTime, longDate, shortDate, toISODate } from '@/lib/dates';
@@ -48,6 +54,7 @@ import {
   pickDocument,
   pickImage,
   scanFile,
+  type PickedFile,
   type ScanItem,
   type ScanResult,
 } from '@/lib/scan';
@@ -162,6 +169,8 @@ export default function AddDocumentScreen() {
      * is never a second list to keep in step.
      */
     start?: string;
+    /** Opens straight into the camera: "Scan a document" from the Add sheet. */
+    camera?: string;
   }>();
 
   /** Set when you arrived from a person, so the form already knows whose this is. */
@@ -235,6 +244,18 @@ export default function AddDocumentScreen() {
   const [files, setFiles] = useState<Attachment[]>(editing?.files ?? []);
   const [leadDays, setLeadDays] = useState<number[]>(editing?.leadDays ?? []);
   const [busy, setBusy] = useState<'scanning' | 'attaching' | null>(null);
+  /**
+   * Expyr's own camera, with the frame and the corners that close on the card.
+   * The web has no camera worth the name in the preview, so it keeps the
+   * system picker.
+   */
+  const ownCamera = Platform.OS !== 'web';
+  const cameraFirst = params.camera === '1' && ownCamera && !editing;
+  const [cameraOpen, setCameraOpen] = useState(cameraFirst && !outOfScans);
+  /** The picture being read, shown under the sweeping line while it is. */
+  const [readingUri, setReadingUri] = useState<string | null>(null);
+  /** A new document just saved: its card, stamped, before the screen closes. */
+  const [saved, setSaved] = useState<{ doc: TrackedDocument; first: boolean } | null>(null);
   const [slowScan, setSlowScan] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
   /*
@@ -682,12 +703,28 @@ export default function AddDocumentScreen() {
   async function runScan(source: 'camera' | 'library' | 'files') {
     setError(null);
     if (outOfScans) {
+      setCameraOpen(false);
       go('scansSpent');
+      return;
+    }
+    if (source === 'camera' && ownCamera) {
+      setCameraOpen(true);
       return;
     }
     try {
       const picked = source === 'files' ? await pickDocument() : await pickImage(source);
       if (!picked) return;
+      await scanPicked(picked);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong while scanning.');
+    }
+  }
+
+  /** Reads a picture or a PDF already in hand, from the camera or from a picker. */
+  async function scanPicked(picked: PickedFile) {
+    setError(null);
+    try {
+      setReadingUri(picked.type === 'image' ? picked.uri : null);
       setBusy('scanning');
       const { result, fileUri: scannedUri } = await scanFile(picked, settings.country);
 
@@ -745,8 +782,37 @@ export default function AddDocumentScreen() {
       setError(e instanceof Error ? e.message : 'Something went wrong while scanning.');
     } finally {
       setBusy(null);
+      setReadingUri(null);
     }
   }
+
+  /*
+   * The camera's own way out of itself, to Photos or Files. The picker cannot
+   * open while the camera is still sliding away, so it waits for that.
+   */
+  function fromCamera(source: 'library' | 'files') {
+    setCameraOpen(false);
+    setTimeout(() => void runScan(source), 450);
+  }
+
+  /** Closing the camera it opened on closes the whole flow; it was the only thing asked for. */
+  function closeCamera() {
+    setCameraOpen(false);
+    if (cameraFirst && step === 'choose' && trail.length === 0) router.back();
+  }
+
+  const camera = ownCamera ? (
+    <ScanCamera
+      visible={cameraOpen}
+      onCapture={(picked) => {
+        setCameraOpen(false);
+        void scanPicked(picked);
+      }}
+      onClose={closeCamera}
+      onPhotos={() => fromCamera('library')}
+      onFiles={() => fromCamera('files')}
+    />
+  ) : null;
 
   async function addAttachment(source: 'camera' | 'library' | 'files') {
     setError(null);
@@ -945,9 +1011,21 @@ export default function AddDocumentScreen() {
      * and somewhere to say no. The cost is a few seconds of head start.
      */
 
-    // The first item is the moment to show the promise being kept: the
-    // countdown, the reminder dates and what renewing actually involves.
-    if (isFirstItem) router.replace(`/document/${created.id}`);
+    /*
+     * A document gets its moment: its card, stamped, with what Expyr will do
+     * about it. Done then carries on as it always did.
+     */
+    if (!isSubscription(created)) {
+      setSaved({ doc: created, first: isFirstItem });
+      return;
+    }
+    leave(created, isFirstItem);
+  }
+
+  // The first item is the moment to show the promise being kept: the
+  // countdown, the reminder dates and what renewing actually involves.
+  function leave(created: TrackedDocument, first: boolean) {
+    if (first) router.replace(`/document/${created.id}`);
     else router.back();
   }
 
@@ -1044,6 +1122,26 @@ export default function AddDocumentScreen() {
     );
   }
 
+  if (saved) {
+    return <SavedDocument doc={saved.doc} onDone={() => leave(saved.doc, saved.first)} />;
+  }
+
+  if (busy === 'scanning' && readingUri) {
+    return (
+      <ThemedView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.readingContent}>
+          <ThemedText type="title2">Reading your document</ThemedText>
+          <ReadingShot uri={readingUri} caption="The date, the number and the name, read off the picture" />
+          {slowScan && (
+            <ThemedText type="footnote" themeColor="textTertiary" style={styles.centeredText}>
+              Still working.
+            </ThemedText>
+          )}
+        </ScrollView>
+      </ThemedView>
+    );
+  }
+
   if (busy) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
@@ -1068,6 +1166,7 @@ export default function AddDocumentScreen() {
   if (step === 'choose') {
     return (
       <ThemedView style={styles.container}>
+        {camera}
         <ScrollView contentContainerStyle={styles.chooseContent}>
           <View style={styles.chooseIcon}>
             <Icon name="doc.viewfinder" size={52} color={theme.accent} />
@@ -1575,7 +1674,61 @@ export default function AddDocumentScreen() {
   );
 }
 
+/**
+ * A document just saved: its card, with the stamp coming down on it, and what
+ * Expyr will now do about it. The moment the promise is made, so it is made
+ * out loud, once, before the screen goes.
+ */
+function SavedDocument({ doc, onDone }: { doc: TrackedDocument; onDone: () => void }) {
+  const { settings } = useSettings();
+  const owner = isMine(doc.owner, settings.ownName) ? settings.ownName : doc.owner;
+  const leads = [...doc.leadDays].sort((a, b) => b - a).map(leadLabel);
+  const when =
+    leads.length > 1 ? `${leads.slice(0, -1).join(', ')} and ${leads[leads.length - 1]}` : leads[0];
+
+  return (
+    <ThemedView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.savedContent}>
+        <Animated.View entering={FadeInDown.springify().stiffness(220).damping(22)} style={styles.savedCard}>
+          <DetailCard doc={doc} revealed />
+          <Stamp />
+        </Animated.View>
+        <View style={styles.savedWords}>
+          <ThemedText type="footnoteStrong" themeColor="accent">
+            {owner ? `Saved for ${owner}` : 'Saved'}
+          </ThemedText>
+          <ThemedText type="title2">{doc.title}</ThemedText>
+        </View>
+        <ThemedText type="body" themeColor="textSecondary">
+          {when ? `Reminders are set for ${when} before.` : 'Saved on this iPhone.'}
+        </ThemedText>
+        <PrimaryButton label="Done" onPress={onDone} />
+      </ScrollView>
+    </ThemedView>
+  );
+}
+
 const styles = StyleSheet.create({
+  readingContent: {
+    paddingHorizontal: 20,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.six,
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  savedContent: {
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: Spacing.six,
+    gap: Spacing.three,
+    maxWidth: MaxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  savedCard: { position: 'relative' },
+  savedWords: { gap: 2, marginTop: Spacing.two },
   container: { flex: 1 },
   flex: { flex: 1 },
   dim: { opacity: 0.6 },

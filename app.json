@@ -66,11 +66,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F2F2F7",
+          "backgroundColor": "#F1F4F2",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 128,
           "dark": {
-            "backgroundColor": "#000000",
+            "backgroundColor": "#080C0A",
             "image": "./assets/images/splash-icon-dark.png"
           }
         }
@@ -82,6 +82,15 @@
           "cameraPermission": "Expyr uses the camera so you can photograph a document, such as your Emirates ID or car registration, and it reads the expiry date off the picture so you never type it in. The photo is kept in Expyr on this phone.",
           "photosPermission": "Expyr opens only the photos you pick, such as a screenshot of an insurance policy or a picture of your visa, so it can read the expiry date and keep the image with that document. It never looks through your library on its own.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Expyr uses the camera so you can photograph a document, such as your Emirates ID or car registration, and it reads the expiry date off the picture so you never type it in. The photo is kept in Expyr on this phone.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
         }
       ],
       [

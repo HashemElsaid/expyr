@@ -129,7 +129,7 @@ export default function DocumentsPage() {
             </GroupedItem>
           )}
           ListEmptyComponent={
-            loaded ? <EmptyDocuments onAdd={() => router.push('/add')} /> : undefined
+            loaded ? <EmptyDocuments onAdd={() => router.push('/add?camera=1')} /> : undefined
           }
           ListFooterComponent={<PageFooter />}
         />

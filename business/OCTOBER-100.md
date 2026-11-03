@@ -1,5 +1,9 @@
 # 100 installs by 31 October
 
+> **Superseded 3 November 2026.** The ads plan now lives in `ADS.md`: a small
+> test the day the redesign is live, then the real budget behind the bank
+> statement feature. The free channels below still stand.
+
 Set 20 October 2026. Target: 100 first-time downloads in App Store Connect
 between 21 and 31 October.
 

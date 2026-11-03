@@ -170,6 +170,17 @@ export type TrackedDocument = {
    */
   price?: Money;
   /**
+   * In a free trial: the next date is when the trial turns into the first
+   * charge. Read off the screenshot, cleared by "Keep it" or once that date
+   * has passed and the subscription has rolled on to a real charge.
+   */
+  trial?: boolean;
+  /**
+   * When somebody last said they still use it, after it had renewed by itself
+   * several times. The check-in stays away for a year after an answer.
+   */
+  checkedInAt?: string;
+  /**
    * Everything else the document said about itself when it was scanned.
    *
    * Expyr was built around one date, which meant a scan gave a person nothing

@@ -249,3 +249,27 @@ describe('expiryVerb', () => {
     expect(expiryVerb(makeDocument('passport'))).toBe(expiryVerb(makeDocument('passport'), false));
   });
 });
+
+describe('trials and check-ins across a reload', () => {
+  it('keeps a free trial and a check-in', () => {
+    const doc = makeDocument('membership', {
+      renewsEvery: 'monthly',
+      trial: true,
+      checkedInAt: '2026-11-03',
+    });
+    const back = migrateDocument(JSON.parse(JSON.stringify(doc)));
+    expect(back?.trial).toBe(true);
+    expect(back?.checkedInAt).toBe('2026-11-03');
+  });
+
+  it('ends a trial once its date has passed', () => {
+    const doc = makeDocument('membership', {
+      renewsEvery: 'monthly',
+      trial: true,
+      expiryDate: '2026-10-01',
+    });
+    const rolled = rollForward(doc, new Date(2026, 10, 3));
+    expect(rolled.trial).toBeUndefined();
+    expect(rolled.expiryDate).toBe('2026-12-01');
+  });
+});

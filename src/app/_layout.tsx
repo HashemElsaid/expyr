@@ -373,7 +373,28 @@ function AppShell() {
         <Stack.Screen name="household" options={{ title: '' }} />
         <Stack.Screen name="location" options={{ title: 'Where you live' }} />
         <Stack.Screen name="data" options={{ title: 'Your data' }} />
-        <Stack.Screen name="subscriptions" options={{ title: 'Subscriptions' }} />
+        {/*
+          * The plus button's choice: a sheet that fits its two rows, with the
+          * page still showing above it.
+          */}
+        <Stack.Screen
+          name="new"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: 'fitToContents',
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 30,
+            headerShown: false,
+          }}
+        />
+        {/*
+          * Adding from a screenshot slides up as a sheet of its own, with its
+          * own close, like the prototype; swiping it down cancels.
+          */}
+        <Stack.Screen
+          name="subscriptions"
+          options={{ presentation: 'modal', headerShown: false, title: 'Add from a screenshot' }}
+        />
         <Stack.Screen name="about" options={{ title: 'About Expyr' }} />
         <Stack.Screen
           name="onboarding"

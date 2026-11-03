@@ -1,12 +1,13 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { PAGES, usePager } from '@/components/pager';
 import { ThemedText } from '@/components/themed-text';
-import { Fonts, Spacing } from '@/constants/theme';
+import { Fonts, Spacing, shadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { tapFeedback } from '@/lib/haptics';
 import { ensureNotificationPermission, getNotificationPermission } from '@/lib/notifications';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
@@ -119,6 +120,84 @@ export function RemindersOffBanner() {
   );
 }
 
+export type NoticeAction = { label: string; onPress: () => void; primary?: boolean };
+
+/**
+ * A question at the top of a page with a one tap answer each way: a free
+ * trial about to charge, a subscription that has renewed by itself for a long
+ * time. Two buttons side by side, the one that keeps things as they are on
+ * the right, filled.
+ */
+export function Notice({
+  icon,
+  tag,
+  title,
+  detail,
+  actions,
+}: {
+  icon: ReactNode;
+  tag?: string;
+  title: string;
+  detail: string;
+  actions: NoticeAction[];
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        styles.notice,
+        { backgroundColor: theme.backgroundElement, boxShadow: shadow(theme.text, 10, 26, 0.06) },
+      ]}>
+      <View style={styles.noticeTop}>
+        {icon}
+        <View style={styles.flex}>
+          {tag ? (
+            <Text
+              style={[styles.noticeTag, { color: theme.urgentSoft, backgroundColor: theme.urgentSoftWash }]}
+              maxFontSizeMultiplier={1.3}>
+              {tag}
+            </Text>
+          ) : null}
+          <ThemedText type="headline">{title}</ThemedText>
+          <ThemedText type="footnote" themeColor="textSecondary">
+            {detail}
+          </ThemedText>
+        </View>
+      </View>
+      <View style={styles.noticeActions}>
+        {actions.map((action) => (
+          <Pressable
+            key={action.label}
+            style={styles.flex}
+            onPress={() => {
+              tapFeedback();
+              action.onPress();
+            }}
+            accessibilityRole="button">
+            {({ pressed }) => (
+              <View
+                style={[
+                  styles.noticeButton,
+                  { backgroundColor: action.primary ? theme.accent : theme.backgroundSelected },
+                  pressed && styles.dim,
+                ]}>
+                <Text
+                  style={[
+                    styles.noticeLabel,
+                    { color: action.primary ? theme.accentContrast : theme.text },
+                  ]}
+                  maxFontSizeMultiplier={1.3}>
+                  {action.label}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 /** Under the list: the archive, if there is one, and where everything lives. */
 export function PageFooter() {
   const theme = useTheme();
@@ -180,6 +259,23 @@ const styles = StyleSheet.create({
     marginTop: Spacing.three,
   },
   flex: { flex: 1 },
+  notice: { marginTop: Spacing.three, padding: 14, borderRadius: 18, gap: 12 },
+  noticeTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  noticeTag: {
+    ...Fonts.strong,
+    alignSelf: 'flex-start',
+    fontSize: 10,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  noticeActions: { flexDirection: 'row', gap: 8 },
+  noticeButton: { paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+  noticeLabel: { ...Fonts.strong, fontSize: 14 },
   footer: { paddingTop: Spacing.four, gap: Spacing.two },
   archiveLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   center: { textAlign: 'center' },

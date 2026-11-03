@@ -26,6 +26,8 @@ export type FoundSubscription = {
   /** The service's website, used only to find its icon. */
   domain: string;
   status: 'active' | 'expired' | 'cancelled' | 'unknown';
+  /** In a free trial. Absent from a reader older than the field, which means no. */
+  trial?: boolean;
 };
 
 export type SubscriptionScan = { subscriptions: FoundSubscription[]; note: string };

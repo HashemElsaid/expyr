@@ -70,6 +70,9 @@ export function migrateDocument(raw: unknown): TrackedDocument | null {
      * the yearly total quietly emptied itself after a relaunch.
      */
     price: validPrice(doc.price),
+    // Carried for the same reason as the price: a field left out here is lost at the next launch.
+    trial: doc.trial === true ? true : undefined,
+    checkedInAt: typeof doc.checkedInAt === 'string' ? doc.checkedInAt : undefined,
     iconDomain: doc.iconDomain,
     visibility: doc.visibility ?? 'private',
     createdAt: doc.createdAt ?? new Date().toISOString(),
@@ -147,6 +150,8 @@ export function rollForward(doc: TrackedDocument, today: Date = new Date()): Tra
     ...doc,
     expiryDate: next,
     history: [...(doc.history ?? []), ...past],
+    // The trial ended on the date that just passed; from here on it is a real charge.
+    trial: undefined,
   };
 }
 

@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/form';
 import { GroupedItem, SubscriptionRow } from '@/components/item-row';
-import { PageFooter, PageHeader, RemindersOffBanner, StatStrip } from '@/components/page';
+import { Notice, PageFooter, PageHeader, RemindersOffBanner, StatStrip } from '@/components/page';
+import { DocIcon } from '@/components/doc-icon';
 import { useTabBarFrame } from '@/components/pager';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -13,14 +14,20 @@ import { TimelineSectionHeader } from '@/components/timeline-row';
 import { YearCard } from '@/components/year-card';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { isSubscription } from '@/domain/documents';
-import { yearlyTotal } from '@/domain/money';
+import { yearlyAmount, yearlyTotal } from '@/domain/money';
+import { checkInFor, trialsEnding } from '@/domain/notices';
 import { buildSections } from '@/domain/timeline';
-import { dueWithin } from '@/domain/year';
+import { chargeAmount, dueWithin } from '@/domain/year';
 import { ensureBrandIcon, guessDomain } from '@/lib/brand-icons';
-import { shortMoney } from '@/lib/figures';
+import { money, shortMoney, wholeMoney } from '@/lib/figures';
+import { dayMonthOf, daysUntil, toISODate } from '@/lib/dates';
+import { successFeedback } from '@/lib/haptics';
+import { recurrenceWord } from '@/lib/recurrence';
+import { leadDaysFor } from '@/lib/subscriptions';
 import { useTheme } from '@/hooks/use-theme';
 import { useDocuments } from '@/store/documents';
 import { FREE_SUBSCRIPTION_REMINDERS } from '@/store/settings';
+import type { TrackedDocument } from '@/types';
 
 /**
  * Subscriptions: the page Expyr opens on.
@@ -44,6 +51,8 @@ export default function SubscriptionsPage() {
   const subscriptions = useMemo(() => documents.filter(isSubscription), [documents]);
   const sections = useMemo(() => buildSections(subscriptions), [subscriptions]);
 
+  const trials = trialsEnding(subscriptions);
+  const checkIn = checkInFor(subscriptions);
   /** How many charges nothing is reminding them about, on the free plan. */
   const unwatched = subscriptions.filter((doc) => !reminded.has(doc.id)).length;
   const total = yearlyTotal(subscriptions);
@@ -84,6 +93,10 @@ export default function SubscriptionsPage() {
             <View>
               <PageHeader title="Subscriptions" />
               {subscriptions.length > 0 && <YearCard subscriptions={subscriptions} />}
+              {trials.map((doc) => (
+                <TrialNotice key={doc.id} doc={doc} />
+              ))}
+              {checkIn && <CheckInNotice doc={checkIn} />}
               {unwatched > 0 && (
                 <AllowanceNotice unwatched={unwatched} onPro={() => router.push('/paywall')} />
               )}
@@ -115,6 +128,83 @@ export default function SubscriptionsPage() {
         />
       </SafeAreaView>
     </ThemedView>
+  );
+}
+
+/** A free trial about to turn into its first charge: keep it, or it was cancelled. */
+function TrialNotice({ doc }: { doc: TrackedDocument }) {
+  const { setArchived, updateDocument } = useDocuments();
+  const days = daysUntil(doc.expiryDate);
+  const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
+  const each = chargeAmount(doc);
+  const cadence = doc.renewsEvery ? ` ${recurrenceWord(doc.renewsEvery).toLowerCase()}` : '';
+  return (
+    <Notice
+      icon={<DocIcon typeId={doc.typeId} iconDomain={doc.iconDomain ?? guessDomain(doc.title)} size={38} />}
+      tag="Free trial"
+      title={`${doc.title} starts charging ${when}`}
+      detail={
+        each
+          ? `${doc.price!.currency} ${money(each)}${cadence} from ${dayMonthOf(doc.expiryDate)}`
+          : `From ${dayMonthOf(doc.expiryDate)}`
+      }
+      actions={[
+        {
+          label: 'I cancelled it',
+          onPress: () => {
+            void setArchived(doc.id, true);
+            successFeedback();
+          },
+        },
+        {
+          label: 'Keep it',
+          primary: true,
+          onPress: () => {
+            // From here on a real charge, warned like any other.
+            void updateDocument(doc.id, {
+              ...doc,
+              trial: undefined,
+              leadDays: leadDaysFor(doc.renewsEvery ?? 'monthly'),
+            });
+            successFeedback();
+          },
+        },
+      ]}
+    />
+  );
+}
+
+/**
+ * Asked once, about the most expensive subscription that has renewed by itself
+ * many times: still using it? The yearly figure is the point of asking.
+ */
+function CheckInNotice({ doc }: { doc: TrackedDocument }) {
+  const { setArchived, updateDocument } = useDocuments();
+  const times = doc.history?.length ?? 0;
+  const year = doc.price ? ` ${doc.price.currency} ${wholeMoney(yearlyAmount(doc.price))} a year.` : '';
+  return (
+    <Notice
+      icon={<DocIcon typeId={doc.typeId} iconDomain={doc.iconDomain ?? guessDomain(doc.title)} size={38} />}
+      title={`Still using ${doc.title}?`}
+      detail={`It has renewed by itself ${times} times.${year}`}
+      actions={[
+        {
+          label: 'I cancelled it',
+          onPress: () => {
+            void setArchived(doc.id, true);
+            successFeedback();
+          },
+        },
+        {
+          label: 'Still using it',
+          primary: true,
+          onPress: () => {
+            void updateDocument(doc.id, { ...doc, checkedInAt: toISODate(new Date()) });
+            successFeedback();
+          },
+        },
+      ]}
+    />
   );
 }
 

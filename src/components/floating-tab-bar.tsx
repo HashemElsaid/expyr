@@ -128,7 +128,7 @@ export function FloatingTabBar() {
         <Pressable
           onPress={() => {
             tapFeedback();
-            router.push('/add');
+            router.push('/new');
           }}
           onPressIn={() => {
             press.value = withSpring(0.9, Springs.press);

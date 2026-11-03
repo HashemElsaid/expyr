@@ -1,95 +1,99 @@
 import type { TextStyle } from 'react-native';
 
 /**
- * iOS's own surfaces, and mint for the one thing that is ours.
+ * Quiet, native surfaces around one luxurious object: the card.
  *
- * This was warm paper: #F7F4EF in daylight and a candle-lit brown-black at
- * night, with hairlines in umber and greys mixed to match. It was the most
- * distinctive thing about the app and it is gone on purpose.
+ * The redesign (approved 3 November 2026) puts every subscription and the
+ * year's total on a card in the language of a passport cover: deep emerald,
+ * fine security-print lines, and an engraved number. Everything around the
+ * cards stays plain so the cards carry the character, which is the lesson of
+ * the warm-paper era: a surface the app invents everywhere reads as invented
+ * everywhere.
  *
- * The reason is what the first outside readers said, which was that the
- * screens looked machine-made. Paper was a large part of why. An app that
- * invents its own surface colour is an app that has decided not to sit beside
- * Settings and Reminders, and the moment a person notices the background is
- * not the background every other app uses, they start looking for the other
- * places it was invented, and finding them.
- *
- * So: systemGroupedBackground behind a list in daylight, near-black at night,
- * secondarySystemGroupedBackground for the cards that sit on it, and Apple's
- * separator for every hairline. These are the literal values from Human
- * Interface Guidelines rather than PlatformColor, which would be the real
- * semantic colour but resolves to nothing on web and cannot take an alpha.
- *
- * What is still ours is the mint, and it is now the only thing that is: the
- * tint on anything interactive and the fill behind the one primary button on a
- * screen. Character has to come from what the app knows rather than from the
- * colour of the paper.
+ * So the page is a grouped background with the faintest lean towards the
+ * emerald, the greys share that lean, and the cards sit on it like objects.
+ * Written as literal values rather than PlatformColor, which resolves to
+ * nothing on web and cannot take an alpha, and this app renders on web in its
+ * own tests.
  */
 
 export const Colors = {
   light: {
-    /** systemGroupedBackground: what a list of cards sits on. */
-    background: '#F2F2F7',
-    /** secondarySystemGroupedBackground: the card itself. */
+    /** What a list of rows sits on. */
+    background: '#F1F4F2',
+    /** A row group or a notice, one step up from the page. */
     backgroundElement: '#FFFFFF',
-    /** systemGray5, for a row under the finger. */
-    backgroundSelected: '#E5E5EA',
-    /** label. */
-    text: '#000000',
+    /** A row under the finger, and the quiet button beside a primary one. */
+    backgroundSelected: '#E6ECE8',
+    text: '#0E1A15',
+    textSecondary: '#4A5952',
+    textTertiary: '#86938C',
+    /** The hairline between rows in a group. */
+    border: 'rgba(14, 26, 21, 0.14)',
     /*
-     * iOS's own secondary and tertiary label colours rather than browns mixed
-     * to match the paper.
-     *
-     * They are neutral on purpose, and read very slightly cool against warm
-     * paper, which is exactly how a native app looks: Apple tints the surface
-     * and leaves the greys alone. Mixing a warm grey to harmonise with the
-     * background is a decision Apple never makes, and making it everywhere is
-     * part of what read as invented.
-     *
-     * Written as rgba rather than PlatformColor, which would be the real
-     * semantic colour but resolves to nothing on web and cannot be given an
-     * alpha, and this app renders on web in its own tests.
-     */
-    textSecondary: 'rgba(60, 60, 67, 0.6)',
-    textTertiary: 'rgba(60, 60, 67, 0.35)',
-    /** separator, which is the hairline between rows in a card. */
-    border: 'rgba(60, 60, 67, 0.29)',
-    /*
-     * Ours, and now the only thing that is. Dark enough to carry white text on
-     * a filled button and to read as deliberate rather than decorative.
+     * Brand green: anything interactive, and the fill behind the one primary
+     * button on a screen. Dark enough to carry white text.
      */
     accent: '#1D4B39',
     accentContrast: '#FFFFFF',
-    /** systemRed and systemOrange: urgency in the colours iOS uses for it. */
-    urgentStrong: '#FF3B30',
-    urgentSoft: '#FF9500',
+    /** The square behind a symbol in a row, in the accent at a whisper. */
+    tile: 'rgba(29, 75, 57, 0.08)',
+    /** Overdue: kept for late things and nothing else. */
+    urgentStrong: '#D93B41',
+    urgentStrongWash: 'rgba(217, 59, 65, 0.10)',
+    /** A free trial about to charge, and anything else merely soon. */
+    urgentSoft: '#A85F00',
+    urgentSoftWash: 'rgba(214, 138, 24, 0.13)',
+    /** Frosted chrome that floats over content: the tab bar, a toast. */
+    glass: 'rgba(255, 255, 255, 0.74)',
+    glassEdge: 'rgba(255, 255, 255, 0.7)',
   },
   /**
-   * The same surfaces at night, which on iOS means black.
-   *
-   * Not an inversion of anything: iOS uses true black behind a grouped list on
-   * OLED, with the cards a shade above it, and that is what an iPhone owner's
-   * eye expects after dark.
+   * Near-black with the same lean, and the cards a shade above it. Not an
+   * inversion: the accent turns to mint so it still reads on the dark.
    */
   dark: {
-    /** systemGroupedBackground, dark. */
-    background: '#000000',
-    /** secondarySystemGroupedBackground, dark. */
-    backgroundElement: '#1C1C1E',
-    /** systemGray5, dark. */
-    backgroundSelected: '#2C2C2E',
-    text: '#FFFFFF',
-    /** The dark-mode pair of the same two, again Apple's own. */
-    textSecondary: 'rgba(235, 235, 245, 0.6)',
-    textTertiary: 'rgba(235, 235, 245, 0.35)',
-    /** separator, dark. */
-    border: 'rgba(84, 84, 88, 0.65)',
+    background: '#080C0A',
+    backgroundElement: '#111815',
+    backgroundSelected: '#1B241F',
+    text: '#EAF1ED',
+    textSecondary: '#A3B1AA',
+    textTertiary: '#69776F',
+    border: 'rgba(234, 241, 237, 0.14)',
     accent: '#8ED6B2',
     accentContrast: '#0E241B',
-    /** systemRed and systemOrange, dark. */
-    urgentStrong: '#FF453A',
-    urgentSoft: '#FF9F0A',
+    tile: 'rgba(142, 214, 178, 0.12)',
+    urgentStrong: '#FF6B6F',
+    urgentStrongWash: 'rgba(255, 107, 111, 0.14)',
+    urgentSoft: '#F2B24A',
+    urgentSoftWash: 'rgba(242, 178, 74, 0.14)',
+    glass: 'rgba(24, 32, 28, 0.70)',
+    glassEdge: 'rgba(255, 255, 255, 0.08)',
   },
+} as const;
+
+/**
+ * The card's own colours, the same by day and by night.
+ *
+ * A passport cover does not change colour with the room, and a card that went
+ * pale in light mode would stop being the object the screen is arranged
+ * around. Only the highlight lifts a little at night, so the card still shows
+ * its edge against a near-black page.
+ */
+export const Card = {
+  emerald: '#123D2E',
+  emeraldHigh: { light: '#1F5C46', dark: '#23674F' },
+  emeraldLow: '#0A291F',
+  /** The security-print lines and the one peak in a chart. */
+  mint: '#A8E6C6',
+  /** Expyr Pro, which is foil rather than ink. */
+  brass: '#D9C08A',
+  ink: '#EAF6EF',
+  inkSecondary: 'rgba(234, 246, 239, 0.78)',
+  inkTertiary: 'rgba(234, 246, 239, 0.64)',
+  /** A figure that is late, in a red that still reads on emerald. */
+  late: '#FFB9B4',
+  rule: 'rgba(168, 230, 198, 0.16)',
 } as const;
 
 /**
@@ -134,7 +138,8 @@ export type SystemColor = keyof typeof SystemColors.light;
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /**
- * Type, which is the phone's own font and nothing else.
+ * Type, which is the phone's own fonts and nothing else: San Francisco for
+ * every word, and New York for the big figures on a card.
  *
  * It used to be Instrument Serif over DM Sans, two faces downloaded and
  * registered at launch. The first person to read the timeline who had not
@@ -170,6 +175,20 @@ export const Fonts = {
    * here, because how tight depends on how big.
    */
   display: { fontWeight: '700' },
+  /**
+   * The one exception to the system font: the big number on a card.
+   *
+   * New York, Apple's own serif, reached through the system's serif design
+   * rather than by name, so it is still the phone's font and still gets the
+   * right optical size. It is drawn for screens, which is why it stays
+   * elegant at 66 points without going thin the way a print didone does.
+   * Lining, equal-width figures so a count that rolls does not jitter.
+   */
+  figure: { fontFamily: 'ui-serif', fontWeight: '500', fontVariant: ['lining-nums', 'tabular-nums'] },
+  /** The word beside a figure: "days to go", "a year". */
+  figureUnit: { fontFamily: 'ui-serif', fontWeight: '400', fontStyle: 'italic' },
+  /** Prices in a column, so the amounts line up without a second font. */
+  amount: { fontWeight: '400', fontVariant: ['tabular-nums'] },
 } as const satisfies Record<string, TextStyle>;
 
 export const Spacing = {

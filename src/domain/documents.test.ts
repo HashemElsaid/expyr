@@ -21,6 +21,30 @@ describe('migrateDocument', () => {
     expect(migrateDocument(doc)).toEqual(doc);
   });
 
+  it('keeps a subscription price across a reload', () => {
+    const doc = makeDocument('membership', {
+      renewsEvery: 'monthly',
+      price: { amount: 24.99, currency: 'USD', every: 'monthly' },
+    });
+    expect(migrateDocument(JSON.parse(JSON.stringify(doc)))?.price).toEqual({
+      amount: 24.99,
+      currency: 'USD',
+      every: 'monthly',
+    });
+  });
+
+  it('drops a stored price that is not one', () => {
+    for (const price of [
+      { amount: -5, currency: 'USD', every: 'monthly' },
+      { amount: 5, currency: 'dollars', every: 'monthly' },
+      { amount: 5, currency: 'USD', every: 'fortnightly' },
+      'USD 5',
+    ]) {
+      const doc = { ...makeDocument('membership'), price };
+      expect(migrateDocument(doc)?.price).toBeUndefined();
+    }
+  });
+
   it('rejects anything that is not a document', () => {
     for (const value of [null, undefined, 42, 'x', {}, { id: 'a' }, { id: 'a', typeId: 'passport' }]) {
       expect(migrateDocument(value)).toBeNull();

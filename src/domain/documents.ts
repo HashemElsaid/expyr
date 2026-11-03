@@ -1,7 +1,7 @@
 import { DOCUMENT_TYPES, getDocumentType } from '@/data/document-types';
 import { tidyFields } from '@/domain/fields';
 import { advance } from '@/lib/recurrence';
-import { Attachment, TrackedDocument } from '@/types';
+import { Attachment, Money, Recurrence, TrackedDocument } from '@/types';
 
 /**
  * The rules about a tracked document, with nothing underneath them.
@@ -64,12 +64,30 @@ export function migrateDocument(raw: unknown): TrackedDocument | null {
      */
     fields: doc.fields?.length ? tidyFields(doc.fields) : undefined,
     renewsEvery: doc.renewsEvery,
+    /*
+     * Carried, and checked on the way in. This line was missing when prices
+     * arrived, so every price was dropped the next time the app started and
+     * the yearly total quietly emptied itself after a relaunch.
+     */
+    price: validPrice(doc.price),
     iconDomain: doc.iconDomain,
     visibility: doc.visibility ?? 'private',
     createdAt: doc.createdAt ?? new Date().toISOString(),
     // Anything saved before this field existed has not changed since it was made.
     updatedAt: doc.updatedAt ?? doc.createdAt ?? new Date().toISOString(),
   };
+}
+
+const RECURRENCES: readonly Recurrence[] = ['weekly', 'monthly', 'quarterly', 'yearly'];
+
+/** A stored price, if it is one: a positive amount, a currency code, a period. */
+function validPrice(raw: unknown): Money | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const { amount, currency, every } = raw as Partial<Money>;
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) return undefined;
+  if (typeof currency !== 'string' || !/^[A-Za-z]{3}$/.test(currency)) return undefined;
+  if (!every || !RECURRENCES.includes(every)) return undefined;
+  return { amount, currency: currency.toUpperCase(), every };
 }
 
 /**

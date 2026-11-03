@@ -1,16 +1,29 @@
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRef, useState } from 'react';
+import {
+  Alert,
+  Image,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ViewInstance,
+} from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
-import { ActionMenu, MenuButton, PrimaryAction, SecondaryAction, type MenuAction } from '@/components/document/actions';
+import { ActionMenu, PrimaryAction, SecondaryAction, type MenuAction } from '@/components/document/actions';
+import { DetailCard } from '@/components/document/detail-card';
 import { DataRow } from '@/components/document/data-row';
 import { ListRow, ListSection } from '@/components/list';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ValuePrompt } from '@/components/value-prompt';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { expiryVerb, isSubscription } from '@/domain/documents';
+import { MaxContentWidth, Radius, Spacing, shadow } from '@/constants/theme';
+import { isSubscription } from '@/domain/documents';
 import { displayFields, withFieldValue } from '@/domain/fields';
 import { provenanceNote, worthShowing } from '@/domain/renewal-guidance';
 import { runningLateFee } from '@/domain/late-fee';
@@ -25,7 +38,11 @@ import { RENEWAL_PERIOD_DAYS } from '@/data/renewal-actions';
 import { useTheme } from '@/hooks/use-theme';
 import { useUrgency } from '@/hooks/use-urgency';
 import { buildRunway, spanLabel } from '@/domain/runway';
-import { dayMonth, daysUntil, longDate, shortDate, verdictPhrase } from '@/lib/dates';
+import { dayMonth, daysUntil, formatDate, shortDate } from '@/lib/dates';
+import { money } from '@/lib/figures';
+import { upcoming } from '@/lib/recurrence';
+import { chargeAmount } from '@/domain/year';
+import { arrive, flyHome, useInFlight } from '@/lib/card-flight';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
@@ -43,9 +60,11 @@ function reminderDates(doc: TrackedDocument) {
     });
 }
 
+/** Everything under the card rises in on the card's own spring, a beat behind it. */
+const RISE = FadeInDown.delay(160).springify().stiffness(220).damping(22);
+
 export default function DocumentDetailScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { documents, archived, removeDocument, setArchived, updateDocument } = useDocuments();
@@ -160,20 +179,27 @@ export default function DocumentDetailScreen() {
       ]
     : [];
 
-  useEffect(() => {
-    navigation.setOptions({
-      title: '',
-      headerRight: () => (
-        <MenuButton
-          onPress={() => {
-            tapFeedback();
-            setMenuOpen(true);
-          }}
-        />
-      ),
-    });
-    // Re-bind when the document or theme changes so the handler stays current.
-  }, [navigation, doc, theme.textSecondary]);
+  const insets = useSafeAreaInsets();
+  const card = useRef<ViewInstance>(null);
+  const inFlight = useInFlight(doc?.id);
+
+  /*
+   * Back flies the card home to the row it came from while the page slides
+   * away. A swipe back is the finger's own gesture and is left alone: the card
+   * simply leaves with the page.
+   */
+  function goBack() {
+    tapFeedback();
+    const current = card.current;
+    if (doc && current) {
+      current.measureInWindow((x, y, width, height) => {
+        flyHome(doc.id, { x, y, width, height }, daysUntil(doc.expiryDate) < 0);
+        router.back();
+      });
+      return;
+    }
+    router.back();
+  }
 
   /*
    * Above the early return, because hooks run on every render and one called
@@ -307,19 +333,25 @@ export default function DocumentDetailScreen() {
         onSubmit={saveField}
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.hero, { borderBottomColor: theme.border }]}>
-          <ThemedText type="largeTitle" style={[styles.verdict, { color }]}>
-            {verdictPhrase(days)}
-          </ThemedText>
-          {/*
-            * A fragment, no full stop. It did not expire in the future, and a
-            * subscription never expires: it charges you.
-            */}
-          <ThemedText type="body" themeColor="textSecondary">
-            {doc.title} {expiryVerb(doc, days < 0)} {longDate(doc.expiryDate)}
-          </ThemedText>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 58 }]}
+        showsVerticalScrollIndicator={false}>
+        {/*
+          * The row this page was opened from, grown into its card. It stays
+          * hidden while a copy of it flies in from the list, and the figure
+          * rolls into place once the real one is showing.
+          */}
+        <DetailCard
+          doc={doc}
+          revealed={!inFlight}
+          cardRef={card}
+          onLayout={(event) => {
+            const { x, y, width, height } = event.nativeEvent.layout;
+            arrive(doc.id, { x, y, width, height });
+          }}
+        />
 
+        <Animated.View entering={RISE} style={[styles.hero, { borderBottomColor: theme.border }]}>
           {runway && (
             <View style={styles.runway}>
               {/*
@@ -383,12 +415,7 @@ export default function DocumentDetailScreen() {
             </View>
           )}
 
-          {/*
-           * Every warning date, not just the next one. The whole promise of the
-           * app is "you will be told in time", and the only way to believe that
-           * is to see the dates it will happen on.
-           */}
-        </View>
+        </Animated.View>
 
         {/*
           * Every warning date, one per row, because the whole promise of the
@@ -399,6 +426,28 @@ export default function DocumentDetailScreen() {
           * sent", with the sent ones struck through. A row each says the same
           * thing, and says which ones have already gone without a strike.
           */}
+        {/*
+          * A subscription's next three charges and what each one is, which is
+          * the question a subscription's page is opened to answer.
+          */}
+        {doc.renewsEvery && isSubscription(doc) && (
+          <ListSection
+            title="Next charges"
+            footer="Renews by itself. When a charge date passes, Expyr moves to the next one. Tell it only if you cancel">
+            {upcoming(doc.expiryDate, doc.renewsEvery, new Date(), 3).map((iso) => (
+              <ListRow
+                key={iso}
+                symbol="calendar"
+                tint="green"
+                title={formatDate(iso)}
+                value={
+                  chargeAmount(doc) ? `${doc.price!.currency} ${money(chargeAmount(doc))}` : undefined
+                }
+              />
+            ))}
+          </ListSection>
+        )}
+
         <ListSection title="Reminders">
           {reminders.length === 0 ? (
             <ListRow symbol="bell.slash" tint="gray" title="No reminders set" />
@@ -932,7 +981,55 @@ export default function DocumentDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/*
+        * Floating over the page rather than a navigation bar, so the card
+        * sits right under the status bar the way the prototype has it. The
+        * swipe from the left edge still goes back.
+        */}
+      <View style={[styles.topBar, { top: insets.top + 6, pointerEvents: 'box-none' }]}>
+        <GlassButton symbol="chevron.left" label="Back" onPress={goBack} />
+        <GlassButton
+          symbol="ellipsis"
+          label="More actions"
+          onPress={() => {
+            tapFeedback();
+            setMenuOpen(true);
+          }}
+        />
+      </View>
     </ThemedView>
+  );
+}
+
+/** A round button of frosted glass, for the corners of a page with no bar. */
+function GlassButton({
+  symbol,
+  label,
+  onPress,
+}: {
+  symbol: 'chevron.left' | 'ellipsis';
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={label}>
+      {({ pressed }) => (
+        <View
+          style={[
+            styles.glassButton,
+            {
+              backgroundColor: theme.glass,
+              borderColor: theme.glassEdge,
+              boxShadow: shadow(theme.text, 4, 14, 0.12),
+            },
+            pressed && styles.dim,
+          ]}>
+          <Icon name={symbol} size={18} weight="semibold" color={theme.text} />
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -956,7 +1053,7 @@ async function openAttachment(uri: string, type?: 'image' | 'pdf') {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: {
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     paddingBottom: Spacing.six,
     maxWidth: MaxContentWidth,
     width: '100%',
@@ -964,8 +1061,16 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   dim: { opacity: 0.6 },
-  hero: { gap: 10, paddingBottom: 20, borderBottomWidth: StyleSheet.hairlineWidth },
-  verdict: { fontSize: 52, lineHeight: 54 },
+  hero: { gap: 10, paddingTop: Spacing.three, paddingBottom: 20, borderBottomWidth: StyleSheet.hairlineWidth },
+  topBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
+  glassButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   readPrompt: {
     flexDirection: 'row',
     alignItems: 'center',

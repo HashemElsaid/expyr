@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { CardFlightLayer } from '@/components/card-flight';
 import { Icon } from '@/components/icon';
 import { LockGate } from '@/components/lock-gate';
 import { LockOffer } from '@/components/lock-offer';
@@ -357,7 +358,12 @@ function AppShell() {
             headerLeft: () => <ModalCloseButton />,
           }}
         />
-        <Stack.Screen name="document/[id]" options={{ title: '' }} />
+        {/*
+          * No bar: the page floats its own back and menu buttons, so its card
+          * can sit right under the status bar and the flying card has a fixed
+          * place to land. The edge swipe still goes back.
+          */}
+        <Stack.Screen name="document/[id]" options={{ title: '', headerShown: false }} />
         {/* Titled from inside, once the person is known. */}
         <Stack.Screen name="person/[name]" options={{ title: '' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
@@ -393,6 +399,9 @@ function AppShell() {
           options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }}
         />
       </Stack>
+
+      {/* Above the screens, because the card it draws flies between two of them. */}
+      <CardFlightLayer />
 
       {/*
        * Over everything, because it is asked once and answered in a second, and

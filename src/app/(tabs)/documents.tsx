@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
-import { Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { useMemo, useRef } from 'react';
+import { Pressable, SectionList, StyleSheet, View, type ViewInstance } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/form';
@@ -18,6 +19,7 @@ import { isSubscription } from '@/domain/documents';
 import { isMine } from '@/domain/household';
 import { buildSections } from '@/domain/timeline';
 import { useTheme } from '@/hooks/use-theme';
+import { CARD_RADIUS, launch, useInFlight } from '@/lib/card-flight';
 import { daysUntil, formatDate } from '@/lib/dates';
 import { timeLeftParts } from '@/lib/figures';
 import { useDocuments } from '@/store/documents';
@@ -143,19 +145,37 @@ function NextUp({ doc, onPress }: { doc: TrackedDocument; onPress: () => void })
   const late = days < 0;
   const { value, unit } = timeLeftParts(days);
   const owner = isMine(doc.owner, settings.ownName) ? settings.ownName : doc.owner;
+  const holder = useRef<ViewInstance>(null);
+  const reduced = useReducedMotion();
+  const flying = useInFlight(doc.id);
+
+  // The card itself flies to the top of the document's page.
+  function open() {
+    const node = holder.current;
+    if (!node || reduced) {
+      onPress();
+      return;
+    }
+    node.measureInWindow((x, y, width, height) => {
+      launch(doc.id, { x, y, width, height }, CARD_RADIUS, late);
+      onPress();
+    });
+  }
 
   return (
-    <Pass
-      onPress={onPress}
-      accessibilityLabel={`Next up: ${doc.title}, ${value} ${unit}`.trim()}>
-      <PassTop left="Next up" right={labelForId(doc.typeId, settings.country)} />
-      <PassTitle>{doc.title}</PassTitle>
-      <PassFigure value={value} unit={unit || undefined} late={late} />
-      <PassFoot
-        left={`${late ? 'Expired' : 'Expires'} ${formatDate(doc.expiryDate)}`}
-        right={owner || undefined}
-      />
-    </Pass>
+    <View ref={holder} collapsable={false} style={flying ? styles.away : undefined}>
+      <Pass
+        onPress={open}
+        accessibilityLabel={`Next up: ${doc.title}, ${value} ${unit}`.trim()}>
+        <PassTop left="Next up" right={labelForId(doc.typeId, settings.country)} />
+        <PassTitle>{doc.title}</PassTitle>
+        <PassFigure value={value} unit={unit || undefined} late={late} />
+        <PassFoot
+          left={`${late ? 'Expired' : 'Expires'} ${formatDate(doc.expiryDate)}`}
+          right={owner || undefined}
+        />
+      </Pass>
+    </View>
   );
 }
 
@@ -186,4 +206,5 @@ const styles = StyleSheet.create({
   dim: { opacity: 0.6 },
   flex: { flex: 1 },
   empty: { gap: Spacing.three, paddingTop: Spacing.four },
+  away: { opacity: 0 },
 });

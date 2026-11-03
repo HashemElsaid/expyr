@@ -64,13 +64,7 @@ export function Pass({
     if (!size || size.width !== next.width || size.height !== next.height) setSize(next);
   };
 
-  const surface = [
-    styles.card,
-    {
-      backgroundImage: `radial-gradient(130% 120% at 88% 0%, ${Card.emeraldHigh[scheme]} 0%, ${Card.emerald} 48%, ${Card.emeraldLow} 100%)`,
-    },
-    style,
-  ];
+  const surface = [styles.card, { backgroundImage: passGradient(scheme), boxShadow: passShadow }, style];
 
   const inner = (
     <>
@@ -200,6 +194,15 @@ export function PassFoot({ left, right }: { left: string; right?: string }) {
   );
 }
 
+/** The card's emerald, lit from the top right. */
+export function passGradient(scheme: 'light' | 'dark'): string {
+  return `radial-gradient(130% 120% at 88% 0%, ${Card.emeraldHigh[scheme]} 0%, ${Card.emerald} 48%, ${Card.emeraldLow} 100%)`;
+}
+
+/** The card's own shadow and edge, for anything drawn to look like it. */
+export const passShadow =
+  'inset 0px 1px 0px rgba(255, 255, 255, 0.10), inset 0px 0px 0px 1px rgba(168, 230, 198, 0.10), 0px 24px 40px -24px rgba(6, 28, 20, 0.75)';
+
 /** Shared with anything that sets a figure the card's way outside a card. */
 export const passFigureStyle = {
   ...Fonts.figure,
@@ -212,7 +215,7 @@ export const passFigureStyle = {
 /* ------------------------------------------------------------------ print */
 
 /** The rosette and waves from `printPaths`, in mint at three strengths. */
-const SecurityPrint = memo(function SecurityPrint({ width, height }: { width: number; height: number }) {
+export const SecurityPrint = memo(function SecurityPrint({ width, height }: { width: number; height: number }) {
   const paths = useMemo(() => printPaths(width, height), [width, height]);
   return (
     <View style={[styles.fill, { pointerEvents: 'none' }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -271,8 +274,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: 20,
     paddingVertical: 18,
-    boxShadow:
-      'inset 0px 1px 0px rgba(255, 255, 255, 0.10), inset 0px 0px 0px 1px rgba(168, 230, 198, 0.10), 0px 24px 40px -24px rgba(6, 28, 20, 0.75)',
   },
   // Spelled out: absoluteFillObject went away with React Native 0.86.
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },

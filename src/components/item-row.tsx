@@ -1,6 +1,11 @@
-import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { useRef, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View, type ViewInstance } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { DocIcon } from '@/components/doc-icon';
 import { Icon } from '@/components/icon';
@@ -11,6 +16,7 @@ import { isMine } from '@/domain/household';
 import { chargeAmount } from '@/domain/year';
 import { useTheme } from '@/hooks/use-theme';
 import { guessDomain } from '@/lib/brand-icons';
+import { launch, useInFlight } from '@/lib/card-flight';
 import { dayMonthOf, daysUntil } from '@/lib/dates';
 import { money, timeLeft } from '@/lib/figures';
 import { recurrenceWord } from '@/lib/recurrence';
@@ -35,6 +41,7 @@ export function SubscriptionRow({ doc, onPress }: { doc: TrackedDocument; onPres
 
   return (
     <Row
+      id={doc.id}
       onPress={onPress}
       label={`${doc.title}, ${when}${each ? `, ${doc.price!.currency} ${money(each)}` : ''}`}
       icon={
@@ -65,6 +72,8 @@ export function DocumentRow({ doc, onPress }: { doc: TrackedDocument; onPress: (
 
   return (
     <Row
+      id={doc.id}
+      late={late}
       onPress={onPress}
       label={`${doc.title}, ${late ? 'expired' : 'expires'} ${dayMonthOf(doc.expiryDate)}`}
       icon={
@@ -99,6 +108,8 @@ export function DocumentRow({ doc, onPress }: { doc: TrackedDocument; onPress: (
 }
 
 function Row({
+  id,
+  late = false,
   onPress,
   label,
   icon,
@@ -107,6 +118,8 @@ function Row({
   owner,
   trailing,
 }: {
+  id: string;
+  late?: boolean;
   onPress: () => void;
   label: string;
   icon: ReactNode;
@@ -120,10 +133,26 @@ function Row({
   const scale = useSharedValue(1);
   const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const someoneElse = owner && !isMine(owner, settings.ownName) ? owner : null;
+  const row = useRef<ViewInstance>(null);
+  const reduced = useReducedMotion();
+  const flying = useInFlight(id);
+
+  /** Records where the row is, so its card can grow out of it, then opens it. */
+  function open() {
+    const node = row.current;
+    if (!node || reduced) {
+      onPress();
+      return;
+    }
+    node.measureInWindow((x, y, width, height) => {
+      launch(id, { x, y, width, height }, 12, late);
+      onPress();
+    });
+  }
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={open}
       onPressIn={() => {
         scale.value = withSpring(0.985, Springs.press);
       }}
@@ -134,7 +163,9 @@ function Row({
       accessibilityLabel={someoneElse ? `${label}, ${someoneElse}` : label}>
       {({ pressed: down }) => (
         <Animated.View
-          style={[styles.row, down && { backgroundColor: theme.tile }, pressed]}>
+          ref={row}
+          collapsable={false}
+          style={[styles.row, down && { backgroundColor: theme.tile }, flying && styles.away, pressed]}>
           {icon}
           <View style={styles.middle}>
             <Text style={[styles.title, { color: theme.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
@@ -217,6 +248,8 @@ const styles = StyleSheet.create({
   amount: { ...Fonts.amount, fontSize: 13 },
   when: { ...Fonts.amount, fontSize: 13 },
   lateWeight: { fontWeight: '500' },
+  // Its card is in the air, flying out of this spot or back into it.
+  away: { opacity: 0 },
   card: { overflow: 'hidden' },
   cardTop: { borderTopLeftRadius: Radius.large - 4, borderTopRightRadius: Radius.large - 4 },
   cardBottom: { borderBottomLeftRadius: Radius.large - 4, borderBottomRightRadius: Radius.large - 4 },

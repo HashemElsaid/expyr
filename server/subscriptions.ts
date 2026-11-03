@@ -42,6 +42,12 @@ export const SubscriptionsSchema = z.object({
        */
       domain: z.string(),
       status: z.enum(['active', 'expired', 'cancelled', 'unknown']),
+      /**
+       * In a free trial. renewsOn is then the day the trial turns into the
+       * first charge, which is the date somebody most wants to be warned of.
+       * Added after 1.0.1; older apps ignore it.
+       */
+      trial: z.boolean(),
     })
   ),
   /** What this screen is, or why nothing could be read from it. */
@@ -65,6 +71,7 @@ It might be a list of many: the iOS Subscriptions screen, Google Play's, a card 
 - Copy prices exactly as printed, with the currency, and take the total actually charged rather than the amount before tax. Leave price empty rather than converting or guessing one.
 - period comes from what is printed anywhere on the screen, and both the plan name and the billing period carry it: "Claude Pro - Monthly" is monthly, a period running 16 August to 16 September is monthly, "200 GB - 1 Year" and "billed annually" are yearly. Use unknown only when nothing says.
 - A receipt marked paid is an active subscription unless it says the service has been cancelled.
+- trial is true when the screen says the subscription is in a free trial: "Free trial", "Your free trial ends 12 November", "Trial until 12 Nov", "Free for 1 month, then AED 25/month". renewsOn is then the day the trial ends and the first charge happens, and price is what it will charge after the trial, not zero. Otherwise trial is false.
 - Read only what is on the screen. Never add a subscription because it is popular, and never complete a half-visible row from what it probably is.
 - domain is the service's main website, lowercase and without www: spotify.com, netflix.com, anghami.com, claude.ai, icloud.com. It is used to find the service's icon, so leave it empty rather than guessing at one you do not recognise — a wrong domain shows somebody a stranger's logo.
 - Return an empty array only when the image genuinely shows nothing anybody pays for — a photo of a cat, a boarding pass, a contract. Say what it appears to be in "note", in one sentence, addressed to the person holding the phone.

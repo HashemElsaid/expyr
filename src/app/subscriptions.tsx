@@ -1,12 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { roomFor, splitImport } from '@/domain/capacity';
 import { parseMoney } from '@/domain/money';
 import { useTheme } from '@/hooks/use-theme';
 import { ensureBrandIcon } from '@/lib/brand-icons';
@@ -22,7 +21,7 @@ import {
 } from '@/lib/subscriptions';
 import { isSubscription } from '@/domain/documents';
 import { useDocuments } from '@/store/documents';
-import { FREE_SCAN_LIMIT, FREE_SUBSCRIPTION_LIMIT, useSettings } from '@/store/settings';
+import { FREE_SCAN_LIMIT, FREE_SUBSCRIPTION_REMINDERS, useSettings } from '@/store/settings';
 import type { Recurrence } from '@/types';
 
 /**
@@ -122,38 +121,20 @@ export default function SubscriptionsScreen() {
     if (!found || chosen.size === 0) return;
 
     /*
-     * The ceiling, which this screen used to walk straight past.
+     * Every chosen subscription is added, on any plan.
      *
-     * Everywhere else adds one item at a time and asks first. Here a
-     * screenshot can arrive with seven subscriptions on it, so a free account
-     * holding two of its five could tap once and end up tracking nine. The
-     * limit was enforced on every screen except the only one that could break
-     * it in a single tap.
-     *
-     * What fits is added. Nothing is silently dropped: whoever is holding the
-     * phone is told how many did not fit and offered the thing that would
-     * hold them, because believing you are being reminded about a payment
-     * nothing is watching is the worst outcome available here.
+     * This used to stop at the free ceiling of two, so a screenshot of seven
+     * added two and the yearly total counted only those, and somebody on the
+     * free plan never saw the figure the whole app is built to show them.
+     * Free now shows the whole problem; what it holds back is the fix, a
+     * reminder before every charge (see FREE_SUBSCRIPTION_REMINDERS).
      */
-    /*
-      * Against the subscription ceiling and counting only subscriptions, so
-      * somebody's passports do not use up the room for their Netflix.
-      */
-    const room = roomFor({
-      tracked: documents.filter(isSubscription).length,
-      limit: FREE_SUBSCRIPTION_LIMIT,
-      premium: settings.premium,
-    });
-    const { take, blocked } = splitImport(chosen.size, room);
-
-    if (take === 0) {
-      router.push('/paywall');
-      return;
-    }
+    const tracked = documents.filter(isSubscription).length;
+    let added = 0;
 
     setSaving(true);
     try {
-      for (const index of [...chosen].sort((a, b) => a - b).slice(0, take)) {
+      for (const index of [...chosen].sort((a, b) => a - b)) {
         const sub = found[index];
         if (!sub.renewsOn) continue;
         const period: Recurrence = sub.period === 'unknown' ? 'monthly' : sub.period;
@@ -184,18 +165,18 @@ export default function SubscriptionsScreen() {
          * the row falls back to the same tile everything else uses.
          */
         void ensureBrandIcon(sub.domain);
+        added += 1;
       }
       successFeedback();
 
-      if (blocked > 0) {
-        Alert.alert(
-          `${take} added. ${blocked} more need Expyr Pro.`,
-          `The free plan holds ${FREE_SUBSCRIPTION_LIMIT} subscriptions. Pro takes the limit off, so the rest of your subscriptions can be tracked too.`,
-          [
-            { text: 'Not now', style: 'cancel', onPress: () => router.back() },
-            { text: 'See Pro', onPress: () => router.replace('/paywall') },
-          ]
-        );
+      /*
+       * The moment the real figure exists is the moment to say what Pro does
+       * about it. The paywall opens on what the year costs and how many
+       * charges nothing is reminding them about; closing it lands on the list,
+       * every subscription on it.
+       */
+      if (!settings.premium && tracked + added > FREE_SUBSCRIPTION_REMINDERS) {
+        router.replace('/paywall');
         return;
       }
 
@@ -231,8 +212,8 @@ export default function SubscriptionsScreen() {
             <ThemedText type="largeTitle">Every subscription, in one go</ThemedText>
             <ThemedText type="body" themeColor="textSecondary">
               iPhone already keeps the list. Screenshot it and Expyr will read the names, the
-              prices and the dates they charge you, then remind you before each one does. A
-              receipt or an invoice for a single service works just as well.
+              prices and the dates they charge you, and add up what your year costs. A receipt
+              or an invoice for a single service works just as well.
             </ThemedText>
 
             <View style={[styles.steps, { borderColor: theme.border }]}>

@@ -12,7 +12,8 @@ import {
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { LocalDocumentRepository, type DocumentRepository } from '@/data/document-repository';
-import { rollForwardAll } from '@/domain/documents';
+import { isSubscription, rollForwardAll } from '@/domain/documents';
+import { grandfatheredPicks, remindedSubscriptions } from '@/domain/reminder-allowance';
 import { daysUntil } from '@/lib/dates';
 import { deleteAttachment, storeAttachment } from '@/lib/files';
 import { newDocumentId } from '@/lib/ids';
@@ -20,7 +21,7 @@ import { deleteAllGuidance } from '@/lib/guidance';
 import { deleteReading } from '@/lib/reading';
 import { applyReminderPlan, cancelAllReminders, type ReminderStatus } from '@/lib/notifications';
 import { snoozeDate } from '@/lib/reminder-plan';
-import { useSettings } from '@/store/settings';
+import { FREE_SUBSCRIPTION_REMINDERS, useSettings } from '@/store/settings';
 import { Attachment, DocumentDraft, TrackedDocument } from '@/types';
 
 /**
@@ -54,6 +55,11 @@ type DocumentsContextValue = {
   saveProblem: SaveProblem | null;
   /** How many reminders are booked with iOS, and how many were wanted. */
   reminders: ReminderStatus;
+  /**
+   * The subscriptions something is watching. Every one on Pro; on the free
+   * plan only those inside the allowance, and the rest say so on screen.
+   */
+  reminded: ReadonlySet<string>;
   setArchived: (id: string, archived: boolean) => Promise<void>;
   addDocument: (draft: DocumentDraft) => Promise<TrackedDocument>;
   updateDocument: (id: string, draft: DocumentDraft) => Promise<void>;
@@ -103,12 +109,36 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [saveProblem, setSaveProblem] = useState<SaveProblem | null>(null);
   const [reminders, setReminders] = useState<ReminderStatus>(NO_REMINDERS);
-  const { settings } = useSettings();
+  const { settings, loaded: settingsLoaded, update: updateSettings } = useSettings();
   /** Mirror of state so writes never race against a stale closure. */
   const latest = useRef<TrackedDocument[]>([]);
   /** Same reason — it decides what a reminder can promise the user. */
   const country = useRef(settings.country);
   country.current = settings.country;
+  /** Same again, for which subscriptions the plan may remind about. */
+  const allowance = useRef({ premium: settings.premium, picks: settings.reminderPicks });
+  allowance.current = { premium: settings.premium, picks: settings.reminderPicks };
+
+  /**
+   * Everything a reminder may be booked for. A subscription outside the free
+   * allowance is tracked and counted but has nothing booked, because a
+   * reminder the plan does not cover would be a promise it does not keep.
+   *
+   * Before the first launch under that rule has recorded its picks, nothing is
+   * filtered: that launch keeps every reminder a free account already had, and
+   * filtering first would cancel them only to book them again a moment later.
+   */
+  const watched = useCallback((docs: TrackedDocument[]) => {
+    const { premium, picks } = allowance.current;
+    if (premium || picks === null) return docs;
+    const reminded = remindedSubscriptions(
+      docs.filter(isSubscription),
+      picks,
+      false,
+      FREE_SUBSCRIPTION_REMINDERS
+    );
+    return docs.filter((doc) => !isSubscription(doc) || reminded.has(doc.id));
+  }, []);
 
   /**
    * Shows the change, writes it, and brings the reminders in line.
@@ -137,10 +167,10 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const status = await applyReminderPlan(next, country.current);
+      const status = await applyReminderPlan(watched(next), country.current);
       setReminders(status);
     },
-    []
+    [watched]
   );
 
   /**
@@ -159,9 +189,9 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       });
       return;
     }
-    const status = await applyReminderPlan(before, country.current);
+    const status = await applyReminderPlan(watched(before), country.current);
     setReminders(status);
-  }, [commit]);
+  }, [commit, watched]);
 
   useEffect(() => {
     let live = true;
@@ -195,6 +225,32 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       live = false;
     };
   }, []);
+
+  /*
+   * The first launch under the reminder allowance records who keeps what: a
+   * free account that already had more subscriptions than the allowance keeps
+   * a reminder on every one of them. Waits for both stores, because deciding
+   * from an empty list would take those reminders away.
+   */
+  useEffect(() => {
+    if (!loaded || !settingsLoaded || settings.reminderPicks !== null) return;
+    updateSettings({
+      reminderPicks: settings.premium
+        ? []
+        : grandfatheredPicks(latest.current.filter(isSubscription), FREE_SUBSCRIPTION_REMINDERS),
+    });
+  }, [loaded, settingsLoaded, settings.reminderPicks, settings.premium, updateSettings]);
+
+  /*
+   * Buying Pro, or moving a free reminder to another subscription, changes
+   * what may be booked without anything in the list changing.
+   */
+  useEffect(() => {
+    if (!loaded) return;
+    applyReminderPlan(watched(latest.current), country.current)
+      .then(setReminders)
+      .catch(() => {});
+  }, [loaded, settings.premium, settings.reminderPicks, watched]);
 
   /*
    * Once the list is on screen, catch it up: subscriptions whose charge has
@@ -284,9 +340,9 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   );
 
   const rescheduleAll = useCallback(async () => {
-    const status = await applyReminderPlan(latest.current, country.current);
+    const status = await applyReminderPlan(watched(latest.current), country.current);
     setReminders(status);
-  }, []);
+  }, [watched]);
 
   const replaceAll = useCallback(
     async (restored: TrackedDocument[]) => {
@@ -350,6 +406,20 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     [commit]
   );
 
+  const reminded = useMemo(() => {
+    const subscriptions = documents.filter((doc) => isSubscription(doc) && !doc.archivedAt);
+    // Before the picks are recorded, nothing has been taken off anybody.
+    if (settings.premium || settings.reminderPicks === null) {
+      return new Set(subscriptions.map((doc) => doc.id));
+    }
+    return remindedSubscriptions(
+      subscriptions,
+      settings.reminderPicks,
+      false,
+      FREE_SUBSCRIPTION_REMINDERS
+    );
+  }, [documents, settings.premium, settings.reminderPicks]);
+
   const value = useMemo(
     () => ({
       documents: documents
@@ -361,6 +431,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       loaded,
       saveProblem,
       reminders,
+      reminded,
       setArchived,
       addDocument,
       updateDocument,
@@ -375,6 +446,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       loaded,
       saveProblem,
       reminders,
+      reminded,
       setArchived,
       addDocument,
       updateDocument,

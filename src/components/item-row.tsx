@@ -20,6 +20,7 @@ import { launch, useInFlight } from '@/lib/card-flight';
 import { dayMonthOf, daysUntil } from '@/lib/dates';
 import { money, timeLeft } from '@/lib/figures';
 import { recurrenceWord } from '@/lib/recurrence';
+import { useDocuments } from '@/store/documents';
 import { useSettings } from '@/store/settings';
 import type { TrackedDocument } from '@/types';
 
@@ -34,6 +35,8 @@ import type { TrackedDocument } from '@/types';
 
 export function SubscriptionRow({ doc, onPress }: { doc: TrackedDocument; onPress: () => void }) {
   const theme = useTheme();
+  // Outside the free reminder allowance: tracked and counted, and nothing watching it.
+  const unwatched = !useDocuments().reminded.has(doc.id);
   const days = daysUntil(doc.expiryDate);
   const when = days === 0 ? 'Today' : dayMonthOf(doc.expiryDate);
   const cadence = doc.renewsEvery ? recurrenceWord(doc.renewsEvery).toLowerCase() : null;
@@ -54,6 +57,7 @@ export function SubscriptionRow({ doc, onPress }: { doc: TrackedDocument; onPres
       title={doc.title}
       detail={cadence ? `${when}, ${cadence}` : when}
       owner={doc.owner}
+      note={unwatched ? 'No reminder' : undefined}
       trailing={
         each ? (
           <Text style={[styles.amount, { color: theme.text }]} maxFontSizeMultiplier={1.3}>
@@ -116,6 +120,7 @@ function Row({
   title,
   detail,
   owner,
+  note,
   trailing,
 }: {
   id: string;
@@ -126,6 +131,8 @@ function Row({
   title: string;
   detail: string;
   owner?: string;
+  /** A short warning beside the detail, such as that nothing is reminding. */
+  note?: string;
   trailing: ReactNode;
 }) {
   const theme = useTheme();
@@ -160,7 +167,7 @@ function Row({
         scale.value = withSpring(1, Springs.press);
       }}
       accessibilityRole="button"
-      accessibilityLabel={someoneElse ? `${label}, ${someoneElse}` : label}>
+      accessibilityLabel={[label, someoneElse, note].filter(Boolean).join(', ')}>
       {({ pressed: down }) => (
         <Animated.View
           ref={row}
@@ -184,6 +191,14 @@ function Row({
                   numberOfLines={1}
                   maxFontSizeMultiplier={1.3}>
                   {someoneElse}
+                </Text>
+              ) : null}
+              {note ? (
+                <Text
+                  style={[styles.owner, { color: theme.urgentSoft, backgroundColor: theme.urgentSoftWash }]}
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={1.3}>
+                  {note}
                 </Text>
               ) : null}
             </View>

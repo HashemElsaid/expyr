@@ -123,6 +123,19 @@ export type Settings = {
    * resolves to this account on its own.
    */
   account: string | null;
+  /**
+   * The subscriptions a free plan reminds about, when somebody has chosen.
+   *
+   * Free tracks every subscription and counts every one in the yearly total,
+   * but reminds about only `FREE_SUBSCRIPTION_REMINDERS` of them. These are
+   * the ones the person picked; any slot they have not filled goes to the
+   * most expensive of the rest (see `remindedSubscriptions`).
+   *
+   * Null until the first launch of the version that introduced it. That
+   * launch keeps reminders on every subscription a free account already had,
+   * so nobody loses a warning they were getting.
+   */
+  reminderPicks: string[] | null;
 };
 
 const DEFAULTS: Settings = {
@@ -141,26 +154,31 @@ const DEFAULTS: Settings = {
   autoRead: true,
   ratingAsked: false,
   account: null,
+  reminderPicks: null,
 };
 
 /**
- * How much a free account holds, counted separately for the two kinds.
+ * How many documents a free account holds.
  *
- * One ceiling of five was one ceiling too few. Documents and subscriptions are
- * different products to the person holding them: three documents is enough to
- * see a passport, an ID and an insurance policy counted down, which is the
- * whole demonstration, and two subscriptions is enough to see the import work
- * without handing over the feature that the import exists to sell.
+ * Three is enough to see a passport, an ID and an insurance policy counted
+ * down, which is the whole demonstration. Enforced where documents are added.
  *
- * Two constants rather than one so each is enforced where its own kind is
- * added: the add screen for documents, the screenshot import for
- * subscriptions.
- *
- * Anybody already over either line from an earlier version keeps everything
- * they have. The limits stop an addition; they never take anything away.
+ * Anybody already over the line from an earlier version keeps everything they
+ * have. The limit stops an addition; it never takes anything away.
  */
 export const FREE_DOCUMENT_LIMIT = 3;
-export const FREE_SUBSCRIPTION_LIMIT = 2;
+/**
+ * How many subscriptions a free plan reminds about.
+ *
+ * Changed on 3 November 2026 from a limit on how many could be tracked. Free
+ * now shows the whole problem: every subscription a screenshot finds goes on
+ * the list and into the yearly total, so a free account sees the real figure.
+ * What Pro adds is the fix, a reminder before every charge. A subscription
+ * outside the allowance is still tracked, and says plainly that nothing is
+ * watching it, so nobody believes they will be warned about a charge they
+ * will not be.
+ */
+export const FREE_SUBSCRIPTION_REMINDERS = 2;
 
 /**
  * Free scans, for the lifetime of the install. Two per free item, which covers
@@ -318,6 +336,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
            * borrowing a neighbour's.
            */
           account: typeof parsed.account === 'string' ? parsed.account : null,
+          reminderPicks: Array.isArray(parsed.reminderPicks)
+            ? parsed.reminderPicks.filter((id): id is string => typeof id === 'string')
+            : null,
         });
       })
       .catch(() => {})

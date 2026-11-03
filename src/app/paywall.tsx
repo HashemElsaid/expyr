@@ -9,6 +9,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { topUp } from '@/domain/credits';
+import { isSubscription } from '@/domain/documents';
+import { spendSentence } from '@/domain/money';
 import { wantsProtectOffer } from '@/domain/protect-offer';
 import { trackedSentence } from '@/domain/renewal-value';
 import { canBuy, offerFor } from '@/domain/store-offer';
@@ -22,7 +24,7 @@ import { useDocuments } from '@/store/documents';
 import {
   FREE_DOCUMENT_LIMIT,
   FREE_SCAN_LIMIT,
-  FREE_SUBSCRIPTION_LIMIT,
+  FREE_SUBSCRIPTION_REMINDERS,
   useSettings,
 } from '@/store/settings';
 
@@ -30,9 +32,13 @@ import {
 const UNLIMITED = '∞';
 
 /*
- * Only the ceilings the app actually enforces. Reminders, renewal steps, PDF
- * copies and backups are the same on both plans, and a comparison that quietly
- * implies otherwise is the kind of thing App Review reads closely.
+ * Only the ceilings the app actually enforces. Renewal steps, PDF copies and
+ * backups are the same on both plans, and a comparison that quietly implies
+ * otherwise is the kind of thing App Review reads closely.
+ *
+ * Subscription reminders lead, because that is what Pro now sells. Free
+ * tracks every subscription and counts every one in the yearly total; what it
+ * holds back is the reminder before each charge.
  *
  * Credits are the third row, and the only one whose Pro side is a number
  * rather than an infinity: the two ceilings come off, and the credits are a
@@ -41,8 +47,8 @@ const UNLIMITED = '∞';
  * it, and says it in the one place a person is comparing the two plans.
  */
 const COMPARISON: { label: string; free: string; pro: string }[] = [
+  { label: 'Subscription reminders', free: String(FREE_SUBSCRIPTION_REMINDERS), pro: 'Every one' },
   { label: 'Documents', free: String(FREE_DOCUMENT_LIMIT), pro: UNLIMITED },
-  { label: 'Subscriptions', free: String(FREE_SUBSCRIPTION_LIMIT), pro: UNLIMITED },
   { label: 'Photo scans', free: String(FREE_SCAN_LIMIT), pro: UNLIMITED },
   /*
    * The only row whose free side is a word rather than a number, and the only
@@ -71,6 +77,12 @@ export default function PaywallScreen() {
    * other way.
    */
   const opener = trackedSentence(documents, settings.country);
+  /*
+   * What the year costs, when the subscriptions have prices: the figure the
+   * free plan has just shown them, and the reason to want the fix. It leads
+   * the screen ahead of the line about paperwork.
+   */
+  const spend = settings.premium ? null : spendSentence(documents.filter(isSubscription));
   /*
    * Read once per render rather than at module load, so the price follows the
    * phone's region — and, once StoreKit is wired, the storefront's own
@@ -242,10 +254,19 @@ export default function PaywallScreen() {
             */}
           <ThemedText type="largeTitle">Expyr Pro</ThemedText>
 
-          {opener && (
-            <ThemedText type="body" themeColor="textSecondary" style={styles.opener}>
-              {opener}.
-            </ThemedText>
+          {spend ? (
+            <View style={styles.opener}>
+              <ThemedText type="headline">{spend}.</ThemedText>
+              <ThemedText type="body" themeColor="textSecondary">
+                Get a reminder before every charge.
+              </ThemedText>
+            </View>
+          ) : (
+            opener && (
+              <ThemedText type="body" themeColor="textSecondary" style={styles.opener}>
+                {opener}.
+              </ThemedText>
+            )
           )}
 
           {/*

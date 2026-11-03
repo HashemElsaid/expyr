@@ -4,8 +4,8 @@ Draft copy for App Store Connect. Editable — a starting point, not a finished
 submission.
 
 **The numbers below come from the code.** The free limits are
-`FREE_ITEM_LIMIT`, `FREE_SCAN_LIMIT` and `FREE_READ_LIMIT` in
-`src/store/settings.tsx`; the price is `PRICE_POINTS` in `src/lib/purchases.ts`.
+`FREE_DOCUMENT_LIMIT`, `FREE_SUBSCRIPTION_REMINDERS`, `FREE_SCAN_LIMIT` and
+`FREE_READ_LIMIT` in `src/store/settings.tsx`; the price is `PRICE_POINTS` in `src/lib/purchases.ts`.
 A previous version of this file advertised a free tier twice as generous as the
 app delivers, and a subscription the app does not sell. If you change a limit or
 a price, change it here in the same commit.
@@ -49,19 +49,27 @@ silence invites "what am I paying for?" at every renewal.
 
 Free plan, enforced in code:
 
-| Ceiling | Free, from 1.0.1 | Free, in 1.0 |
-|---|---|---|
-| Documents tracked | **3** | 5 items, documents and subscriptions combined |
-| Subscriptions tracked | **2** | |
-| Photos scanned | **10** | 10 |
-| Expyr AI | **Pro only** | 300 welcome credits |
+| Ceiling | Free, in the redesign | Free, from 1.0.1 | Free, in 1.0 |
+|---|---|---|---|
+| Subscriptions tracked | **Every one** | 2 | 5 items, documents and subscriptions combined |
+| Subscription reminders | **2** | 2 | |
+| Documents tracked | **3** | 3 | |
+| Photos scanned | **10** | 10 | 10 |
+| Expyr AI | **Pro only** | Pro only | 300 welcome credits |
 
 Decided 11 September. Expyr AI is part of Pro, which includes 500 credits;
 more are sold in packs, to Pro only: ten credits reads a page, twenty answers
 a question. Three documents is deliberate: passport, Emirates ID, visa, and
 the wall lands on the driving licence, which is the person's own and the one
-with the fine. Two subscriptions lets the import show its yearly total and
-then stop.
+with the fine.
+
+Changed 3 November for the redesign: free shows you the problem, Pro fixes
+it. A screenshot adds every subscription it finds, and the yearly total counts
+all of them, so a free account sees the real figure. Free reminds about two of
+them, by default the two most expensive, and the person can move a reminder
+to another; each one without a reminder says so on screen. Pro is a reminder
+before every charge. A free account that already had more subscriptions when
+this arrived keeps a reminder on every one it had.
 
 ## Two English listings, not one
 
@@ -179,10 +187,11 @@ Settings whenever you like.
 
 FREE TO START
 
-Track three documents and two subscriptions free, for as long as you like.
-Enough to see how it works. Unlock Expyr Pro with a single payment to track
-everything you own and everyone in your household, and to ask Expyr AI about
-any of it. One payment. Nothing renews, nothing to cancel.
+Screenshot your subscriptions and see every one, and what your year costs,
+free. Reminders for two of them and three documents are free for as long as
+you like. Unlock Expyr Pro with a single payment for a reminder before every
+charge, every document you own, and Expyr AI. One payment. Nothing renews,
+nothing to cancel.
 ```
 
 ### What changed, and the one thing to watch
@@ -470,15 +479,17 @@ in the background and none are required to use the app.
 
 THE BUSINESS MODEL, IN FULL
 
-Expyr is free for 3 documents, 2 subscriptions and 10 scans. Unlocking it
-removes all three limits and includes Expyr AI with 500 credits.
+Expyr tracks every subscription free, with reminders for 2 of them, plus 3
+documents and 10 scans. Unlocking it gives a reminder before every
+subscription charge, removes the document and scan limits, and includes Expyr
+AI with 500 credits.
 
 Expyr AI, which reads a document in full and answers questions about it, is
 paid for separately in credits, because it costs us money every time it is
 used rather than once.
 
 - There is ONE non-consumable in-app purchase: AED 149, paid once, which
-  removes the two limits above.
+  lifts the free limits above.
 - There are THREE consumable in-app purchases: credit packs, which are spent
   as Expyr AI is used. Ten credits reads a page; twenty answers a question. A
   new install is given thirty pages' worth so it can be tried before it is

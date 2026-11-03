@@ -55,7 +55,6 @@ import { useDocuments } from '@/store/documents';
 import {
   FREE_DOCUMENT_LIMIT,
   FREE_SCAN_LIMIT,
-  FREE_SUBSCRIPTION_LIMIT,
   useSettings,
 } from '@/store/settings';
 import {
@@ -204,29 +203,22 @@ export default function AddDocumentScreen() {
   const [dateChosen, setDateChosen] = useState(Boolean(editing));
 
   /**
-   * What a free account holds of each kind, and whether this one can be added.
+   * Whether a free account has room for this one.
    *
-   * Counted by what the app calls a subscription everywhere else, so the
-   * ceilings agree with the two halves of the Timeline. Which ceiling applies
-   * to the thing being added comes from its category, because that is chosen
-   * before anybody says how often it recurs.
-   *
-   * Before a category is chosen there is nothing to check against, so the wall
-   * only stands in the way when both are full and nothing at all can be
-   * added.
+   * Only documents have a ceiling now. Subscriptions are tracked without
+   * limit on every plan, so the yearly total is the real one; what the free
+   * plan holds back for them is reminders, decided where reminders are booked.
+   * Which kind this is comes from its category, because that is chosen before
+   * anybody says how often it recurs, so before a category there is no wall.
    */
-  const held = {
-    document: documents.filter((doc) => !isSubscription(doc)).length,
-    subscription: documents.filter(isSubscription).length,
-  };
-  const ceiling = { document: FREE_DOCUMENT_LIMIT, subscription: FREE_SUBSCRIPTION_LIMIT };
-  const full = (kind: 'document' | 'subscription') => held[kind] >= ceiling[kind];
-
+  const documentsFull =
+    documents.filter((doc) => !isSubscription(doc)).length >= FREE_DOCUMENT_LIMIT;
   const overFreeLimit =
     !editing &&
     !settings.premium &&
-    (typeId ? full(kindOf(typeId)) : full('document') && full('subscription'));
-
+    documentsFull &&
+    typeId !== null &&
+    kindOf(typeId) === 'document';
 
   const [expiry, setExpiry] = useState<Date>(() =>
     editing ? startingExpiry(editing, params.renew === '1') : defaultExpiry()
@@ -970,9 +962,8 @@ export default function AddDocumentScreen() {
           */}
         <ThemedText type="largeTitle">The free plan is full.</ThemedText>
         <ThemedText type="body" themeColor="textSecondary" style={styles.centeredText}>
-          It holds {FREE_DOCUMENT_LIMIT} documents and {FREE_SUBSCRIPTION_LIMIT} subscriptions.
-          Unlock Expyr to track everything you own, and everyone
-          in the house.
+          It holds {FREE_DOCUMENT_LIMIT} documents. Pro holds every one, and reminds you before
+          every subscription charge.
         </ThemedText>
         <View style={styles.wallAction}>
           <PrimaryButton label="See the options" onPress={() => router.replace('/paywall')} />

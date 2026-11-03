@@ -18,7 +18,9 @@ import { buildSections } from '@/domain/timeline';
 import { dueWithin } from '@/domain/year';
 import { ensureBrandIcon, guessDomain } from '@/lib/brand-icons';
 import { shortMoney } from '@/lib/figures';
+import { useTheme } from '@/hooks/use-theme';
 import { useDocuments } from '@/store/documents';
+import { FREE_SUBSCRIPTION_REMINDERS } from '@/store/settings';
 
 /**
  * Subscriptions: the page Expyr opens on.
@@ -34,7 +36,7 @@ import { useDocuments } from '@/store/documents';
  */
 export default function SubscriptionsPage() {
   const router = useRouter();
-  const { documents, loaded } = useDocuments();
+  const { documents, loaded, reminded } = useDocuments();
   const bar = useTabBarFrame();
   /** Bumped when an icon lands, so the rows redraw wearing it. */
   const [, setIconsFetched] = useState(0);
@@ -42,6 +44,8 @@ export default function SubscriptionsPage() {
   const subscriptions = useMemo(() => documents.filter(isSubscription), [documents]);
   const sections = useMemo(() => buildSections(subscriptions), [subscriptions]);
 
+  /** How many charges nothing is reminding them about, on the free plan. */
+  const unwatched = subscriptions.filter((doc) => !reminded.has(doc.id)).length;
   const total = yearlyTotal(subscriptions);
   const currency = total.kind === 'none' ? null : total.currency;
   const due = dueWithin(subscriptions, currency ?? '');
@@ -80,6 +84,9 @@ export default function SubscriptionsPage() {
             <View>
               <PageHeader title="Subscriptions" />
               {subscriptions.length > 0 && <YearCard subscriptions={subscriptions} />}
+              {unwatched > 0 && (
+                <AllowanceNotice unwatched={unwatched} onPro={() => router.push('/paywall')} />
+              )}
               <RemindersOffBanner />
               {subscriptions.length > 0 && (
                 <StatStrip
@@ -112,6 +119,29 @@ export default function SubscriptionsPage() {
 }
 
 /**
+ * Under the year card on the free plan, once some charges have nothing
+ * reminding them. The figure above is the problem; this is where the fix is
+ * offered, in the words of what it does.
+ */
+function AllowanceNotice({ unwatched, onPro }: { unwatched: number; onPro: () => void }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.notice, { backgroundColor: theme.backgroundElement }]}>
+      <View style={styles.noticeText}>
+        <ThemedText type="headline">
+          {unwatched} {unwatched === 1 ? 'charge' : 'charges'} with no reminder
+        </ThemedText>
+        <ThemedText type="footnote" themeColor="textSecondary">
+          The free plan reminds you about {FREE_SUBSCRIPTION_REMINDERS}. Pro reminds you before
+          every one.
+        </ThemedText>
+      </View>
+      <PrimaryButton label="Remind me before every charge" onPress={onPro} />
+    </View>
+  );
+}
+
+/**
  * Before the first one. Says the one thing to do, which is the screenshot,
  * because iOS already keeps the list and copying it out by hand is exactly
  * the chore that lets subscriptions go unnoticed.
@@ -134,4 +164,11 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, maxWidth: MaxContentWidth, width: '100%' },
   list: { paddingHorizontal: 20, paddingTop: Spacing.two },
   empty: { gap: Spacing.three, paddingTop: Spacing.four },
+  notice: {
+    marginTop: Spacing.three,
+    padding: Spacing.three,
+    borderRadius: 18,
+    gap: Spacing.three,
+  },
+  noticeText: { gap: 2 },
 });

@@ -128,3 +128,24 @@ export function localCurrency(read: () => string | null | undefined): string {
   const code = read();
   return code && /^[A-Za-z]{3}$/.test(code) ? code.toUpperCase() : 'USD';
 }
+
+/**
+ * The paywall's opening line once there are subscriptions with prices:
+ * "You spend AED 4,200 a year on 7 subscriptions".
+ *
+ * Every subscription is counted, priced or not, because the count is a fact
+ * about the list. The figure is the biggest currency's total and says "at
+ * least" when there are others, because adding two currencies together is the
+ * one thing it must never do. Null when nothing has a price yet, so the
+ * screen falls back to its other line rather than stating a total of nothing.
+ */
+export function spendSentence(subscriptions: readonly TrackedDocument[]): string | null {
+  const live = subscriptions.filter((doc) => !doc.archivedAt);
+  const total = yearlyTotal(live);
+  if (total.kind === 'none') return null;
+  const figure = `${total.currency} ${Math.round(total.amount).toLocaleString('en-US')}`;
+  const count = `${live.length} subscription${live.length === 1 ? '' : 's'}`;
+  return total.kind === 'one'
+    ? `You spend ${figure} a year on ${count}`
+    : `You spend at least ${figure} a year on ${count}`;
+}

@@ -42,10 +42,11 @@ import { dayMonth, daysUntil, formatDate, shortDate } from '@/lib/dates';
 import { money } from '@/lib/figures';
 import { upcoming } from '@/lib/recurrence';
 import { chargeAmount } from '@/domain/year';
+import { moveReminder } from '@/domain/reminder-allowance';
 import { arrive, flyHome, useInFlight } from '@/lib/card-flight';
 import { successFeedback, tapFeedback } from '@/lib/haptics';
 import { useDocuments } from '@/store/documents';
-import { useSettings } from '@/store/settings';
+import { FREE_SUBSCRIPTION_REMINDERS, useSettings } from '@/store/settings';
 import { ExtractedField, TrackedDocument } from '@/types';
 
 /** Reminder dates derived from the schedule — no extra state to keep in sync. */
@@ -67,8 +68,9 @@ export default function DocumentDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { documents, archived, removeDocument, setArchived, updateDocument } = useDocuments();
-  const { settings } = useSettings();
+  const { documents, archived, reminded, removeDocument, setArchived, updateDocument } =
+    useDocuments();
+  const { settings, update } = useSettings();
   const [guideOpen, setGuideOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [pointsOpen, setPointsOpen] = useState(false);
@@ -250,6 +252,35 @@ export default function DocumentDetailScreen() {
   const runway = buildRunway(days, doc.leadDays, period);
   const blockers = guided ? findBlockers(doc, documents) : [];
   const notes = guided ? notesFor(doc.typeId) : [];
+  const subscription = isSubscription(doc) && !doc.archivedAt;
+  const unwatched = subscription && !reminded.has(doc.id);
+  const freeReminder = subscription && !settings.premium && reminded.has(doc.id);
+
+  /**
+   * Moves one of the free reminders onto this subscription, asking which one
+   * gives it up. Nothing is moved without saying where it came from.
+   */
+  function moveReminderHere() {
+    if (!doc) return;
+    tapFeedback();
+    const holders = documents.filter((d) => reminded.has(d.id));
+    const move = (from: string) => {
+      update({ reminderPicks: moveReminder(reminded, from, doc.id) });
+      successFeedback();
+    };
+    if (holders.length === 0) {
+      update({ reminderPicks: [doc.id] });
+      return;
+    }
+    Alert.alert(
+      'Move a reminder here?',
+      `The free plan reminds you about ${FREE_SUBSCRIPTION_REMINDERS} subscriptions. Which one should stop?`,
+      [
+        ...holders.map((holder) => ({ text: holder.title, onPress: () => move(holder.id) })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]
+    );
+  }
 
   function markRenewed() {
     tapFeedback();
@@ -448,21 +479,54 @@ export default function DocumentDetailScreen() {
           </ListSection>
         )}
 
-        <ListSection title="Reminders">
-          {reminders.length === 0 ? (
-            <ListRow symbol="bell.slash" tint="gray" title="No reminders set" />
-          ) : (
-            reminders.map((r) => (
-              <ListRow
-                key={r.lead}
-                symbol="bell.fill"
-                tint={r.past ? 'gray' : 'red'}
-                title={dayMonth(r.date)}
-                value={r.past ? 'Sent' : undefined}
-              />
-            ))
-          )}
-        </ListSection>
+        {/*
+          * A subscription outside the free allowance is tracked and counted,
+          * and says so here rather than listing reminder dates that will never
+          * arrive. Believing a charge is being watched when it is not is the
+          * one mistake this screen must not let anybody make.
+          */}
+        {unwatched ? (
+          <ListSection
+            title="Reminders"
+            footer={`The free plan reminds you about ${FREE_SUBSCRIPTION_REMINDERS} subscriptions. Pro reminds you before every charge`}>
+            <ListRow symbol="bell.slash" tint="gray" title="No reminder" />
+            <ListRow
+              symbol="arrow.left.arrow.right"
+              tint="blue"
+              title="Remind me about this instead"
+              chevron={false}
+              onPress={moveReminderHere}
+            />
+            <ListRow
+              symbol="bell.badge"
+              tint="green"
+              title="Remind me before every charge"
+              onPress={() => router.push('/paywall')}
+            />
+          </ListSection>
+        ) : (
+          <ListSection
+            title="Reminders"
+            footer={
+              freeReminder
+                ? `One of your ${FREE_SUBSCRIPTION_REMINDERS} free subscription reminders`
+                : undefined
+            }>
+            {reminders.length === 0 ? (
+              <ListRow symbol="bell.slash" tint="gray" title="No reminders set" />
+            ) : (
+              reminders.map((r) => (
+                <ListRow
+                  key={r.lead}
+                  symbol="bell.fill"
+                  tint={r.past ? 'gray' : 'red'}
+                  title={dayMonth(r.date)}
+                  value={r.past ? 'Sent' : undefined}
+                />
+              ))
+            )}
+          </ListSection>
+        )}
 
         {doc.files.length > 0 && (
           <View style={[styles.fileRow, { borderBottomColor: theme.border }]}>

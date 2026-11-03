@@ -14,6 +14,11 @@
  * paywall sells against was enforced everywhere except the one screen that
  * could add six things in a tap.
  *
+ * Subscriptions stopped using this on 3 November 2026: every one a screenshot
+ * finds is tracked on any plan, and the free plan limits reminders instead
+ * (see `reminder-allowance.ts`). Documents still have a ceiling, and a scan
+ * that finds several of them still splits here.
+ *
  * No imports on purpose. The ceiling lives in `src/store/settings.tsx`
  * alongside AsyncStorage and expo-constants, and reaching for it from here
  * would drag native modules into anything that wanted to test this. So the

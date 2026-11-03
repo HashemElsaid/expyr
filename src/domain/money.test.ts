@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatYearly, parseMoney, yearlyAmount, yearlyTotal } from './money';
+import { formatYearly, parseMoney, spendSentence, yearlyAmount, yearlyTotal } from './money';
 import type { Money, Recurrence, TrackedDocument } from '@/types';
 
 // `null` rather than `undefined` for 'does not recur': passing undefined to a
@@ -117,5 +117,37 @@ describe('what a year of it costs', () => {
     expect(formatYearly({ kind: 'one', currency: 'USD', amount: 6899.88 })).toBe(
       'USD 6,900 a year'
     );
+  });
+});
+
+describe('the paywall line about the year', () => {
+  const sub = (amount: number | null, currency = 'AED'): TrackedDocument => ({
+    id: `s${Math.random()}`,
+    typeId: 'membership',
+    title: 'x',
+    expiryDate: '2026-12-01',
+    files: [],
+    leadDays: [3],
+    renewsEvery: 'monthly',
+    ...(amount === null ? {} : { price: { amount, currency, every: 'monthly' as Recurrence } }),
+    visibility: 'private',
+    createdAt: '2026-11-01T00:00:00Z',
+    updatedAt: '2026-11-01T00:00:00Z',
+  });
+
+  it('states the year and counts every subscription, priced or not', () => {
+    expect(spendSentence([sub(300), sub(50), sub(null)])).toBe(
+      'You spend AED 4,200 a year on 3 subscriptions'
+    );
+  });
+
+  it('says at least when some are in another currency', () => {
+    expect(spendSentence([sub(300), sub(10, 'USD')])).toBe(
+      'You spend at least AED 3,600 a year on 2 subscriptions'
+    );
+  });
+
+  it('says nothing before anything has a price', () => {
+    expect(spendSentence([sub(null)])).toBeNull();
   });
 });

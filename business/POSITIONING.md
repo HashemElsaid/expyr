@@ -114,9 +114,9 @@ Development and Hashem.
 
 ## What makes it different: the AI, pointed at subscriptions
 
-Proposed 3 November, **being tested, not decided.** A subscription tracker
-alone is a crowded shelf. The candidate for the next release after the
-redesign:
+Proposed 3 November, and **Hashem said yes the same day**: it is the next
+release after the redesign, built as soon as the test below shows how. A
+subscription tracker alone is a crowded shelf. The feature:
 
 > Show Expyr your bank statement. It finds every subscription, and how to cut
 > them.

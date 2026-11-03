@@ -68,10 +68,22 @@ Decided 3 November, passed to App Development to build into the redesign:
 - **Pro, one payment:** a reminder before every charge, unlimited documents,
   Expyr AI.
 
-The paywall belongs right after the total: "You spend AED 4,200 a year. Get
-warned before every charge." Until it ships, a free import keeps only 2
-subscriptions and the total counts only those, which hides the number the whole
-pitch rests on.
+**Built 3 November** on the redesign branch, ships with the redesign:
+
+- Every subscription a screenshot finds is added, on any plan, and every
+  total counts all of them. Adding by hand is unlimited.
+- Reminders go to 2 subscriptions: the ones the person picks, otherwise the
+  two most expensive. The rest carry an amber "No reminder" tag, and iOS has
+  nothing booked for them.
+- After an import that leaves a charge without a reminder, the paywall opens
+  with "You spend AED 4,200 a year on 7 subscriptions. Get a reminder before
+  every charge."
+- People already on free with more than 2 subscriptions keep reminders on all
+  of the ones they had.
+
+Until the redesign is live, the store still says "Track three documents and
+two subscriptions free". That line changes when the redesign version's listing
+is written.
 
 ## The store listing
 

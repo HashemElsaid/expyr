@@ -128,17 +128,20 @@ export function localPrice(): string {
 }
 
 /**
- * One price, paid once. Placeholder until it matches App Store Connect.
+ * One price, paid once. The written table is only the fallback: every screen
+ * that shows the price asks StoreKit first.
  *
  * A subscription was the wrong shape for this app. Expyr is built to be silent
  * — the months where nothing expires are the app working, not failing — and
  * renting something designed to say nothing invites the question "what am I
- * paying for" at every renewal. Every competitor in this category charges once,
- * in the AED 119–150 band.
+ * paying for" at every renewal.
  *
- * AED 149 sits at the top of that band rather than under it, because the app
- * does more than name a date: it carries the renewal steps, the fees, the fine
- * for lateness and the authority for the user's own emirate.
+ * AED 59.99 from the day the redesign is released (decided 3 November 2026,
+ * business/MONEY.md), down from AED 149. Once Expyr leads with subscriptions
+ * it is compared with subscription trackers, which sell once for roughly AED
+ * 20 to 60 in the UAE store, not with document trackers. The table below still
+ * says 149 until release day, when it is replaced with Apple's own generated
+ * price for each storefront.
  *
  * Scanning costs a fraction of a fil per read, so a single payment covers years
  * of it comfortably. The free scan ceiling is there for abuse, not economics.

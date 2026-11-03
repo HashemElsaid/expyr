@@ -3,8 +3,10 @@ import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { offerFor } from '@/domain/store-offer';
+import { useStorePrices } from '@/hooks/use-store-prices';
 import { useTheme } from '@/hooks/use-theme';
-import { plans } from '@/lib/purchases';
+import { PRO_PRODUCT_ID, plans } from '@/lib/purchases';
 
 /** Apple's standard licence, which these terms sit on top of. */
 const APPLE_EULA = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
@@ -28,7 +30,7 @@ const SECTIONS: { title: string; body: string }[] = [
   },
   {
     title: 'Paying for Expyr',
-    body: 'Expyr is free to use for a limited number of items and scans. Unlocking it removes both limits and costs one payment. It is not a subscription: payment is charged to your Apple Account at confirmation, nothing renews, there is nothing to cancel, and you will not be charged again. The purchase can be shared with your Apple Family group, up to six people.',
+    body: 'Expyr is free to use. It tracks every subscription you add, with reminders for a limited number of them, and a limited number of documents and scans. Unlocking it lifts those limits and costs one payment. It is not a subscription: payment is charged to your Apple Account at confirmation, nothing renews, there is nothing to cancel, and you will not be charged again. The purchase can be shared with your Apple Family group, up to six people.',
   },
   {
     title: 'Ending your use',
@@ -39,6 +41,13 @@ const SECTIONS: { title: string; body: string }[] = [
 export default function TermsScreen() {
   const theme = useTheme();
   const plan = plans()[0];
+  /*
+   * Apple's own price for this storefront, the same one the paywall shows, so
+   * the terms never quote a different figure from the button. The written
+   * table only shows until StoreKit answers, or where it never does.
+   */
+  const offer = offerFor(useStorePrices(), PRO_PRODUCT_ID, plan.price);
+  const price = offer.kind === 'unavailable' ? plan.price : offer.price;
 
   return (
     <ThemedView style={styles.container}>
@@ -70,7 +79,7 @@ export default function TermsScreen() {
             <View style={[styles.rule, { backgroundColor: theme.border }]} />
           </View>
           <ThemedText type="body" themeColor="textSecondary">
-            {plan.title}, {plan.price}, {plan.cadence}. Prices may differ by region and are shown
+            {plan.title}, {price}, {plan.cadence}. Prices may differ by region and are shown
             in the App Store before you confirm.
           </ThemedText>
         </View>

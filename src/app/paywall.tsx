@@ -4,6 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/icon';
+import { ProCard } from '@/components/pro-card';
 import { ProtectCredits } from '@/components/protect-credits';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -247,12 +248,12 @@ export default function PaywallScreen() {
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/*
-            * The name of the thing being sold. It was "Free, or everything.",
-            * which is a slogan with a full stop where iOS puts the title of
-            * the screen, and a person who has just been stopped by a ceiling
-            * does not need to be sold a mood.
+            * The name of the thing being sold, on the card it is: the same
+            * object as every subscription's card, in gold. It was a Large
+            * Title, and before that "Free, or everything.", a slogan where iOS
+            * puts the title of the screen.
             */}
-          <ThemedText type="largeTitle">Expyr Pro</ThemedText>
+          <ProCard />
 
           {spend ? (
             <View style={styles.opener}>
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
   closeRow: { alignItems: 'flex-end', paddingHorizontal: Spacing.three, paddingTop: Spacing.two },
   content: { paddingHorizontal: Spacing.three, paddingBottom: Spacing.four },
   flex: { flex: 1 },
-  opener: { paddingTop: Spacing.two },
+  opener: { paddingTop: Spacing.three, gap: 2 },
   table: { borderRadius: Radius.medium, overflow: 'hidden', marginTop: Spacing.four },
   tableHead: { flexDirection: 'row', alignItems: 'center' },
   tableRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: Spacing.three },

@@ -214,15 +214,25 @@ export const passFigureStyle = {
 
 /* ------------------------------------------------------------------ print */
 
-/** The rosette and waves from `printPaths`, in mint at three strengths. */
-export const SecurityPrint = memo(function SecurityPrint({ width, height }: { width: number; height: number }) {
+/** The rosette and waves from `printPaths`, in mint at three strengths, or in another ink. */
+export const SecurityPrint = memo(function SecurityPrint({
+  width,
+  height,
+  color = Card.mint,
+  strength = 1,
+}: {
+  width: number;
+  height: number;
+  color?: string;
+  strength?: number;
+}) {
   const paths = useMemo(() => printPaths(width, height), [width, height]);
   return (
     <View style={[styles.fill, { pointerEvents: 'none' }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-        <Path d={paths.outer} stroke={Card.mint} strokeWidth={0.55} strokeOpacity={0.2} fill="none" />
-        <Path d={paths.inner} stroke={Card.mint} strokeWidth={0.55} strokeOpacity={0.17} fill="none" />
-        <Path d={paths.waves} stroke={Card.mint} strokeWidth={0.55} strokeOpacity={0.14} fill="none" />
+        <Path d={paths.outer} stroke={color} strokeWidth={0.55} strokeOpacity={0.2 * strength} fill="none" />
+        <Path d={paths.inner} stroke={color} strokeWidth={0.55} strokeOpacity={0.17 * strength} fill="none" />
+        <Path d={paths.waves} stroke={color} strokeWidth={0.55} strokeOpacity={0.14 * strength} fill="none" />
       </Svg>
     </View>
   );
@@ -232,7 +242,16 @@ export const SecurityPrint = memo(function SecurityPrint({ width, height }: { wi
  * A slow band of light that crosses the card every nine seconds, the way a
  * laminated page catches a lamp as it moves. Off with Reduce Motion.
  */
-function Sheen({ width }: { width: number }) {
+export function Sheen({
+  width,
+  tint = 'rgba(255, 255, 255, 0.11)',
+  every = 9000,
+}: {
+  width: number;
+  tint?: string;
+  /** How often the light crosses, start to start. */
+  every?: number;
+}) {
   const reduced = useReducedMotion();
   const progress = useSharedValue(0);
 
@@ -243,12 +262,12 @@ function Sheen({ width }: { width: number }) {
       withRepeat(
         withSequence(
           withTiming(1, { duration: 1980, easing: Easing.inOut(Easing.ease) }),
-          withDelay(7020, withTiming(0, { duration: 0 }))
+          withDelay(every - 1980, withTiming(0, { duration: 0 }))
         ),
         -1
       )
     );
-  }, [reduced, progress]);
+  }, [reduced, progress, every]);
 
   const band = width * 1.6;
   const moving = useAnimatedStyle(() => ({
@@ -260,7 +279,12 @@ function Sheen({ width }: { width: number }) {
     <Animated.View
       style={[
         styles.sheen,
-        { left: -width * 0.3, width: band, pointerEvents: 'none' },
+        {
+          left: -width * 0.3,
+          width: band,
+          pointerEvents: 'none',
+          backgroundImage: `linear-gradient(105deg, transparent 42%, ${tint} 50%, transparent 58%)`,
+        },
         moving,
       ]}
     />
@@ -277,13 +301,7 @@ const styles = StyleSheet.create({
   },
   // Spelled out: absoluteFillObject went away with React Native 0.86.
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  sheen: {
-    position: 'absolute',
-    top: '-30%',
-    bottom: '-30%',
-    backgroundImage:
-      'linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.11) 50%, transparent 58%)',
-  },
+  sheen: { position: 'absolute', top: '-30%', bottom: '-30%' },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   label: {
     ...Fonts.strong,
